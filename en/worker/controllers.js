@@ -1000,7 +1000,7 @@ export async function renderCategory(request, env, slug) {
     "itemListElement": sortedCasinos.map((c, index) => ({
       "@type": "ListItem",
       "position": index + 1,
-      "url": site.url(`/en/category/${c.slug}`)`
+      "url": site.url(`/en/category/${c.slug}`)
     }))
   };
 
