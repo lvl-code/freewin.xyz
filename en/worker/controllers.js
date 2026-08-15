@@ -870,7 +870,7 @@ export async function renderDashboardPage(request, env) {
 
     const html = await renderer.render("users/dashboard.html", {
         seo_title: "Dashboard",
-        seo_description: `${site.siteName} Dashboard',
+        seo_description: `${site.siteName} Dashboard`,
         email: user.email,
         role: user.role
     });
