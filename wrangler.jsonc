@@ -11,13 +11,12 @@
     "directory": "./en",
     "run_worker_first": true
   },
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "levelcasino-db",
-      "database_id": "8e68c1f7-e284-415c-a67c-6ba0c5d0a1f8"
-    }
-  ],
+
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "freewin-db",
+    "database_id": "8aa163e4-7dc1-4539-b505-b1b43b021e30"
+ }],
   "ai": {
     "binding": "AI"
   },
@@ -25,7 +24,7 @@
   "kv_namespaces": [
     {
       "binding": "CACHE",
-      "id": "0557421566ac40a999c365bb6936a53f"
+      "id": "b8a8a5da18074de9890a62e3db56908c"
     }
   ],
   "r2_buckets": [
