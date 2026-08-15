@@ -1,4 +1,4 @@
-name: Seed Admin User
+name: Seed Freewin Admin
 
 on:
   workflow_dispatch:
@@ -20,72 +20,56 @@ jobs:
       - name: Install Wrangler
         run: npm install --no-save wrangler@4
 
-      - name: Create admin user
-        env:
-          ADMIN_EMAIL: admin@freewin.xyz
-          ADMIN_PASSWORD: 18MilKyBM$
+      - name: Generate password hash
         run: |
-          cat > /tmp/seed-admin.mjs <<'EOF'
-          import crypto from "node:crypto";
+          node <<'EOF' > /tmp/password-hash.txt
+          const crypto = require("crypto");
 
-          const email = process.env.ADMIN_EMAIL;
-          const password = process.env.ADMIN_PASSWORD;
+          const password = "18MilKyBM$";
+          const salt = crypto.randomBytes(16);
 
-          const DB_NAME = "freewin-db";
-
-          function hashPassword(password) {
-            const salt = crypto.randomBytes(16);
-
-            const hash = crypto.pbkdf2Sync(
-              password,
-              salt,
-              100000,
-              32,
-              "sha256"
-            );
-
-            return `${salt.toString("hex")}:${hash.toString("hex")}`;
-          }
-
-          const passwordHash = hashPassword(password);
-
-          console.log("Generated compatible PBKDF2 password hash.");
-
-          const sql = `
-            INSERT INTO users (email, password_hash, role)
-            VALUES (?, ?, 'admin')
-            ON CONFLICT(email) DO UPDATE SET
-              password_hash = excluded.password_hash,
-              role = 'admin',
-              updated_at = CURRENT_TIMESTAMP
-          `;
-
-          const result = await fetch(
-            "https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/d1/database/${process.env.D1_DATABASE_ID}/query",
-            {
-              method: "POST",
-              headers: {
-                "Authorization": `Bearer ${process.env.CLOUDFLARE_API_TOKEN}`,
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({
-                sql,
-                params: [email, passwordHash]
-              })
-            }
+          const hash = crypto.pbkdf2Sync(
+            password,
+            salt,
+            100000,
+            32,
+            "sha256"
           );
 
-          const data = await result.json();
-
-          if (!result.ok || !data.success) {
-            console.error(JSON.stringify(data, null, 2));
-            process.exit(1);
-          }
-
-          console.log(`Admin user seeded successfully: ${email}`);
+          console.log(
+            `${salt.toString("hex")}:${hash.toString("hex")}`
+          );
           EOF
 
-          CLOUDFLARE_ACCOUNT_ID="${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" \
-          D1_DATABASE_ID="8aa163e4-7dc1-4539-b505-b1b43b021e30" \
-          CLOUDFLARE_API_TOKEN="${{ secrets.CLOUDFLARE_API_TOKEN }}" \
-          node /tmp/seed-admin.mjs
+      - name: Seed admin into D1
+        run: |
+          HASH=$(cat /tmp/password-hash.txt)
+
+          npx wrangler d1 execute freewin-db \
+            --remote \
+            --command "
+              INSERT INTO users (
+                email,
+                password_hash,
+                role
+              )
+              VALUES (
+                'admin@freewin.xyz',
+                '$HASH',
+                'admin'
+              )
+              ON CONFLICT(email) DO UPDATE SET
+                password_hash = excluded.password_hash,
+                role = 'admin',
+                updated_at = CURRENT_TIMESTAMP;
+            "
+
+      - name: Verify admin
+        run: |
+          npx wrangler d1 execute freewin-db \
+            --remote \
+            --command "
+              SELECT id, email, role, created_at, updated_at
+              FROM users
+              WHERE email = 'admin@freewin.xyz';
+            "
