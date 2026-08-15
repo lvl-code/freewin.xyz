@@ -2,6 +2,7 @@
 // LEVELCASINO TEMPLATE ENGINE
 // =====================================================
 import { sanitizeHtml } from './sanitize.js';
+import { getSiteContext } from "./site-context.js";
 import {
   buildBreadcrumbSchema,
   renderBreadcrumbs
@@ -36,6 +37,7 @@ export class Renderer {
 
   constructor(env, request = null) {
     this.env = env;
+    this.request = request;
     this.country = request?.cf?.country || "RW";
   }
 
@@ -260,18 +262,39 @@ escapeHtml(str = "") {
     .replace(/>/g, "&gt;");
 }
 
-buildSEO(data = {}) {
-  const title = data.seo_title || "Level.casino — Expert Casino Reviews";
-  const description = this.escapeHtml(data.seo_description || "");
-  const canonical = data.canonical || "";
-  const ogImage = data.og_image || "https://level.casino/static/images/og-image.png";
+async buildSEO(data = {}) {
+  const site = await getSiteContext(
+    this.request,
+    this.env
+  );
+
+  const title =
+    data.seo_title ||
+    `${site.siteName} — Expert Casino Reviews`;
+
+  const description =
+    this.escapeHtml(
+      data.seo_description || ""
+    );
+
+  const canonical =
+    data.canonical ||
+    site.url(
+      new URL(
+        this.request.url
+      ).pathname
+    );
+
+  const ogImage =
+    data.og_image ||
+    site.ogImageUrl;
 
   return `
 <title>${title}</title>
 <meta name="description" content="${description}">
 <link rel="canonical" href="${canonical}">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Level.casino">
+<meta property="og:site_name" content="${this.escapeHtml(site.siteName)}">
 <meta property="og:locale" content="en_US">
 <meta property="og:url" content="${canonical}">
 <meta property="og:title" content="${this.escapeHtml(title)}">
@@ -283,8 +306,8 @@ buildSEO(data = {}) {
 <meta name="twitter:description" content="${description}">
 <meta name="twitter:image" content="${ogImage}">
 <meta name="theme-color" content="#0f172a">
-<meta name="apple-mobile-web-app-title" content="Level.casino">
-<meta name="application-name" content="Level.casino">
+<meta name="apple-mobile-web-app-title" content="${this.escapeHtml(site.siteName)}">
+<meta name="application-name" content="${this.escapeHtml(site.siteName)}">
 <link rel="mask-icon" href="/static/icon/favicon.svg" color="#0f172a">
 `;
 }
@@ -313,37 +336,47 @@ ${JSON.stringify(schema)}
     // Load dynamic navigation data first
     const navData = await this.loadNavData();
 
-    const allData = { ...navData, ...data };
+    const site = await getSiteContext(
+  this.request,
+  this.env
+);
+
+const allData = {
+  ...navData,
+  site_name: site.siteName,
+  site_origin: site.origin,
+  site_logo: site.logoUrl,
+  site_description: site.description,
+  ...data
+};
 
     page = this.replaceVariables(page, allData);
 
     let base = await this.loadTemplate("layout/base.html");
-    const seo = this.buildSEO(data);
-
+    const seo = await this.buildSEO(data);
     const schemas = [];
 
     schemas.push({
-      "@context":"https://schema.org",
-      "@type":"Organization",
-      "name":"Level.casino",
-      "url":"https://level.casino",
-      "logo":"https://level.casino/static/images/logo.png"
-    });
-    
-    // Website Schema
-    schemas.push({
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "Level.casino",
-      "url": "https://level.casino"
-    });
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": site.siteName,
+  "url": site.origin,
+  "logo": site.logoUrl
+});
 
+schemas.push({
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": site.siteName,
+  "url": site.origin
+});
+   
     if (schema) {
         schemas.push(schema);
     }
 
     if (breadcrumbs && breadcrumbs.length) {
-      schemas.push(buildBreadcrumbSchema(breadcrumbs));
+      schemas.push(buildBreadcrumbSchema(breadcrumbs, site.origin));
     }
 
     const jsonld = this.buildSchemas(schemas);

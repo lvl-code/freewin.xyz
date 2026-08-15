@@ -1,4 +1,5 @@
 import { Renderer } from "./render.js";
+import { getSiteContext } from "./site-context.js";
 import * as authors from "./database/authors.js";
 import * as categories from "./database/categories.js";
 import * as casinos from "./database/casinos.js";
@@ -150,6 +151,7 @@ function buildBreadcrumbsbackup(path, data = {}) {
 
 export async function renderHome(request, env) {
   const renderer = new Renderer(env, request);
+  const site = await getSiteContext(request, env);
   const casinoList = await casinos.getAllCasinos(env.DB);
   const geoData = await prepareGeoData(env, request, casinoList);
   const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
@@ -167,24 +169,24 @@ export async function renderHome(request, env) {
   const homeSchema = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    "url": "https://level.casino",
-    "name": "Level.casino",
-    "description": "Expert casino reviews, exclusive bonuses, and real player data.",
+    "url": site.origin,
+    "name": site.siteName,
+    "description":site.description || "Expert casino reviews, exclusive bonuses, and real player data.",
     "publisher": {
       "@type": "Organization",
-      "name": "Level.casino",
+      "name": "site.siteName",
       "logo": {
         "@type": "ImageObject",
-        "url": "https://level.casino/static/images/logo.png"
+        "url": site.logoUrl
       }
     }
   };
 
       // Public pages don't need a CSRF token, but set it to empty for the meta tag
   const html = await renderer.render("home.html", {
-    seo_title: dynamicSeo.seo_title || "Level.casino — Expert Casino Reviews & Bonuses",
+    seo_title: dynamicSeo.seo_title || `${site.siteName} — Expert Casino Reviews & Bonuses`,
     seo_description: dynamicSeo.seo_description || "Expert casino reviews, exclusive bonuses, and real player data for casinos worldwide.",
-    canonical: dynamicSeo.canonical || "https://level.casino/en",
+    canonical: dynamicSeo.canonical || site.url("/en"),
     og_image: dynamicSeo.og_image || "",
     casino_cards: buildCasinoCards(available, geoData),
     casino_count: casinoList.length,
@@ -203,61 +205,13 @@ export async function renderHome(request, env) {
   });
 }
 
-export async function renderHomebackupold(request, env) {
-  const renderer = new Renderer(env, request);
-  const casinoList = await casinos.getAllCasinos(env.DB);
-  const geoData = await prepareGeoData(env, request, casinoList);
-  const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
-
-  // Split into available (shown by default) and others (hidden behind Load More)
-  const available = sortedCasinos.filter(c => 
-    geoData.statuses[c.slug] !== "blocked" && geoData.statuses[c.slug] !== "restricted"
-  );
-  const others = sortedCasinos.filter(c => 
-    geoData.statuses[c.slug] === "blocked" || geoData.statuses[c.slug] === "restricted"
-  );
-
-  const homeSchema = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "url": "https://level.casino",
-    "name": "Level.casino",
-    "description": "Expert casino reviews, exclusive bonuses, and real player data.",
-    "publisher": {
-      "@type": "Organization",
-      "name": "Level.casino",
-      "logo": {
-        "@type": "ImageObject",
-        "url": "https://level.casino/static/images/logo.png"
-      }
-    }
-  };
-
-  const html = await renderer.render("home.html", {
-    seo_title: "Level.casino — Expert Casino Reviews & Bonuses",
-    seo_description: "Expert casino reviews, exclusive bonuses, and real player data for casinos worldwide.",
-    canonical: "https://level.casino/en",
-    casino_cards: buildCasinoCards(available, geoData),
-    casino_count: casinoList.length,
-    hidden_casino_cards: buildCasinoCards(others, geoData),
-    has_hidden: others.length > 0,
-    hidden_count: others.length
-  }, homeSchema, buildBreadcrumbs("home"));
-
-  return new Response(html, {
-    headers: { "Content-Type": "text/html" }
-  });
-}
-
-
-
-
 
 export async function renderCasino(request, env, slug) {
   const casino = await casinos.getCasino(env.DB, slug);
   if (!casino) return render404(request, env);
 
   const renderer = new Renderer(env, request);
+  const site = await getSiteContext(request, env);
 
   // Parse features from JSON string
   let features = [];
@@ -289,8 +243,8 @@ export async function renderCasino(request, env, slug) {
     "itemReviewed": {
       "@type": "Casino",
       "name": casino.name,
-      "image": casino.logo || "https://level.casino/static/images/logo.png",
-      "url": `https://level.casino/en/casino/${slug}`
+      "image": casino.logo || site.logoUrl,
+      "url": site.url(`/en/casino/${slug}`)
     },
     "reviewRating": {
       "@type": "Rating",
@@ -300,21 +254,21 @@ export async function renderCasino(request, env, slug) {
     },
     "author": {
       "@type": "Organization",
-      "name": "Level.casino Expert Team"
+      "name": `${site.siteName} Expert Team`
 
     },
     "publisher": {
     "@type": "Organization",
-    "name": "Level.casino",
-    "url": "https://level.casino",
+    "name": site.siteName,
+    "url": site.origin,
     "logo": {
       "@type": "ImageObject",
-      "url": "https://level.casino/static/images/logo.png"
+      "url": site.logoUrl
      }
     },
     "mainEntityOfPage": {
   "@type": "WebPage",
-  "@id": `https://level.casino/en/casino/${slug}`
+  "@id": site.url(`/en/casino/${slug}`
 },
   "datePublished": casino.created_at
   ? new Date(casino.created_at).toISOString()
@@ -336,7 +290,7 @@ export async function renderCasino(request, env, slug) {
     components_sidebar: allComponents.sidebar,
     seo_title: dynamicSeo.seo_title || casino.seo_title || casino.name,
     seo_description: dynamicSeo.seo_description || casino.seo_description || "",
-    canonical: dynamicSeo.canonical || `https://level.casino/en/casino/${slug}`,
+    canonical: dynamicSeo.canonical || site.url(`/en/casino/${slug}`),
     rating_display: ratingDisplay,
     features_html: featuresHtml,
     bonus_title: casino.bonus_title || "Welcome Bonus",
@@ -992,19 +946,21 @@ export async function dashboardStatsAPI(request, env) {
     });
 }
 
-export function robots() {
+export async function robots(request, env) {
+  const site = await getSiteContext(request, env);
+
   return new Response(
     `User-agent: *
 Allow: /
 
-Sitemap: https://level.casino/en/sitemap-index.xml
-Sitemap: https://level.casino/en/sitemap.xml
-Sitemap: https://level.casino/en/sitemap-casinos.xml
-Sitemap: https://level.casino/en/sitemap-reviews.xml
-Sitemap: https://level.casino/en/sitemap-news.xml
-Sitemap: https://level.casino/en/sitemap-categories.xml
-Sitemap: https://level.casino/en/sitemap-countries.xml
-Sitemap: https://level.casino/en/sitemap-pages.xml`,
+Sitemap: ${site.url("/en/sitemap-index.xml")}
+Sitemap: ${site.url("/en/sitemap.xml")}
+Sitemap: ${site.url("/en/sitemap-casinos.xml")}
+Sitemap: ${site.url("/en/sitemap-reviews.xml")}
+Sitemap: ${site.url("/en/sitemap-news.xml")}
+Sitemap: ${site.url("/en/sitemap-categories.xml")}
+Sitemap: ${site.url("/en/sitemap-countries.xml")}
+Sitemap: ${site.url("/en/sitemap-pages.xml")}`,
     {
       headers: {
         "Content-Type": "text/plain"
@@ -1012,7 +968,6 @@ Sitemap: https://level.casino/en/sitemap-pages.xml`,
     }
   );
 }
-
 
 
 export async function renderCountry(request, env, slug) {
@@ -1185,6 +1140,7 @@ export async function renderLogin(
 
   const renderer =
     new Renderer(env, request);
+  const site = await getSiteContext(request, env);
 
   const html =
     await renderer.render(
@@ -1192,9 +1148,8 @@ export async function renderLogin(
       {
         seo_title:
           "Login",
-        seo_description:
-          "Level.casino Login",
-        canonical: "https://level.casino/en/login"
+        seo_description: `${site.siteName} Login`,
+        canonical: site.url("/en/login")
       }
     );
 
@@ -1217,6 +1172,7 @@ export async function renderRegister(
 
   const renderer =
     new Renderer(env, request);
+  const site = await getSiteContext(request, env);
 
   const html =
     await renderer.render(
@@ -1224,9 +1180,8 @@ export async function renderRegister(
       {
         seo_title:
           "Register",
-        seo_description:
-          "Create Level.casino account",
-        canonical: "https://level.casino/en/register"
+        seo_description: `Create ${site.siteName} account`,
+        canonical: site.url("/en/register")
       }
     );
 
@@ -1247,7 +1202,7 @@ export async function render404(request, env) {
 
   const html = await renderer.render("404.html", {
     seo_title: "404 - Page Not Found",
-    seo_description: "Sorry, this page does not exist on Level.casino."
+    seo_description: `Sorry, this page does not exist on ${site.siteName}.`
   });
 
   return new Response(html, {

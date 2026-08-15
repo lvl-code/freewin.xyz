@@ -77,6 +77,7 @@ import { cleanupExpiredSessions } from "./cron.js";
 import { cleanupExpiredConversations } from "./ai/memory.js";
 
 import { handleLummetRequest } from "./lummet/router.js";
+import { getSiteContext } from "./site-context.js";
 
 export default {
 
@@ -287,29 +288,80 @@ export default {
       case "redirect":
         return new Response(null, { status: 302, headers: { Location: route.target } });
       case "sitemap":
-        return sitemapEngine.generate(env.DB, "all");
-      case "sitemap-page":
-        return renderSitemapPage(request, env);
-      case "sitemap-index":
-        return sitemapEngine.generateIndex(env.DB);
-      case "sitemap-casinos":
-        return sitemapEngine.generate(env.DB, "casinos");
-      case "sitemap-reviews":
-        return sitemapEngine.generate(env.DB, "reviews");
-      case "sitemap-news":
-        return sitemapEngine.generate(env.DB, "news");
-      case "sitemap-updates":
-        return sitemapEngine.generate(env.DB, "updates");
+  return sitemapEngine.generate(
+    request,
+    env,
+    env.DB,
+    "all"
+  );
 
-      case "sitemap-categories":
-        return sitemapEngine.generate(env.DB, "categories");
-      case "sitemap-countries":
-        return sitemapEngine.generate(env.DB, "countries");
-      case "sitemap-pages":
-        return sitemapEngine.generate(env.DB, "pages");
+case "sitemap-page":
+  return renderSitemapPage(request, env);
+
+case "sitemap-index":
+  return sitemapEngine.generateIndex(
+    request,
+    env,
+    env.DB
+  );
+
+case "sitemap-casinos":
+  return sitemapEngine.generate(
+    request,
+    env,
+    env.DB,
+    "casinos"
+  );
+
+case "sitemap-reviews":
+  return sitemapEngine.generate(
+    request,
+    env,
+    env.DB,
+    "reviews"
+  );
+
+case "sitemap-news":
+  return sitemapEngine.generate(
+    request,
+    env,
+    env.DB,
+    "news"
+  );
+
+case "sitemap-updates":
+  return sitemapEngine.generate(
+    request,
+    env,
+    env.DB,
+    "updates"
+  );
+
+case "sitemap-categories":
+  return sitemapEngine.generate(
+    request,
+    env,
+    env.DB,
+    "categories"
+  );
+
+case "sitemap-countries":
+  return sitemapEngine.generate(
+    request,
+    env,
+    env.DB,
+    "countries"
+  );
+
+case "sitemap-pages":
+  return sitemapEngine.generate(
+    request,
+    env,
+    env.DB,
+    "pages"
+  );
       case "robots":
-        return robots();
-      
+        return robots(request, env);
 
       case "page":
         return renderDynamicPage(

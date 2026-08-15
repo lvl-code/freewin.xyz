@@ -1,58 +1,61 @@
+import { getSetting } from "./database/settings.js";
+
 export async function getSiteContext(request, env) {
   const requestUrl = new URL(request.url);
 
-  let origin = requestUrl.origin;
   let hostname = requestUrl.hostname;
 
-  // Lummet runs as a subdomain of the tenant.
-  // Site identity should always represent the parent/main site.
+  // Lummet belongs to the parent tenant.
+  // lummet.level.casino -> level.casino
+  // lummet.cluster.casino -> cluster.casino
   if (hostname.startsWith("lummet.")) {
     hostname = hostname.slice("lummet.".length);
-    origin = `${requestUrl.protocol}//${hostname}`;
   }
 
-  let siteName = hostname;
-  let siteDescription = "";
-  let logoPath = "/static/images/logo.png";
-  let ogImagePath = "/static/images/og-image.png";
+  const origin =
+    `${requestUrl.protocol}//${hostname}`;
 
   const db = env?.DB;
 
+  let siteName = hostname;
+  let description = "";
+  let logoPath = "/static/images/logo.png";
+  let ogImagePath = "/static/images/og-image.png";
+
   if (db) {
     try {
-      const result = await db
-        .prepare(`
-          SELECT key, value
-          FROM settings
-          WHERE key IN (
-            'site_name',
-            'site_description',
-            'site_logo',
-            'site_og_image'
-          )
-        `)
-        .all();
+      const [
+        dbSiteName,
+        dbDescription,
+        dbLogo,
+        dbOgImage
+      ] = await Promise.all([
+        getSetting(db, "site_name"),
+        getSetting(db, "site_description"),
+        getSetting(db, "site_logo"),
+        getSetting(db, "site_og_image")
+      ]);
 
-      for (const row of result.results || []) {
-        if (row.key === "site_name" && row.value) {
-          siteName = row.value;
-        }
-
-        if (row.key === "site_description" && row.value) {
-          siteDescription = row.value;
-        }
-
-        if (row.key === "site_logo" && row.value) {
-          logoPath = row.value;
-        }
-
-        if (row.key === "site_og_image" && row.value) {
-          ogImagePath = row.value;
-        }
+      if (dbSiteName) {
+        siteName = dbSiteName;
       }
-    } catch (_) {
-      // Settings table may not exist yet.
-      // Hostname remains the safe fallback.
+
+      if (dbDescription) {
+        description = dbDescription;
+      }
+
+      if (dbLogo) {
+        logoPath = dbLogo;
+      }
+
+      if (dbOgImage) {
+        ogImagePath = dbOgImage;
+      }
+    } catch (error) {
+      console.warn(
+        "Site context settings unavailable:",
+        error.message
+      );
     }
   }
 
@@ -60,12 +63,22 @@ export async function getSiteContext(request, env) {
     origin,
     hostname,
     siteName,
-    description: siteDescription,
-    logoUrl: new URL(logoPath, origin).href,
-    ogImageUrl: new URL(ogImagePath, origin).href,
+    description,
+
+    logoUrl: new URL(
+      logoPath,
+      origin
+    ).href,
+
+    ogImageUrl: new URL(
+      ogImagePath,
+      origin
+    ).href,
 
     url(path = "/") {
-      if (!path) return origin;
+      if (!path) {
+        return origin;
+      }
 
       if (/^https?:\/\//i.test(path)) {
         return path;

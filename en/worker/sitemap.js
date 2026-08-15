@@ -1,7 +1,9 @@
-export const sitemapEngine = {
-  BASE_URL: "https://level.casino",
+import { getSiteContext } from "./site-context.js";
 
-  async generateIndex(db) {
+export const sitemapEngine = {
+
+  async generateIndex(request, env, db) {
+    const site = await getSiteContext(request, env);
     const currentDate = new Date().toISOString().split("T")[0];
     const subSitemaps = [
       { loc: "/en/sitemap.xml", lastmod: currentDate },
@@ -16,7 +18,7 @@ export const sitemapEngine = {
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
     for (const s of subSitemaps) {
-      xml += `  <sitemap>\n    <loc>${this.BASE_URL}${s.loc}</loc>\n    <lastmod>${s.lastmod}</lastmod>\n  </sitemap>\n`;
+      xml += `  <sitemap>\n    <loc>${site.url(s.loc)}</loc>\n    <lastmod>${s.lastmod}</lastmod>\n  </sitemap>\n`;
     }
     xml += `</sitemapindex>`;
 
@@ -30,7 +32,7 @@ export const sitemapEngine = {
     });
   },
 
-  async generate(db, type = "all") {
+  async generate(request, env, db, type = "all") {
     if (!db) {
       return new Response(
         '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>',
@@ -38,6 +40,7 @@ export const sitemapEngine = {
       );
     }
 
+    const site = await getSiteContext(request, env);
     const currentDate = new Date().toISOString().split("T")[0];
     let urls = [];
 
@@ -153,7 +156,7 @@ export const sitemapEngine = {
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
     for (const u of urls) {
-      xml += `  <url>\n    <loc>${this.BASE_URL}${u.loc}</loc>\n    <lastmod>${u.lastmod}</lastmod>\n    <changefreq>${u.changefreq}</changefreq>\n    <priority>${u.priority}</priority>\n  </url>\n`;
+      xml += `  <url>\n    <loc>${site.url(u.loc)}</loc>\n    <lastmod>${u.lastmod}</lastmod>\n    <changefreq>${u.changefreq}</changefreq>\n    <priority>${u.priority}</priority>\n  </url>\n`;
     }
     xml += `</urlset>`;
 

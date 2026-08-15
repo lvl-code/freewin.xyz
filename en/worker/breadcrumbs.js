@@ -1,3 +1,4 @@
+import { getSiteContext } from "./site-context.js";
 // =====================================================
 // LEVEL.CASINO BREADCRUMB ENGINE
 // =====================================================
@@ -166,9 +167,10 @@ export function buildBreadcrumbSchemabackup(crumbs = []) {
   };
 
 }
-
-export function buildBreadcrumbSchema(crumbs = []) {
-
+export function buildBreadcrumbSchema(
+  crumbs = [],
+  siteOrigin = ""
+) {
   return {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -181,11 +183,10 @@ export function buildBreadcrumbSchema(crumbs = []) {
       };
 
       if (crumb.url) {
-        item.item = `https://level.casino${crumb.url}`;
+        item.item = `${siteOrigin}${crumb.url}`;
       }
 
       return item;
     })
   };
-
 }
