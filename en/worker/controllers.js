@@ -268,7 +268,7 @@ export async function renderCasino(request, env, slug) {
     },
     "mainEntityOfPage": {
   "@type": "WebPage",
-  "@id": site.url(`/en/casino/${slug}`
+  "@id": site.url(`/en/casino/${slug}`)
 },
   "datePublished": casino.created_at
   ? new Date(casino.created_at).toISOString()
