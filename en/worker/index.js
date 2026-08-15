@@ -1,6 +1,5 @@
 import { getRoute }
 from "./routes.js";
-import oldpermredirect from "./oldpermredirect.js";
 import { serveMedia } from './media-upload.js';
 import {
   renderHome,
@@ -91,12 +90,6 @@ export default {
       if (lummetResponse) return lummetResponse;
     }
 
-    // ===== OLD WEBSITE PERMANENT REDIRECTS =====
-    const redirectResponse = await oldpermredirect.fetch(request);
-
-    if (redirectResponse) {
-      return redirectResponse;
-    }
 
     // Serve static assets
     if (
