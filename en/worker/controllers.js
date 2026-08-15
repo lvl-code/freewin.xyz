@@ -1431,10 +1431,10 @@ export async function renderUpdatesList(request, env) {
   const listSchema = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    "name": site.siteName  Platform Updates,
+      "name": `${site.siteName} Platform Updates`,
     "description":
       dynamicSeo.seo_description ||
-      "Latest updates, improvements, features and announcements from Level.casino.",
+        `${site.siteName} latest updates, improvements, features and announcements`,
     "url": site.url(`/en/updates/${update.slug}`),
     "mainEntity": {
       "@type": "ItemList",
