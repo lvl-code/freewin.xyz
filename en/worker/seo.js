@@ -2,10 +2,15 @@ export const seoEngine = {
   /**
    * Generates standard HTML meta tag strings for injection into template headers
    */
-  generateMetaTags(seoData, currentUrl) {
+  async generateMetaTags( seoData, currentUrl, request, env ) {
+    const { getSiteContext } =
+  await import("./site-context.js");
+
+const site =
+  await getSiteContext(request, env);
     const title = seoData.title || "Premium iGaming Guide";
     const description = seoData.description || "Expert casino analytics and VIP bonus distribution data.";
-    const ogImage = seoData.image || "https://level.casino/static/images/og-image.png";
+    const ogImage = seoData.image || site.ogImageUrl;
 
     return `
   <title>${title}</title>
@@ -44,7 +49,7 @@ export const seoEngine = {
           "itemReviewed": {
             "@type": "GameServer", // Valid semantic classification for online operators
             "name": context.casinoName,
-            "image": context.logoUrl || "https://level.casino/static/images/logo.png",
+            "image": context.logoUrl || site.url("/static/images/logo.png"),
             "url": context.affiliateUrl
           },
           "reviewRating": {
@@ -55,16 +60,16 @@ export const seoEngine = {
           },
           "author": {
             "@type": "Organization",
-            "name": "Level.casino Research Team",
-            "url": "https://level.casino"
+            "name": site.siteName,
+            "url": site.origin"
           },
           "reviewBody": context.summary || "Comprehensive operational performance evaluation analysis.",
           "publisher": {
             "@type": "Organization",
-            "name": "Level.casino",
+            "name": site.siteName,
             "logo": {
               "@type": "ImageObject",
-              "url": "https://level.casino/static/images/logo.png"
+              "url": site.url("/static/images/logo.png")
             }
           }
         }, null, 2);
@@ -83,7 +88,7 @@ export const seoEngine = {
             "item": {
               "@type": "GameServer",
               "name": item.name,
-              "url": `https://level.casino/en/casino/${item.slug}`
+              "url": site.url(`/en/casino/${item.slug}`}
             }
           }))
         }, null, 2);
@@ -93,9 +98,9 @@ export const seoEngine = {
         return JSON.stringify({
           ...baseSchema,
           "@type": "Organization",
-          "name": "Level.casino",
-          "url": "https://level.casino",
-          "logo": "https://level.casino/static/images/logo.png"
+          "name": site.siteName,
+          "url": site.origin,
+          "logo": site.url("/static/images/logo.png")
         }, null, 2);
     }
   },
