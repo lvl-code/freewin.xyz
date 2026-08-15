@@ -1185,6 +1185,7 @@ export async function render404(request, env) {
 
 export async function renderCasinoList(request, env) {
   const renderer = new Renderer(env, request);
+  const site = await getSiteContext(request, env);
   const casinoList = await casinos.getAllCasinos(env.DB);
   const geoData = await prepareGeoData(env, request, casinoList);
   const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
@@ -1197,12 +1198,12 @@ export async function renderCasinoList(request, env) {
     "name": "Complete Directory of Online Casinos",
     "itemListElement": sortedCasinos.map((c, idx) => ({
       "@type": "ListItem", "position": idx + 1,
-      "url": `https://level.casino/en/casino/${c.slug}`
+      "url": site.url(`/en/casino/${c.slug}`)
     }))
   };
     // Public pages don't need a CSRF token, but set it to empty for the meta tag
   const html = await renderer.render("category.html", {
-    canonical: dynamicSeo.canonical || "https://level.casino/en/casino",
+    canonical: dynamicSeo.canonical ||site.url("/en/casino")
     category: "All Casinos",
     description: "Browse our complete directory of reviewed online casinos.",
     casino_cards: buildCasinoCards(sortedCasinos, geoData),
@@ -1211,7 +1212,7 @@ export async function renderCasinoList(request, env) {
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
     components_sidebar: allComponents.sidebar,
-    seo_title: dynamicSeo.seo_title || "All Online Casinos — Level.casino",
+    seo_title: dynamicSeo.seo_title || `All Online Casinos — ${site.siteName}.`,
     seo_description: dynamicSeo.seo_description || "Complete directory of reviewed online casinos with bonuses and ratings."
   }, listSchema, buildBreadcrumbs("casinoList"));
 
@@ -1221,6 +1222,7 @@ export async function renderCasinoList(request, env) {
 
 export async function renderReviewList(request, env) {
   const renderer = new Renderer(env, request);
+  const site = await getSiteContext(request, env);
   const reviewList = await env.DB.prepare(
     "SELECT * FROM reviews WHERE published = 1 ORDER BY created_at DESC"
   ).all();
@@ -1295,12 +1297,12 @@ export async function renderReviewList(request, env) {
     "name": "All Casino Reviews",
     "itemListElement": reviews.map((r, idx) => ({
       "@type": "ListItem", "position": idx + 1,
-      "url": `https://level.casino/en/review/${r.slug}`
+      "url": site.url(`/en/review/${r.slug}`)
     }))
   };
       // Public pages don't need a CSRF token, but set it to empty for the meta tag
   const html = await renderer.render("category.html", {
-    canonical: dynamicSeo.canonical || "https://level.casino/en/review",
+    canonical: dynamicSeo.canonical || site.url("/en/review")
     category: "All Reviews",
     description: "Browse our complete collection of casino reviews.",
     casino_cards: reviewCards,
@@ -1309,7 +1311,7 @@ export async function renderReviewList(request, env) {
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
     components_sidebar: allComponents.sidebar,
-    seo_title: dynamicSeo.seo_title || "All Casino Reviews — Level.casino",
+    seo_title: dynamicSeo.seo_title || `All Casino Reviews — ${site.siteName}.`,
     seo_description: dynamicSeo.seo_description || "In-depth casino reviews with pros, cons, and ratings."
   }, listSchema, buildBreadcrumbs("reviewList"));
 
@@ -1318,6 +1320,7 @@ export async function renderReviewList(request, env) {
 
 export async function renderNewsList(request, env) {
   const renderer = new Renderer(env, request);
+  const site = await getSiteContext(request, env);
   const newsList = await news.getAllNews(env.DB);
   const allComponents = await renderer.renderAllComponents("news_list", "news_list");
   const dynamicSeo = await renderer.loadDynamicSeo("news_list", "news_list");
@@ -1336,12 +1339,12 @@ export async function renderNewsList(request, env) {
     "name": "iGaming Industry News Feed",
     "itemListElement": newsList.map((n, idx) => ({
       "@type": "ListItem", "position": idx + 1,
-      "url": `https://level.casino/en/news/${n.slug}`
+      "url": site.url(`/en/casino/${n.slug}`)
     }))
   };
       // Public pages don't need a CSRF token, but set it to empty for the meta tag
   const html = await renderer.render("category.html", {
-    canonical: dynamicSeo.canonical || "https://level.casino/en/news",
+    canonical: dynamicSeo.canonical || site.url("/en/news")
     category: "Latest News",
     description: "Latest iGaming industry news and updates.",
     casino_cards: `<div class="news-grid">${newsCards}</div>`,
@@ -1359,7 +1362,7 @@ export async function renderNewsList(request, env) {
 
 export async function renderUpdatesList(request, env) {
   const renderer = new Renderer(env, request);
-
+  const site = await getSiteContext(request, env);
   const updates =
     await platformUpdates.getAllPlatformUpdates(env.DB);
 
@@ -1428,18 +1431,17 @@ export async function renderUpdatesList(request, env) {
   const listSchema = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    "name": "Level.casino Platform Updates",
+    "name": site.siteName  Platform Updates,
     "description":
       dynamicSeo.seo_description ||
       "Latest updates, improvements, features and announcements from Level.casino.",
-    "url": "https://level.casino/en/updates",
+    "url": site.url(`/en/updates/${update.slug}`),
     "mainEntity": {
       "@type": "ItemList",
       "itemListElement": updates.map((update, index) => ({
         "@type": "ListItem",
         "position": index + 1,
-        "url":
-          `https://level.casino/en/updates/${update.slug}`,
+        "url": site.url(`/en/updates/${update.slug}`),
         "name": update.title
       }))
     }
@@ -1449,14 +1451,12 @@ export async function renderUpdatesList(request, env) {
     "updates.html",
     {
       canonical:
-        dynamicSeo.canonical ||
-        "https://level.casino/en/updates",
+        dynamicSeo.canonical || site.url(`/en/updates`),
 
       category: "Platform Updates",
 
       description:
-        dynamicSeo.seo_description ||
-        "Latest Level.casino platform updates, new features, improvements and announcements.",
+        dynamicSeo.seo_description ||Latest ${site.siteName} platform updates, new features, improvements and announcements.,
 
       update_cards:
         updateCards,
@@ -1949,25 +1949,29 @@ export async function renderDashboardBanners(request, env) {
   return renderAdminPage(request, env, "admin/banners.html");
 }
 
-
-
 export async function renderSitemapPage(request, env) {
-
   const renderer = new Renderer(env, request);
+
+  const site = await getSiteContext(
+    request,
+    env
+  );
 
   const sitemapSchema = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    "name": "Level.casino Sitemap",
-    "description": "Explore casino reviews, rankings, guides and industry news."
+    "name": `${site.siteName} Sitemap`,
+    "description":
+      "Explore casino reviews, rankings, guides and industry news."
   };
-      // Public pages don't need a CSRF token, but set it to empty for the meta tag
+
   const html = await renderer.render(
     "sitemap.html",
     {
-      seo_title: "Level.casino Sitemap",
-      seo_description: "Explore casino reviews, rankings, guides and industry news.",
-      title: "Level.casino Sitemap"
+      seo_title: `${site.siteName} Sitemap`,
+      seo_description:
+        "Explore casino reviews, rankings, guides and industry news.",
+      title: `${site.siteName} Sitemap`
     },
     sitemapSchema,
     buildBreadcrumbs("page", {
@@ -1978,5 +1982,4 @@ export async function renderSitemapPage(request, env) {
   return new Response(html, {
     headers: cacheHeaders()
   });
-
 }
