@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" aria-hidden="true">
-  <path fill="#ffffff" fill-rule="evenodd" d="M256 10.5c135.59 0 245.5 109.91 245.5 245.5S391.59 501.5 256 501.5 10.5 391.59 10.5 256 120.41 10.5 256 10.5Zm0 87c-87.54 0-158.5 70.96-158.5 158.5S168.46 414.5 256 414.5 414.5 343.54 414.5 256 343.54 97.5 256 97.5Z"/>
-  <rect x="131.5" y="214.25" width="249" height="83.5" rx="8" fill="#ffffff" transform="rotate(45 256 256)"/>
-</svg>
