@@ -1819,3 +1819,67 @@ padding:22px;
   }
 
 }
+
+
+
+
+
+
+
+
+/* =====================================================
+   PUBLIC AUTHOR PROFILE
+   ===================================================== */
+
+.author-profile .author-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 18px;
+
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 30px;
+  box-shadow: var(--shadow);
+  margin-bottom: 30px;
+}
+
+.author-profile .author-profile-avatar {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.author-profile .author-profile-info {
+  width: 100%;
+  max-width: 850px;
+}
+
+.author-profile .author-profile-info h1 {
+  margin: 0 0 8px;
+}
+
+.author-profile .author-profile-role {
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 16px;
+  margin: 0 0 10px;
+}
+
+.author-profile .author-profile-bio {
+  color: var(--gray);
+  margin: 0;
+  line-height: 1.8;
+  font-size: 15px;
+}
+
+.author-profile .author-profile-social {
+  margin-top: 14px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}

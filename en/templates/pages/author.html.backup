@@ -1,28 +1,13 @@
 <section class="author-profile">
   <div class="container">
-    <div class="author-hero">
-      <img
-        src="{{author_avatar}}"
-        alt="{{author_name}}"
-        class="author-profile-avatar"
-        onerror="this.src='/static/images/logo.png'"
-      >
-
-      <div class="author-profile-info">
+    <div class="author-hero" style="display:flex;gap:24px;align-items:center;background:var(--white);border-radius:var(--radius);padding:30px;box-shadow:var(--shadow);margin-bottom:30px">
+      <img src="{{author_avatar}}" alt="{{author_name}}" style="width:100px;height:100px;border-radius:50%;object-fit:cover" onerror="this.src='/static/images/logo.png'">
+      <div>
         <h1>{{author_name}}</h1>
-
-        <p class="author-profile-role">
-          {{author_role}}
-        </p>
-
-        <p class="author-profile-bio">
-          {{author_bio}}
-        </p>
-
+        <p style="color:var(--primary);font-weight:600;font-size:16px">{{author_role}}</p>
+        <p style="color:var(--gray);margin-top:8px">{{author_bio}}</p>
         {{#if author_social}}
-        <div class="author-profile-social">
-          {{author_social}}
-        </div>
+        <div style="margin-top:12px">{{author_social}}</div>
         {{/if}}
       </div>
     </div>
