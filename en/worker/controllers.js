@@ -1344,7 +1344,7 @@ export async function renderNewsList(request, env) {
   };
       // Public pages don't need a CSRF token, but set it to empty for the meta tag
   const html = await renderer.render("category.html", {
-    canonical: dynamicSeo.canonical || site.url("/en/news")
+    canonical: dynamicSeo.canonical || site.url("/en/news"),
     category: "Latest News",
     description: "Latest iGaming industry news and updates.",
     casino_cards: `<div class="news-grid">${newsCards}</div>`,
