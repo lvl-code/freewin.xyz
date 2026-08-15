@@ -568,6 +568,7 @@ export async function renderReview(request, env, slug) {
   if (!review) return render404(request, env);
 
   const renderer = new Renderer(env, request);
+  const site = await getSiteContext(request, env);
   let author = null;
   if (review.author_id) {
     author = await authors.getAuthorById(env.DB, review.author_id);
@@ -673,19 +674,19 @@ if (review.casino_slug) {
       "@type": "Casino",
       "name": casino?.name || casinoName || review.title,
      // "name": review.title.replace("Review", "").trim(),
-      "url": `https://level.casino/en/review/${slug}`
+      "url": site.url(`/en/review/${slug}`)
     },
     "author": {
       "@type": "Person",
-      "name": "Elie"
+      "name": author.name
     },
   "publisher": {
   "@type": "Organization",
-  "name": "Level.casino",
-  "url": "https://level.casino",
+  "name": site.siteName,
+  "url": site.origin,
   "logo": {
     "@type": "ImageObject",
-    "url": "https://level.casino/static/images/logo.png"
+    "url": site.logoUrl
   }
 },
 "datePublished": review.created_at
@@ -724,7 +725,7 @@ if (review.casino_slug) {
     review_blocks_html: reviewBlocksHtml,
     seo_title: dynamicSeo.seo_title || review.seo_title || review.title,
     seo_description: dynamicSeo.seo_description || review.seo_description || "",
-    canonical: dynamicSeo.canonical || `https://level.casino/en/review/${slug}`,
+    canonical: dynamicSeo.canonical || site.url(`/en/review/${slug}`),
     faq_html: faqHtml,
     pros_html: prosHtml,
     cons_html: consHtml,
@@ -745,6 +746,7 @@ export async function renderNews(request, env, slug) {
   if (!article) return render404(request, env);
 
   const renderer = new Renderer(env, request);
+  const site = await getSiteContext(request, env);
   let author = null;
   if (article.author_id) {
     author = await authors.getAuthorById(env.DB, article.author_id);
@@ -763,7 +765,7 @@ export async function renderNews(request, env, slug) {
   };
   const html = await renderer.render("news.html", {
     ...article,
-    canonical: dynamicSeo.canonical || `https://level.casino/en/news/${slug}`,
+    canonical: dynamicSeo.canonical || site.url(`/en/news/${slug}`),
     author_name: author?.name || article.author || "",
     author_avatar: author?.avatar_url || "",
     author_role: author?.role || "",
@@ -863,11 +865,12 @@ export async function renderDashboardPage(request, env) {
 
     // Viewers get the user dashboard (no admin nav)
     const renderer = new Renderer(env, request);
+    const site = await getSiteContext(request, env);
         // Add CSRF token for admin pages — used by rich-editor.js and media-library.js
 
     const html = await renderer.render("users/dashboard.html", {
         seo_title: "Dashboard",
-        seo_description: "Level.casino Dashboard",
+        seo_description: `${site.siteName} Dashboard',
         email: user.email,
         role: user.role
     });
@@ -892,6 +895,7 @@ export async function renderDashboardPagebackup(request, env) {
     }
 
     const renderer = new Renderer(env, request);
+    const site = await getSiteContext(request, env);
 
     const template =
     (user.role === "admin" || user.role === "editor")
@@ -900,7 +904,7 @@ export async function renderDashboardPagebackup(request, env) {
 
     const html = await renderer.render(template, {
         seo_title: "Dashboard",
-        seo_description: "Level.casino Dashboard",
+        seo_description: `${site.siteName} Dashboard',
         email: user.email,
         role: user.role
     });
@@ -990,7 +994,7 @@ export async function renderCountry(request, env, slug) {
     "itemListElement": casinoList.map((c, index) => ({
       "@type": "ListItem",
       "position": index + 1,
-      "url": `https://level.casino/en/casino/${c.slug}`
+      "url": site.url(`/en/country/${code}`)
     }))
   };
 
@@ -1005,7 +1009,7 @@ export async function renderCountry(request, env, slug) {
     components_sidebar: allComponents.sidebar,
     seo_title: dynamicSeo.seo_title || countryData.seo_title || countryData.name + " Online Casinos",
     seo_description: dynamicSeo.seo_description || countryData.seo_description || "",
-    canonical: dynamicSeo.canonical || `https://level.casino/en/country/${code}`,
+    canonical: dynamicSeo.canonical || site.url(`/en/country/${code}`),
     casino_cards: buildCasinoCards(casinoList, geoData),
   }, countrySchema, buildBreadcrumbs("country", { name: countryData.name }));
   return new Response(html, {
@@ -1023,6 +1027,7 @@ export async function renderCategory(request, env, slug) {
   const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
 
   const renderer = new Renderer(env, request);
+  const site = await getSiteContext(request, env);
   const categorySchema = {
     "@context": "https://schema.org",
     "@type": "ItemList",
@@ -1030,7 +1035,7 @@ export async function renderCategory(request, env, slug) {
     "itemListElement": sortedCasinos.map((c, index) => ({
       "@type": "ListItem",
       "position": index + 1,
-      "url": `https://level.casino/en/casino/${c.slug}`
+      "url": site.url(`/en/category/${c.slug}`)`
     }))
   };
 
@@ -1045,7 +1050,7 @@ export async function renderCategory(request, env, slug) {
     components_sidebar: allComponents.sidebar,
     seo_title: dynamicSeo.seo_title || category.seo_title || category.name + " Casinos",
     seo_description: dynamicSeo.seo_description || category.seo_description || "",
-    canonical: dynamicSeo.canonical || `https://level.casino/en/category/${slug}`,
+    canonical: dynamicSeo.canonical || site.url(`/en/category/${slug}`),
     category: category.name,
     description: category.description,
     casino_cards: buildCasinoCards(sortedCasinos, geoData),
@@ -1093,7 +1098,7 @@ export async function renderDynamicPage(request, env, slug) {
   };
   const html = await renderer.render("page.html", {
     ...page,
-    canonical: dynamicSeo.canonical || `https://level.casino/en/${slug}`,
+    canonical: dynamicSeo.canonical || site.url(`/en/${slug}`),
     author_name: author?.name || "",
     author_avatar: author?.avatar_url || "",
     author_role: author?.role || "",
