@@ -1456,7 +1456,7 @@ export async function renderUpdatesList(request, env) {
       category: "Platform Updates",
 
       description:
-        dynamicSeo.seo_description ||Latest ${site.siteName} platform updates, new features, improvements and announcements.,
+        dynamicSeo.seo_description || `Latest ${site.siteName} platform updates, improvements, features and announcements.`,
 
       update_cards:
         updateCards,
