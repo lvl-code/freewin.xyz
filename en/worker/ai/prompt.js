@@ -24,7 +24,7 @@ function countryName(code) {
 /**
  * Build the system prompt for Lummet AI — human-like personality
  */
-export function buildSystemPrompt(context, country, intent, conversationHistory) {
+export async function buildSystemPrompt(context, country, intent, conversationHistory) {
   const contextStr = buildContextString(context, country);
   const countryNameStr = countryName(country);
   const site = await getSiteContext(request, env);
