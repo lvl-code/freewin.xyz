@@ -1,0 +1,840 @@
+name: Sync Level architecture to Cluster
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'static/images/**'
+      - 'en/static/images/**'
+      - 'README.md'
+      - '*.md'
+      - 'docs/**'
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: level-to-cluster-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Synchronize Level → Cluster
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # ==========================================================
+      # 1. CHECK OUT THE EXACT LEVEL COMMIT THAT TRIGGERED THIS RUN
+      # ==========================================================
+
+      - name: Checkout Level.casino
+        uses: actions/checkout@v4
+        with:
+          path: level
+          fetch-depth: 1
+
+      # ==========================================================
+      # 2. CHECK OUT CURRENT CLUSTER MAIN
+      # ==========================================================
+
+      - name: Checkout Cluster.casino
+        uses: actions/checkout@v4
+        with:
+          repository: lvl-code/cluster.casino
+          token: ${{ secrets.CLUSTER_SYNC_TOKEN }}
+          path: cluster
+          fetch-depth: 1
+          ref: main
+
+      # ==========================================================
+      # 3. RECORD SOURCE + TARGET COMMITS
+      # ==========================================================
+
+      - name: Record synchronization versions
+        id: versions
+        run: |
+          set -euo pipefail
+
+          echo "=============================================="
+          echo "LEVEL → CLUSTER"
+          echo "=============================================="
+
+          LEVEL_COMMIT="$(git -C level rev-parse HEAD)"
+          LEVEL_SHORT="$(git -C level rev-parse --short=12 HEAD)"
+
+          echo "Level commit: $LEVEL_COMMIT"
+          echo
+          echo "Cluster commit before sync:"
+          git -C cluster rev-parse HEAD
+
+          echo
+          echo "Level branch: $(git -C level branch --show-current)"
+          echo "Cluster branch: $(git -C cluster branch --show-current)"
+
+          echo "LEVEL_COMMIT=$LEVEL_COMMIT" >> "$GITHUB_ENV"
+          echo "LEVEL_SHORT=$LEVEL_SHORT" >> "$GITHUB_ENV"
+
+      # ==========================================================
+      # 4. CREATE PRE-SYNC BACKUP OF CURRENT CLUSTER /en
+      # ==========================================================
+
+      - name: Backup current Cluster en directory
+        working-directory: cluster
+        run: |
+          set -euo pipefail
+
+          DATE="$(date -u +'%Y-%m-%d')"
+          TIME="$(date -u +'%H%M%S')"
+
+          BACKUP_DIR="enbackupdate/${DATE}/${TIME}-${LEVEL_SHORT}"
+
+          echo "Creating pre-sync backup: $BACKUP_DIR"
+
+          if [ -d "en" ]; then
+            mkdir -p "$BACKUP_DIR"
+            cp -a en/. "$BACKUP_DIR/"
+            echo "Backup created successfully."
+          else
+            echo "WARNING: Cluster/en does not exist."
+            mkdir -p "$BACKUP_DIR"
+            printf '%s\n' \
+              "No Cluster/en directory existed before this synchronization." \
+              > "$BACKUP_DIR/BACKUP-NOTE.txt"
+          fi
+
+          echo
+          echo "Backup contents (first 100 files):"
+          find "$BACKUP_DIR" -maxdepth 2 -type f | head -100 || true
+
+      # ==========================================================
+      # 5. SYNCHRONIZE ARCHITECTURE
+      #
+      # NORMAL FILES:
+      #   Existing files CAN be updated.
+      #
+      # CSS:
+      #   Existing CSS NEVER overwritten.
+      #   New CSS CAN be added (and recorded for branding).
+      #
+      # STATIC IMAGES (static/images AND en/static/images):
+      #   NEVER synchronized. Cluster owns its own images.
+      #
+      # CONFIG:
+      #   NEVER synchronized.
+      #
+      # .github:
+      #   NEVER synchronized.
+      #
+      # DELETIONS:
+      #   NEVER performed.
+      # ==========================================================
+
+      - name: Sync shared architecture
+        env:
+          SOURCE: level
+          TARGET: cluster
+        run: |
+          set -euo pipefail
+
+          echo "=============================================="
+          echo "SYNCHRONIZING SHARED ARCHITECTURE"
+          echo "=============================================="
+
+          cd "$SOURCE"
+
+          is_protected_path() {
+
+            local relative="$1"
+
+            # ----------------------------------------------------
+            # Git
+            # ----------------------------------------------------
+
+            [[ "$relative" == ".git" ]] && return 0
+            [[ "$relative" == .git/* ]] && return 0
+
+            # ----------------------------------------------------
+            # GitHub
+            # ----------------------------------------------------
+
+            [[ "$relative" == ".github" ]] && return 0
+            [[ "$relative" == .github/* ]] && return 0
+
+            # ----------------------------------------------------
+            # Cluster-specific backup
+            # ----------------------------------------------------
+
+            [[ "$relative" == "enbackupdate" ]] && return 0
+            [[ "$relative" == enbackupdate/* ]] && return 0
+
+            # ----------------------------------------------------
+            # Static images — root-level
+            # ----------------------------------------------------
+
+            [[ "$relative" == "static/images" ]] && return 0
+            [[ "$relative" == static/images/* ]] && return 0
+
+            # ----------------------------------------------------
+            # Static images — under /en (real location)
+            # ----------------------------------------------------
+
+            [[ "$relative" == "en/static/images" ]] && return 0
+            [[ "$relative" == en/static/images/* ]] && return 0
+
+            # ----------------------------------------------------
+            # Exact configuration files
+            # ----------------------------------------------------
+
+            case "$relative" in
+
+              README.md)
+                return 0
+                ;;
+
+              wrangler.json)
+                return 0
+                ;;
+
+              wrangler.jsonc)
+                return 0
+                ;;
+
+              _config.yml)
+                return 0
+                ;;
+
+              _config.yaml)
+                return 0
+                ;;
+
+              robots.txt)
+                return 0
+                ;;
+
+              disavow.txt)
+                return 0
+                ;;
+
+              package.json)
+                return 0
+                ;;
+
+              package-lock.json)
+                return 0
+                ;;
+
+              pnpm-lock.yaml)
+                return 0
+                ;;
+
+              yarn.lock)
+                return 0
+                ;;
+
+              bun.lock)
+                return 0
+                ;;
+
+            esac
+
+            # ----------------------------------------------------
+            # Environment files
+            # ----------------------------------------------------
+
+            case "$(basename "$relative")" in
+              .env)
+                return 0
+                ;;
+              .env.*)
+                return 0
+                ;;
+            esac
+
+            # ----------------------------------------------------
+            # Configuration extensions
+            # ----------------------------------------------------
+
+            case "$relative" in
+              *.json)
+                return 0
+                ;;
+              *.jsonc)
+                return 0
+                ;;
+              *.yml)
+                return 0
+                ;;
+              *.yaml)
+                return 0
+                ;;
+              *.toml)
+                return 0
+                ;;
+              *.ini)
+                return 0
+                ;;
+            esac
+
+            return 1
+          }
+
+          # ======================================================
+          # A. NORMAL FILES
+          # ======================================================
+
+          echo
+          echo "----------------------------------------------"
+          echo "NORMAL SOURCE FILES"
+          echo "----------------------------------------------"
+
+          find . \
+            -type f \
+            ! -path './.git/*' \
+            ! -path './.github/*' \
+            ! -path './enbackupdate/*' \
+            ! -path './static/images/*' \
+            ! -path './en/static/images/*' \
+            -print0 |
+
+          while IFS= read -r -d '' source_file; do
+
+            relative="${source_file#./}"
+
+            if is_protected_path "$relative"; then
+              echo "PROTECTED: $relative"
+              continue
+            fi
+
+            # Existing CSS is handled separately.
+            if [[ "$relative" == *.css ]]; then
+              continue
+            fi
+
+            destination="../$TARGET/$relative"
+
+            mkdir -p "$(dirname "$destination")"
+
+            cp "$source_file" "$destination"
+
+            echo "SYNCED: $relative"
+
+          done
+
+          # ======================================================
+          # B. CSS
+          #
+          # Existing Cluster CSS:
+          #   KEEP (never touched)
+          #
+          # New Level CSS:
+          #   ADD  (and record for branding)
+          # ======================================================
+
+          # Manifest of newly added CSS — consumed by the branding step.
+          MANIFEST="../$TARGET/newly_added_css.txt"
+          : > "$MANIFEST"
+
+          echo
+          echo "----------------------------------------------"
+          echo "CSS"
+          echo "----------------------------------------------"
+
+          find . \
+            -type f \
+            -name '*.css' \
+            ! -path './.git/*' \
+            ! -path './.github/*' \
+            ! -path './enbackupdate/*' \
+            ! -path './static/images/*' \
+            ! -path './en/static/images/*' \
+            -print0 |
+
+          while IFS= read -r -d '' source_file; do
+
+            relative="${source_file#./}"
+
+            destination="../$TARGET/$relative"
+
+            if [ -f "$destination" ]; then
+
+              echo "KEEP EXISTING CSS: $relative"
+
+            else
+
+              mkdir -p "$(dirname "$destination")"
+
+              cp "$source_file" "$destination"
+
+              echo "ADD NEW CSS: $relative"
+
+              # Record for branding.
+              printf '%s\n' "$relative" >> "$MANIFEST"
+
+            fi
+
+          done
+
+          echo
+          echo "Newly added CSS files recorded:"
+          wc -l < "$MANIFEST"
+
+      # ==========================================================
+      # 6. APPLY CLUSTER BRANDING
+      #
+      # IMPORTANT:
+      #
+      # This happens ONLY to synchronized non-config,
+      # non-CSS text/source files.
+      #
+      # Existing Cluster CSS is untouched.
+      # New Level CSS IS branded (via manifest).
+      # Static images (static/images AND en/static/images) are untouched.
+      # SVG files ARE branded (they are text-based and may contain
+      #   level.casino references in <text> or comment nodes).
+      # ==========================================================
+
+      - name: Apply Cluster branding
+        working-directory: cluster
+        run: |
+          set -euo pipefail
+
+          echo "=============================================="
+          echo "APPLYING CLUSTER BRANDING"
+          echo "=============================================="
+
+          python3 <<'PY'
+
+          from pathlib import Path
+
+          root = Path(".")
+
+          # ======================================================
+          # Load manifest of newly added CSS files.
+          # Only these CSS files will be branded.
+          # Existing Cluster CSS is never touched.
+          # ======================================================
+
+          manifest_path = root / "newly_added_css.txt"
+          newly_added_css = set()
+
+          if manifest_path.exists():
+              for line in manifest_path.read_text(encoding="utf-8").splitlines():
+                  line = line.strip()
+                  if line:
+                      newly_added_css.add(line)
+
+          print(f"Newly added CSS files to brand: {len(newly_added_css)}")
+
+          # ======================================================
+          # BRANDING REPLACEMENTS
+          #
+          # More specific forms come first.
+          # ======================================================
+
+          replacements = [
+
+              # --------------------------------------------------
+              # AI SUBDOMAIN (must come before general domain)
+              # --------------------------------------------------
+
+              ("lummet.level.casino", "lummet.cluster.casino"),
+              ("https://lummet.level.casino", "https://lummet.cluster.casino"),
+              ("http://lummet.level.casino", "http://lummet.cluster.casino"),
+
+              # --------------------------------------------------
+              # FULL URLS
+              # --------------------------------------------------
+
+              ("https://www.level.casino", "https://www.cluster.casino"),
+              ("http://www.level.casino", "http://www.cluster.casino"),
+
+              ("https://level.casino", "https://cluster.casino"),
+              ("http://level.casino", "http://cluster.casino"),
+
+              ("www.level.casino", "www.cluster.casino"),
+
+              # --------------------------------------------------
+              # DOMAIN
+              # --------------------------------------------------
+
+              ("LEVEL.CASINO", "CLUSTER.CASINO"),
+              ("Level.Casino", "Cluster.Casino"),
+              ("level.Casino", "cluster.Casino"),
+              ("LEVEL.casino", "CLUSTER.casino"),
+              ("level.casino", "cluster.casino"),
+
+              # --------------------------------------------------
+              # HYPHEN
+              # --------------------------------------------------
+
+              ("LEVEL-CASINO", "CLUSTER-CASINO"),
+              ("Level-Casino", "Cluster-Casino"),
+              ("Level-casino", "Cluster-casino"),
+              ("level-Casino", "cluster-Casino"),
+              ("level-casino", "cluster-casino"),
+
+              # --------------------------------------------------
+              # UNDERSCORE
+              # --------------------------------------------------
+
+              ("LEVEL_CASINO", "CLUSTER_CASINO"),
+              ("Level_Casino", "Cluster_Casino"),
+              ("Level_casino", "Cluster_casino"),
+              ("level_Casino", "cluster_Casino"),
+              ("level_casino", "cluster_casino"),
+
+              # --------------------------------------------------
+              # NO SEPARATOR
+              # --------------------------------------------------
+
+              ("LEVELCASINO", "CLUSTERCASINO"),
+              ("LevelCasino", "ClusterCasino"),
+              ("levelCasino", "clusterCasino"),
+              ("levelcasino", "clustercasino"),
+
+              # --------------------------------------------------
+              # SPACE
+              # --------------------------------------------------
+
+              ("LEVEL CASINO", "CLUSTER CASINO"),
+              ("Level Casino", "Cluster Casino"),
+              ("Level casino", "Cluster casino"),
+              ("level Casino", "cluster Casino"),
+              ("level casino", "cluster casino"),
+
+              # --------------------------------------------------
+              # TITLE / MIXED CASE
+              # --------------------------------------------------
+
+              ("LEVEL Casino", "CLUSTER Casino"),
+              ("Level CASINO", "Cluster CASINO"),
+              ("level CASINO", "cluster CASINO"),
+
+              # --------------------------------------------------
+              # COMMON BRAND IDENTIFIERS
+              # --------------------------------------------------
+
+              ("LevelCasino", "ClusterCasino"),
+              ("LEVELCasino", "CLUSTERCasino"),
+              ("levelCASINO", "clusterCASINO"),
+
+              # --------------------------------------------------
+              # COMMON PATH / SLUG FORMS
+              # --------------------------------------------------
+
+              ("/level-casino/", "/cluster-casino/"),
+              ("/levelcasino/", "/clustercasino/"),
+
+              # --------------------------------------------------
+              # COMMON CSS/JS CLASS / ID NAMING IN SOURCE FILES
+              # --------------------------------------------------
+
+              ("level-casino-", "cluster-casino-"),
+              ("levelcasino-", "clustercasino-"),
+
+              ("-level-casino", "-cluster-casino"),
+              ("-levelcasino", "-clustercasino"),
+
+              ("level_casino_", "cluster_casino_"),
+              ("levelcasino_", "clustercasino_"),
+
+              ("_level_casino", "_cluster_casino"),
+              ("_levelcasino", "_clustercasino"),
+
+              # --------------------------------------------------
+              # COMMON VARIABLE / IDENTIFIER FORMS
+              # --------------------------------------------------
+
+              ("LEVEL_CASINO_", "CLUSTER_CASINO_"),
+              ("level_casino_", "cluster_casino_"),
+
+              ("LEVELCASINO_", "CLUSTERCASINO_"),
+              ("levelcasino_", "clustercasino_"),
+
+          ]
+
+          protected_suffixes = {
+              ".json",
+              ".jsonc",
+              ".yml",
+              ".yaml",
+              ".toml",
+              ".ini",
+          }
+
+          # Binary files that should never be read as text.
+          # NOTE: .svg is intentionally excluded — SVGs are
+          # text-based and may contain level.casino references
+          # in <text>, <title>, or comment nodes that need branding.
+          binary_suffixes = {
+              ".png", ".jpg", ".jpeg", ".gif", ".webp",
+              ".ico", ".bmp", ".tiff",
+              ".woff", ".woff2", ".ttf", ".otf", ".eot",
+              ".pdf", ".zip", ".tar", ".gz",
+          }
+
+          for path in root.rglob("*"):
+
+              if not path.is_file():
+                  continue
+
+              # Never modify Git metadata.
+              if ".git" in path.parts:
+                  continue
+
+              # Never modify GitHub Actions.
+              if ".github" in path.parts:
+                  continue
+
+              # Never modify backups.
+              if "enbackupdate" in path.parts:
+                  continue
+
+              # Never modify static images — root-level or under /en.
+              if "static" in path.parts and "images" in path.parts:
+                  continue
+
+              # Never modify configuration.
+              if path.suffix.lower() in protected_suffixes:
+                  continue
+
+              if path.name == ".env":
+                  continue
+
+              if path.name.startswith(".env."):
+                  continue
+
+              # ------------------------------------------------
+              # CSS: only brand newly added files from Level.
+              # Existing Cluster CSS is never touched.
+              # ------------------------------------------------
+
+              if path.suffix.lower() == ".css":
+                  relative = str(path.relative_to(root))
+                  if relative not in newly_added_css:
+                      continue
+                  # else: fall through and brand this file
+
+              # Skip binary files (but NOT .svg).
+              if path.suffix.lower() in binary_suffixes:
+                  continue
+
+              try:
+                  text = path.read_text(encoding="utf-8")
+              except (UnicodeDecodeError, OSError):
+                  continue
+
+              original = text
+
+              for old, new in replacements:
+                  text = text.replace(old, new)
+
+              if text != original:
+                  path.write_text(text, encoding="utf-8")
+                  print(f"BRANDED: {path}")
+
+          # Clean up the manifest so it does not get committed.
+          if manifest_path.exists():
+              manifest_path.unlink()
+              print("Cleaned up CSS manifest.")
+
+          PY
+
+      # ==========================================================
+      # 7. VERIFY PROTECTED FILES/DIRECTORIES
+      # ==========================================================
+
+      - name: Verify synchronization boundaries
+        working-directory: cluster
+        run: |
+          set -euo pipefail
+
+          echo "=============================================="
+          echo "VERIFYING SYNC BOUNDARIES"
+          echo "=============================================="
+
+          echo
+          echo "Protected Cluster configuration remains local."
+
+          for file in \
+            wrangler.json \
+            wrangler.jsonc \
+            _config.yml \
+            _config.yaml \
+            robots.txt \
+            disavow.txt \
+            package.json \
+            package-lock.json \
+            pnpm-lock.yaml \
+            yarn.lock \
+            bun.lock
+          do
+            if [ -f "$file" ]; then
+              echo "PRESENT: $file"
+            fi
+          done
+
+          echo
+          echo "Protected directories:"
+
+          if [ -d ".github" ]; then
+            echo "PRESENT: .github/"
+          fi
+
+          if [ -d "enbackupdate" ]; then
+            echo "PRESENT: enbackupdate/"
+          fi
+
+          if [ -d "static/images" ]; then
+            echo "PRESENT: static/images/"
+          fi
+
+          if [ -d "en/static/images" ]; then
+            echo "PRESENT: en/static/images/"
+          fi
+
+      # ==========================================================
+      # 8. SHOW DIFF
+      # ==========================================================
+
+      - name: Show Cluster changes
+        working-directory: cluster
+        run: |
+          echo "=============================================="
+          echo "CLUSTER CHANGES"
+          echo "=============================================="
+
+          git status --short
+
+          echo
+          git diff --stat
+
+      # ==========================================================
+      # 9. COMMIT + PUSH CLUSTER
+      # ==========================================================
+
+      - name: Commit and push Cluster
+        working-directory: cluster
+        env:
+          GITHUB_TOKEN: ${{ secrets.CLUSTER_SYNC_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          echo "=============================================="
+          echo "COMMITTING CLUSTER"
+          echo "=============================================="
+
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No Cluster changes."
+            exit 0
+          fi
+
+          git config user.name "level-casino-sync"
+
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+
+          git commit \
+            -m "Sync architecture from level.casino@${LEVEL_SHORT}"
+
+          git push origin main
+
+      # ==========================================================
+      # 10. GET THE NEW CLUSTER COMMIT
+      # ==========================================================
+
+      - name: Get deployed Cluster commit
+        working-directory: cluster
+        run: |
+          set -euo pipefail
+
+          CLUSTER_COMMIT="$(git rev-parse HEAD)"
+
+          echo "Cluster commit: $CLUSTER_COMMIT"
+
+          echo "CLUSTER_COMMIT=$CLUSTER_COMMIT" >> "$GITHUB_ENV"
+
+      # ==========================================================
+      # 11. TRIGGER CLUSTER DEPLOYMENT
+      #
+      # This explicitly dispatches deploy-worker.yml AFTER
+      # Cluster has been pushed.
+      # ==========================================================
+
+      - name: Trigger Cluster deployment
+        env:
+          GH_TOKEN: ${{ secrets.CLUSTER_SYNC_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          echo "=============================================="
+          echo "TRIGGERING CLUSTER DEPLOYMENT"
+          echo "=============================================="
+
+          echo "Repository: lvl-code/cluster.casino"
+          echo "Commit: $CLUSTER_COMMIT"
+
+          gh workflow run deploy-worker.yml \
+            --repo lvl-code/cluster.casino \
+            --ref main
+
+          echo
+          echo "Cluster deployment workflow dispatched."
+
+      # ==========================================================
+      # 12. VERIFY DEPLOYMENT STARTED
+      # ==========================================================
+
+      - name: Verify deployment started
+        env:
+          GH_TOKEN: ${{ secrets.CLUSTER_SYNC_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          echo "=============================================="
+          echo "CHECKING DEPLOYMENT STATUS"
+          echo "=============================================="
+
+          # Give the workflow a few seconds to register.
+          sleep 10
+
+          # Fetch the most recent run of deploy-worker.yml.
+          RUN_ID="$(gh run list \
+            --repo lvl-code/cluster.casino \
+            --workflow deploy-worker.yml \
+            --limit 1 \
+            --json databaseId \
+            --jq '.[0].databaseId')"
+
+          if [ -n "$RUN_ID" ]; then
+            echo "Deployment run found: $RUN_ID"
+            echo "Status: $(gh run view "$RUN_ID" --repo lvl-code/cluster.casino --json status --jq '.status')"
+          else
+            echo "WARNING: No deployment run detected yet."
+            echo "The workflow was dispatched but may still be starting."
+          fi
+
+      # ==========================================================
+      # 13. FINAL
+      # ==========================================================
+
+      - name: Synchronization complete
+        run: |
+          echo "=============================================="
+          echo "LEVEL → CLUSTER COMPLETE"
+          echo "=============================================="
+
+          echo
+          echo "Source:    level.casino"
+          echo "  commit:  $LEVEL_COMMIT"
+          echo
+          echo "Target:    cluster.casino"
+          echo "  commit:  $CLUSTER_COMMIT"
+          echo
+          echo "Deployment: TRIGGERED"
