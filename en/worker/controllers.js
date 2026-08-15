@@ -1188,7 +1188,7 @@ export async function renderLogin(
 
   const html =
     await renderer.render(
-      "login.html",
+      "register.html",
       {
         seo_title:
           "Login",

@@ -14,3 +14,4 @@ Sitemap: https://level.casino/en/sitemap-news.xml
 Sitemap: https://level.casino/en/sitemap-categories.xml
 Sitemap: https://level.casino/en/sitemap-countries.xml
 Sitemap: https://level.casino/en/sitemap-pages.xml
+Sitemap: https://level.casino/en/sitemap-updates.xml
