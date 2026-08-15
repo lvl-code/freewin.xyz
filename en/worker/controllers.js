@@ -904,7 +904,7 @@ export async function renderDashboardPagebackup(request, env) {
 
     const html = await renderer.render(template, {
         seo_title: "Dashboard",
-        seo_description: `${site.siteName} Dashboard',
+        seo_description: `${site.siteName} Dashboard`,
         email: user.email,
         role: user.role
     });
