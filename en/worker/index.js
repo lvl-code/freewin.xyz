@@ -85,10 +85,19 @@ export default {
     const url = new URL(request.url);
 
     // ── Check if this is the Lummet subdomain ──
-    if (url.hostname === 'lummet.level.casino') {
+    // ── Check if this is the tenant's Lummet subdomain ──
+    if (url.hostname.startsWith("lummet.")) {
       const lummetResponse = await handleLummetRequest(request, env, ctx);
-      if (lummetResponse) return lummetResponse;
+
+      if (lummetResponse) {
+        return lummetResponse;
+      }
     }
+
+   // if (url.hostname === 'lummet.level.casino') {
+     // const lummetResponse = await handleLummetRequest(request, env, ctx);
+     // if (lummetResponse) return lummetResponse;
+    //}
 
 
     // Serve static assets
