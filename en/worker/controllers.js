@@ -1203,7 +1203,7 @@ export async function renderCasinoList(request, env) {
   };
     // Public pages don't need a CSRF token, but set it to empty for the meta tag
   const html = await renderer.render("category.html", {
-    canonical: dynamicSeo.canonical ||site.url("/en/casino")
+    canonical: dynamicSeo.canonical ||site.url("/en/casino"),
     category: "All Casinos",
     description: "Browse our complete directory of reviewed online casinos.",
     casino_cards: buildCasinoCards(sortedCasinos, geoData),
