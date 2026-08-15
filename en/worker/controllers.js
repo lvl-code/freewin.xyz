@@ -881,41 +881,6 @@ export async function renderDashboardPage(request, env) {
 }
 
 
-export async function renderDashboardPagebackup(request, env) {
-
-    const user = await getCurrentUser(request, env);
-
-    if (!user) {
-        return new Response(null, {
-            status: 302,
-            headers: {
-                Location: "/en/login"
-            }
-        });
-    }
-
-    const renderer = new Renderer(env, request);
-    const site = await getSiteContext(request, env);
-
-    const template =
-    (user.role === "admin" || user.role === "editor")
-        ? "admin/dashboard.html"
-        : "users/dashboard.html";
-
-    const html = await renderer.render(template, {
-        seo_title: "Dashboard",
-        seo_description: `${site.siteName} Dashboard`,
-        email: user.email,
-        role: user.role
-    });
-
-    return new Response(html, {
-        headers: {
-            "Content-Type": "text/html"
-        }
-    });
-}
-
 export async function dashboardStatsAPI(request, env) {
 
     const user = await getCurrentUser(request, env);
