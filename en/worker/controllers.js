@@ -1818,6 +1818,7 @@ export async function renderAuthor(request, env, slug) {
   if (!author) return render404(request, env);
 
   const renderer = new Renderer(env, request);
+  const site = await getSiteContext(request, env);
   const content = await authors.getAuthorContent(env.DB, author.id);
   const stats = await authors.getAuthorStats(env.DB, author.id);
   const allComponents = await renderer.renderAllComponents("author", slug);
@@ -1877,9 +1878,9 @@ export async function renderAuthor(request, env, slug) {
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
     components_sidebar: allComponents.sidebar,
-    seo_title: dynamicSeo.seo_title || author.name + " — Level.casino",
-    seo_description: dynamicSeo.seo_description || author.bio || author.name + " is a " + (author.role || "editor") + " at Level.casino.",
-    canonical: dynamicSeo.canonical || `https://level.casino/en/author/${slug}`
+    seo_title: dynamicSeo.seo_title || author.name + " — " + site.siteName,
+    seo_description: dynamicSeo.seo_description || author.bio || author.name + " is a " + (author.role || "editor") + " at " + site.siteName ,
+    canonical: dynamicSeo.canonical || site.url("/en/author/${slug}")
   }, authorSchema, [{ label: "Home", url: "/en" }, { label: "Authors", url: null }, { label: author.name, url: null }]);
 
   return new Response(html, { headers: cacheHeaders() });
