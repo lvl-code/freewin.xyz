@@ -1302,7 +1302,7 @@ export async function renderReviewList(request, env) {
   };
       // Public pages don't need a CSRF token, but set it to empty for the meta tag
   const html = await renderer.render("category.html", {
-    canonical: dynamicSeo.canonical || site.url("/en/review")
+    canonical: dynamicSeo.canonical || site.url("/en/review"),
     category: "All Reviews",
     description: "Browse our complete collection of casino reviews.",
     casino_cards: reviewCards,
