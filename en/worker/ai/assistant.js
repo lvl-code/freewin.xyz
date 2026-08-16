@@ -8,6 +8,7 @@ import { buildSystemPrompt, buildMessages } from './prompt.js';
 import { getRecentHistory, appendMessages } from './memory.js';
 import { validateInput, detectInjection } from './security.js';
 
+import { getSiteContext } from '../site-context.js';
 const MODEL = '@cf/meta/llama-3.1-8b-instruct-fast';
 
 //const MODEL = '@cf/zai-org/glm-4.7-flash';
