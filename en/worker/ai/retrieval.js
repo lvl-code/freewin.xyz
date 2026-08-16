@@ -1,7 +1,7 @@
 // =====================================================
 // LUMMET AI — Database Retrieval (RAG Layer)
 // Accepts LLM-generated search plan for smarter queries
-// Schema-matched to Level.casino D1 production tables
+// Schema-matched to tenant D1 production tables
 // =====================================================
 import { getSiteContext } from "../site-context.js";
 
@@ -38,13 +38,7 @@ function truncate(text, max = MAX_CONTENT_LENGTH) {
  */
 export async function retrieve(env, query, country, plan = null, conversationHistory = null, request = null ) {
   const db = env.DB;
-  const site = request
-  ? await getSiteContext(request, env)
-  : {
-      origin: "",
-      siteName: "",
-      url: path => path
-    };
+  const site = await getSiteContext(request, env);
   const text = query.toLowerCase().trim();
 
   // ── Determine search parameters from plan or fallback ──
