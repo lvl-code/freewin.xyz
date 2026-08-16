@@ -11,7 +11,7 @@
   let sessionId = null;
   let messages = [];
 
-  let button, window, messagesEl, inputEl, sendBtn, clearBtn, closeBtn;
+  let button, chatWindow, messagesEl, inputEl, sendBtn, clearBtn, closeBtn;
 
   function init() {
     const siteOrigin = window.location.origin;
@@ -87,7 +87,7 @@
     document.body.appendChild(root);
 
     button = root.querySelector('.lummet-ai-button');
-    window = root.querySelector('.lummet-ai-window');
+    chatWindow = root.querySelector('.lummet-ai-window');
     messagesEl = root.querySelector('#lummetMessages');
     inputEl = root.querySelector('#lummetInput');
     sendBtn = root.querySelector('#lummetSend');
@@ -112,21 +112,20 @@
   }
 
   function toggleWindow() { isOpen ? closeWindow() : openWindow(); }
-
   function openWindow() {
     isOpen = true;
-    window.classList.add('open');
-    window.setAttribute('aria-hidden', 'false');
+    chatWindow.classList.add('open');
+    chatWindow.setAttribute('aria-hidden', 'false');
     button.classList.add('active');
     setTimeout(() => inputEl.focus(), 200);
   }
 
   function closeWindow() {
     isOpen = false;
-    window.classList.remove('open');
-    window.setAttribute('aria-hidden', 'true');
+    chatWindow.classList.remove('open');
+    chatWindow.setAttribute('aria-hidden', 'true');
     button.classList.remove('active');
-  }
+  } 
 
   function autoResize() {
     inputEl.style.height = 'auto';
