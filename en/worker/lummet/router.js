@@ -178,7 +178,7 @@ export async function handleLummetRequest(request, env, ctx) {
  *
  * The current request hostname is used instead.
  */
-async async function serveIndex(request, env) {
+async function serveIndex(request, env) {
   const assetUrl = new URL("/lummet/index.html", request.url);
 
   const assetRequest = new Request(assetUrl.toString(), {
