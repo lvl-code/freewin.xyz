@@ -23,6 +23,8 @@ import {
     deleteMediaItem,
 } from './database/media_library.js';
 
+import { getSiteContext } from './site-context.js';
+
 // ── Local response helpers ──────────────────────────
 // media-upload.js can't import json/success/failure from
 // api.js (circular dependency), so we define minimal
@@ -341,8 +343,8 @@ export async function handleUpload(request, env, user) {
         });
 
         // Generate public URL
-        const requestHost = request.headers.get('host') || 'level.casino';
-        const publicUrl = generatePublicUrl(r2Key, requestHost);
+        const site = await getSiteContext(request, env);
+        const publicUrl = generatePublicUrl(r2Key, site.hostname);
 
         // Generate thumbnail URLs for images
         let thumbnailUrl = null;

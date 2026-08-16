@@ -38,7 +38,7 @@ export class Renderer {
   constructor(env, request = null) {
     this.env = env;
     this.request = request;
-    this.country = request?.cf?.country || "RW";
+    this.country = request?.cf?.country || null;
   }
 
   // =====================================================
@@ -392,7 +392,7 @@ schemas.push({
 
     // Load and inject active banners
     try {
-      const country = data._geo_country || this.country || "RW";
+      const country = data._geo_country || this.country || null;
       const allBanners = await this.loadActiveBanners(country);
       const topBanners = allBanners.filter(b => b.position === "top");
       const bottomBanners = allBanners.filter(b => b.position === "bottom");

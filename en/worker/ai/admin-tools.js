@@ -181,10 +181,6 @@ Return as a JSON array of section objects with "title" and "points" (array of bu
 /**
  * Improve editorial content (admin tool)
  */
-// improveContent — BEFORE:
-// const systemPrompt = `You are an editorial editor for Level.casino...`
-
-// AFTER:
 export async function improveContent(env, content, improvementType = 'readability', siteName = 'this site') {
   const systemPrompt = `You are an editorial editor for ${siteName}. ${prompts[improvementType] || prompts.readability}
 Return only the improved text. No explanations, no markdown.`;

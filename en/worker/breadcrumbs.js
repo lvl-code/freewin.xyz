@@ -1,6 +1,6 @@
 import { getSiteContext } from "./site-context.js";
 // =====================================================
-// LEVEL.CASINO BREADCRUMB ENGINE
+// TENANT BREADCRUMB ENGINE
 // =====================================================
 
 const ROUTES = {
@@ -150,23 +150,6 @@ export function renderBreadcrumbs(crumbs = []) {
 // Breadcrumb JSON-LD
 // =====================================================
 
-export function buildBreadcrumbSchemabackup(crumbs = []) {
-
-  return {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-
-    itemListElement: crumbs.map((crumb, index) => ({
-      "@type": "ListItem",
-      position: index + 1,
-      name: crumb.label,
-      item: crumb.url
-        ? `https://level.casino${crumb.url}`
-        : undefined
-    }))
-  };
-
-}
 export function buildBreadcrumbSchema(
   crumbs = [],
   siteOrigin = ""

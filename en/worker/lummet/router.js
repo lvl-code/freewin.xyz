@@ -262,7 +262,7 @@ async function handleChat(request, env) {
       env,
       body.message,
       {
-        country: request.cf?.country || "RW",
+        country: request.cf?.country || null,
         sessionId,
         userId: null
       },
@@ -337,7 +337,7 @@ async function handleChatStream(request, env) {
       env,
       body.message,
       {
-        country: request.cf?.country || "RW",
+        country: request.cf?.country || null,
         sessionId,
         userId: null
       },

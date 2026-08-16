@@ -2061,6 +2061,7 @@ async function generateReview(request, env) {
 
   const content = await aiEngine.generateFullReview(
     env,
+    request,
     body.casino,
     body.country,
     body.slug

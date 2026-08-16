@@ -1,99 +1,202 @@
+import { getSiteContext } from "./site-context.js";
+
 export const aiEngine = {
+
   /**
-   * Safe execution wrapper for Cloudflare's native Workers AI system
+   * Safe execution wrapper for Cloudflare Workers AI.
    */
   async runInference(env, model, inputs) {
     console.log("AI binding check:", !!env.AI);
 
     if (!env.AI) {
-      console.warn("Workers AI binding is missing. Falling back to static values.");
+      console.warn("Workers AI binding is missing.");
       return null;
     }
+
     try {
-     // return await env.AI.run(model, inputs);
-      const result = await env.AI.run(model, inputs);
-
-    //  console.log("AI RAW RESULT:", JSON.stringify(result));
-
-      return result;
+      return await env.AI.run(model, inputs);
     } catch (error) {
-      console.error(`Edge AI Inference Failure: ${error.message}`);
+      console.error(
+        `Edge AI Inference Failure: ${error.message}`
+      );
+
       return null;
     }
   },
 
-  /**
-   * Generates highly targeted, high-roller focused review copy on demand
-   */
-  async generateReviewSummary(env, casinoName, countryCode, languages = 'English') {
-    const model = '@cf/zai-org/glm-4.7-flash';
-    
-    const systemPrompt = `You are an expert iGaming industry copywriter specializing in premium, high-stakes casino analysis. 
-Your target audience consists of high-rollers and VIP players. Write a compelling, factual 3-sentence evaluation summary. 
-Focus on high-tier VIP reward transparency, cashout speed limits, and licensing authority trust factors. Do not use generic fluff.`;
 
-    const userPrompt = `Write a premium localized casino review intro summary for "${casinoName}" customized specifically for players browsing from jurisdiction code: ${countryCode}. Output the final copy strictly in ${languages}.`;
+  /**
+   * Generates a localized casino review summary.
+   */
+  async generateReviewSummary(
+    env,
+    request,
+    casinoName,
+    countryCode,
+    languages = "English"
+  ) {
+    const model = "@cf/zai-org/glm-4.7-flash";
+
+    const site = await getSiteContext(request, env);
+
+    const systemPrompt = `
+You are an expert iGaming industry copywriter working for ${site.siteName}.
+
+The website is an independent casino comparison and editorial platform.
+
+Write a factual, concise three-sentence casino evaluation.
+
+Focus on:
+- VIP reward transparency
+- withdrawal and cashout considerations
+- licensing and trust factors
+- jurisdiction-specific availability
+
+Never invent facts.
+If information is unavailable, say so.
+Do not make unsupported promotional claims.
+`.trim();
+
+    const userPrompt = `
+Write a localized casino review introduction for "${casinoName}".
+
+Target jurisdiction:
+${countryCode}
+
+Language:
+${languages}
+
+Website:
+${site.siteName}
+`.trim();
 
     const result = await this.runInference(env, model, {
       messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
+        {
+          role: "system",
+          content: systemPrompt
+        },
+        {
+          role: "user",
+          content: userPrompt
+        }
       ],
       temperature: 0.6,
       max_tokens: 150
     });
 
-    return result?.response ? result.response.trim() : `Premium review context for ${casinoName} tracking live under jurisdiction ${countryCode}.`;
+    return result?.response
+      ? result.response.trim()
+      : `Review information for ${casinoName} is currently unavailable.`;
   },
 
-  /**
-   * Generates hyper-optimized SEO titles and metadata objects for localized landing matrix variants
-   */
-  async generateDynamicSeo(env, targetDomain, contextData) {
-    const model = '@cf/zai-org/glm-4.7-flash';
-    
-    const systemPrompt = `You are an elite SEO engineer managing the domain portfolio asset ${targetDomain}. 
-Generate a strict JSON layout string containing a title tag and meta description optimized for Click-Through Rates (CTR). 
-Never include code block wrappers like \`\`\`json in your response. Return raw plain-text valid JSON object only.`;
 
-    const userPrompt = `Context: Type is ${contextData.type}, Slug is ${contextData.slug}, Target Country is ${contextData.country}. 
-Create an localized SEO title (under 60 chars) and meta description (under 155 chars) targeting localized VIP casino search intent.`;
+  /**
+   * Generates tenant-aware SEO metadata.
+   */
+  async generateDynamicSeo(
+    env,
+    request,
+    contextData
+  ) {
+    const model = "@cf/zai-org/glm-4.7-flash";
+
+    const site = await getSiteContext(request, env);
+
+    const systemPrompt = `
+You are an SEO engineer working for ${site.siteName}.
+
+Generate valid JSON containing:
+{
+  "title": "...",
+  "description": "..."
+}
+
+Requirements:
+- title under 60 characters
+- description under 155 characters
+- optimize for search intent
+- never invent facts
+- never include markdown
+- return raw JSON only
+`.trim();
+
+    const userPrompt = `
+Website:
+${site.siteName}
+
+Page type:
+${contextData.type || ""}
+
+Page slug:
+${contextData.slug || ""}
+
+Target country:
+${contextData.country || ""}
+
+Create localized SEO metadata appropriate for this website.
+`.trim();
 
     const result = await this.runInference(env, model, {
       messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
+        {
+          role: "system",
+          content: systemPrompt
+        },
+        {
+          role: "user",
+          content: userPrompt
+        }
       ],
-      temperature: 0.3
+      temperature: 0.3,
+      max_tokens: 300
     });
 
     try {
       if (result?.response) {
-        return JSON.parse(result.response.trim());
+        const parsed = JSON.parse(result.response.trim());
+
+        return {
+          title: parsed.title || "",
+          description: parsed.description || ""
+        };
       }
-    } catch (e) {
-      console.error("AI returned malformed JSON structure:", e);
+    } catch (error) {
+      console.error(
+        "AI returned malformed SEO JSON:",
+        error.message
+      );
     }
 
-    // Safe hardcoded structural fallback matrix
+    /*
+     * Do not manufacture a tenant-specific SEO fallback here.
+     * Let the normal database/site SEO system provide the fallback.
+     */
     return {
-      title: `${contextData.slug.toUpperCase()} Casino Review & VIP Sign-up Bonuses [Geo: ${contextData.country}]`,
-      description: `Get real-time player data, active withdrawal framework details, and high-stakes match incentives for ${contextData.slug} inside ${contextData.country}.`
+      title: "",
+      description: ""
     };
   },
-    /**
-   * Generates a full-length casino review using Workers AI
+
+
+  /**
+   * Generates a full casino review.
    */
-  async generateFullReview(env, casinoName, countryCode, slug) {
-    const model = '@cf/zai-org/glm-4.7-flash';
+  async generateFullReview(
+    env,
+    request,
+    casinoName,
+    countryCode,
+    slug
+  ) {
+    const model = "@cf/zai-org/glm-4.7-flash";
 
-    /*const systemPrompt = `You are an expert iGaming industry copywriter specializing in premium casino reviews.
-Write a comprehensive, SEO-optimized casino review of at least 800 words.
-Structure your response with clear sections: Overview, Games & Software, Bonuses & Promotions, Payment Methods, Licensing & Security, Pros & Cons, and FAQ.
-Do not use markdown headers. Use plain text with section titles on their own line.`;*/
-    const systemPrompt = `You are a professional iGaming editorial writer for Level.casino.
+    const site = await getSiteContext(request, env);
 
-Create an accurate casino review.
+    const systemPrompt = `
+You are a professional iGaming editorial writer for ${site.siteName}.
+
+Create an accurate independent casino review.
 
 Rules:
 - Never invent payment methods, licenses, bonuses, providers, or features.
@@ -124,15 +227,34 @@ Requirements:
 - Section titles on separate lines
 - No markdown symbols
 - No internal reasoning
-- Output only the final review text.`;
-    const userPrompt = `Write a professional casino review for "${casinoName}" targeted at players from ${countryCode}.
-Include specific pros and cons. Include a FAQ section with 3-5 questions.
-Make it factual and avoid generic fluff.`;
+- Output only the final review text.
+`.trim();
+
+    const userPrompt = `
+Write a professional casino review for "${casinoName}"
+targeted at players from ${countryCode}.
+
+Page slug:
+${slug}
+
+Website:
+${site.siteName}
+
+Include specific pros and cons.
+Include a FAQ section with 3-5 questions.
+Make it factual and avoid generic fluff.
+`.trim();
 
     const result = await this.runInference(env, model, {
       messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
+        {
+          role: "system",
+          content: systemPrompt
+        },
+        {
+          role: "user",
+          content: userPrompt
+        }
       ],
       temperature: 0.6,
       max_tokens: 2500,
@@ -141,18 +263,14 @@ Make it factual and avoid generic fluff.`;
       }
     });
 
-//    return result?.response
-  //    ? result.response.trim()
-    //  : `${casinoName} is a premium online casino offering a comprehensive gaming experience for players in ${countryCode}. Contact your administrator to configure the AI binding for full review generation.`;
-     const content =
-  result?.response ||
-  result?.choices?.[0]?.message?.content ||
-  null;
+    const content =
+      result?.response ||
+      result?.choices?.[0]?.message?.content ||
+      null;
 
-return content
-  ? content.trim()
-  : `Unable to generate review content for ${casinoName}.`;
+    return content
+      ? content.trim()
+      : `Unable to generate review content for ${casinoName}.`;
   }
-
 
 };

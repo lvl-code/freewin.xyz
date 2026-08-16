@@ -95,11 +95,6 @@ export default {
       }
     }
 
-   // if (url.hostname === 'lummet.level.casino') {
-     // const lummetResponse = await handleLummetRequest(request, env, ctx);
-     // if (lummetResponse) return lummetResponse;
-    //}
-
 
     // Serve static assets
     if (

@@ -3,7 +3,7 @@ export const geoEngine = {
     const url = new URL(request.url);
     
     // DEV OVERRIDE TOOL: Allows you to force-simulate any country via URL parameters
-    // Example: level.casino/en/casino/levelup?geo=CA
+    // Example: example.com/en/casino/levelup?geo=CA
     const overrideCountry = url.searchParams.get('geo');
     
     const country = overrideCountry ? overrideCountry.toUpperCase() : (edgeGeo.country || 'RW');
