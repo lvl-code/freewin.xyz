@@ -344,6 +344,8 @@ ${JSON.stringify(schema)}
 const allData = {
   ...navData,
   site_name: site.siteName,
+  site_url: site.origin,
+  site_hostname: site.hostname,
   site_origin: site.origin,
   site_logo: site.logoUrl,
   site_description: site.description,

@@ -2,9 +2,9 @@
 
 <section class="sitemap-hero">
     <div class="container">
-        <h1>Level.casino Sitemap</h1>
+        <h1>{{site_name}} Sitemap</h1>
         <p>
-            Explore casino reviews, rankings, guides, news and useful resources from Level.casino.
+            Explore casino reviews, rankings, guides, news and useful resources from {{site_name}}.
         </p>
     </div>
 </section>
@@ -40,7 +40,7 @@
 <div class="sitemap-card">
     <div class="sitemap-icon">📚</div>
     <h2>Useful Pages</h2>
-    <p>Learn more about Level.casino and our policies.</p>
+    <p>Learn more about {{site_name}} and our policies.</p>
     <ul id="pages"></ul>
 </div>
 
@@ -78,10 +78,12 @@ const urls=[...doc.querySelectorAll("loc")];
 document.getElementById(id).innerHTML =
 urls.map(u=>{
 
-let path=u.textContent
-.replace("https://level.casino","")
-.replace("/en/","")
-.replaceAll("-"," ");
+const currentOrigin = window.location.origin;
+
+const path = u.textContent
+  .replace(currentOrigin, "")
+  .replace("/en/", "")
+  .replaceAll("-", " ");
 
 
 return `
