@@ -540,9 +540,8 @@ function isGeoText(text) {
 /**
  * Build context string from retrieved results for the LLM prompt
  */
-export function buildContextString(results, country, request, env) {
+export function buildContextString(results, country, site) {
   const parts = [];
-  const site = await getSiteContext(request, env);
   if (results.casinos && results.casinos.length > 0) {
     parts.push('=== CASINOS ===');
     for (const c of results.casinos) {
@@ -666,6 +665,6 @@ export function buildContextString(results, country, request, env) {
     for (const s of results.seoMeta) parts.push(`Page: ${s.title} | Type: ${s.page_type} | Slug: ${s.page_slug} | Description: ${s.description || ''}`);
   }
 
-  return parts.length > 0 ? parts.join('\n') : 'No relevant information found in the Level.casino database.';
+  return parts.length > 0 ? parts.join('\n') : `No relevant information found in the ${site.siteName} database.`;
 }
 

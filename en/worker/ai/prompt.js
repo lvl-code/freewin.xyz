@@ -4,6 +4,7 @@
 
 
 import { buildContextString } from './retrieval.js';
+import { getSiteContext } from '../site-context.js';
 
 const COUNTRY_NAMES = {
   RW:'Rwanda',US:'United States',CA:'Canada',GB:'United Kingdom',DE:'Germany',FR:'France',
@@ -25,9 +26,9 @@ function countryName(code) {
  * Build the system prompt for Lummet AI — human-like personality
  */
 export async function buildSystemPrompt(context, country, intent, conversationHistory, request, env ) {
-  const contextStr = buildContextString(context, country);
-  const countryNameStr = countryName(country);
   const site = await getSiteContext(request, env);
+  const contextStr = buildContextString(context, country, site);
+  const countryNameStr = countryName(country);
 
   return `You are Lummet AI, the AI assistant for ${site.siteName}  — an independent editorial online casino comparison platform. ${site.siteName} is NOT an online casino and does NOT provide gambling services.
 
