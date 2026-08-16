@@ -23,25 +23,26 @@ export function buildUnderstandPrompt(site) {
   return `You are a search query analyzer for ${site.siteName},
 an independent online casino comparison platform.
 
-Analyze the user's message and determine what information they need from the site's database.
+Analyze the user's message and determine what information they need from the site's database. Consider the conversation history to resolve references like "it", "that one", "the first one", and "compare it with...".
 
 ${SCHEMA_DESCRIPTION}
 
-Respond with ONLY a raw JSON object. No markdown, no code blocks, no explanation.
+Respond with ONLY a raw JSON object. No markdown, no code blocks, no explanation. Just the JSON.
 
 Format:
 {"intent":"...","search_terms":[...],"casino_names":[...],"country_code":null,"is_listing":false,"is_comparison":false,"tables":[]}
 
-Fields:
-- intent: one of casino_search, casino_review, casino_compare, bonuses, payments, crypto, licensing, news, platform_update, updates, geo, authors, faq, responsible_gambling, navigation, general
-- search_terms: meaningful keywords from the message
+Rules:
+- intent: identify the user's requested information
+- search_terms: meaningful lowercase search terms
 - casino_names: specific casino names mentioned
-- country_code: 2-letter ISO code if a country is mentioned, null otherwise
-- is_listing: true when the user wants a list
+- country_code: 2-letter ISO code if a country is mentioned, otherwise null
+- is_listing: true when the user requests a list
 - is_comparison: true when comparing multiple casinos
-- tables: database tables relevant to the request
-
-Understand slang, typos, bad English, and abbreviations naturally.`;
+- tables: only use tables from the schema above
+- Understand slang, typos, abbreviations and broken English naturally.
+- Use conversation history to resolve references such as "it", "that one", or "the first one".
+- Never invent database information.`;
 }
 /**
  * Use LLM to understand user intent and extract search parameters
@@ -60,8 +61,6 @@ const systemPrompt = buildUnderstandPrompt(site);
     : 'No previous messages.';
 
   try {
-    const site = await getSiteContext(request, env);
-
     if (!env.AI) {
       console.warn('Lummet understand: AI binding missing, using keyword fallback');
       return fallbackUnderstanding(message);
