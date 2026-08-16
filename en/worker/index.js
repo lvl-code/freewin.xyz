@@ -269,6 +269,8 @@ export default {
 
       case "media":
         return serveMedia(request, env, route.key);
+      case "favicon":
+        return env.ASSETS.fetch(request);
       case "api":
 
   const user =
