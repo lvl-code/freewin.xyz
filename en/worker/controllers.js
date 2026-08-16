@@ -1169,7 +1169,7 @@ export async function renderRegister(
 
 export async function render404(request, env) {
   const renderer = new Renderer(env, request);
-
+  const site = await getSiteContext(request, env);
   const html = await renderer.render("404.html", {
     seo_title: "404 - Page Not Found",
     seo_description: `Sorry, this page does not exist on ${site.siteName}.`
