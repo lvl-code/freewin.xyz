@@ -174,7 +174,7 @@ export async function renderHome(request, env) {
     "description":site.description || "Expert casino reviews, exclusive bonuses, and real player data.",
     "publisher": {
       "@type": "Organization",
-      "name": "site.siteName",
+      "name": site.siteName,
       "logo": {
         "@type": "ImageObject",
         "url": site.logoUrl
@@ -1247,7 +1247,7 @@ export async function renderReviewList(request, env) {
       rulesByCasino[row.casino_slug].push(row);
     }
 
-    const country = request.cf?.country || "RW";
+    const country = request.cf?.country || null;
     for (const slug of casinoSlugs) {
       const rules = rulesByCasino[slug] || [];
       if (rules.length === 0) { geoStatuses[slug] = "blocked"; continue; }
@@ -1339,7 +1339,7 @@ export async function renderNewsList(request, env) {
     "name": "iGaming Industry News Feed",
     "itemListElement": newsList.map((n, idx) => ({
       "@type": "ListItem", "position": idx + 1,
-      "url": site.url(`/en/casino/${n.slug}`)
+      "url": site.url(`/en/news/${n.slug}`)
     }))
   };
       // Public pages don't need a CSRF token, but set it to empty for the meta tag
@@ -1353,8 +1353,8 @@ export async function renderNewsList(request, env) {
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
     components_sidebar: allComponents.sidebar,
-    seo_title: dynamicSeo.seo_title || "Casino News — Level.casino",
-    seo_description: dynamicSeo.seo_description || "Latest iGaming and online casino industry news."
+    seo_title: dynamicSeo.seo_title || `Casino News — ${site.siteName}`,
+    seo_description: dynamicSeo.seo_description || `Latest iGaming and online casino industry news from ${site.siteName}.`
   }, listSchema, buildBreadcrumbs("newsList"));
 
   return new Response(html, { headers: cacheHeaders() });
@@ -1432,10 +1432,8 @@ export async function renderUpdatesList(request, env) {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
       "name": `${site.siteName} Platform Updates`,
-    "description":
-      dynamicSeo.seo_description ||
-        `${site.siteName} latest updates, improvements, features and announcements`,
-    "url": site.url(`/en/updates/${update.slug}`),
+    "description": dynamicSeo.seo_description || `${site.siteName} latest updates, improvements, features and announcements`,
+    "url": site.url("/en/updates"),
     "mainEntity": {
       "@type": "ItemList",
       "itemListElement": updates.map((update, index) => ({
@@ -1475,14 +1473,8 @@ export async function renderUpdatesList(request, env) {
 
       components_sidebar:
         allComponents.sidebar,
-
-      seo_title:
-        dynamicSeo.seo_title ||
-        "Platform Updates — Level.casino",
-
-      seo_description:
-        dynamicSeo.seo_description ||
-        "Latest Level.casino platform updates, new features, improvements and announcements."
+      seo_title: dynamicSeo.seo_title || `Platform Updates — ${site.siteName}`,
+      seo_description: dynamicSeo.seo_description || `Latest ${site.siteName} platform updates, new features, improvements and announcements.`
     },
     listSchema,
     buildBreadcrumbs("updatesList")
@@ -1505,6 +1497,7 @@ export async function renderUpdate(request, env, slug) {
   }
 
   const renderer = new Renderer(env, request);
+  const site = await getSiteContext(request, env);
 
   const allComponents =
     await renderer.renderAllComponents(
@@ -1551,21 +1544,18 @@ export async function renderUpdate(request, env, slug) {
 
     "author": {
       "@type": "Person",
-      "name":
-        update.author_name ||
-        "Level.casino"
+      "name": update.author_name || site.siteName
     },
 
     "publisher": {
       "@type": "Organization",
-      "name": "Level.casino",
-      "url": "https://level.casino"
+      "name": site.siteName,
+      "url": site.origin
     },
 
     "mainEntityOfPage": {
       "@type": "WebPage",
-      "@id":
-        `https://level.casino/en/updates/${slug}`
+      "@id": site.url(`/en/updates/${slug}`)
     }
   };
 
@@ -1576,7 +1566,7 @@ export async function renderUpdate(request, env, slug) {
 
       canonical:
         dynamicSeo.canonical ||
-        `https://level.casino/en/updates/${slug}`,
+        site.url(`/en/updates/${slug}`),
 
       author_name:
         update.author_name || "",
@@ -1643,11 +1633,12 @@ async function renderAdminPage(request, env, template, extraData = {}) {
   }
 
   const renderer = new Renderer(env, request);
+  const site = await getSiteContext(request, env);
   // Load shared admin navigation
   const adminNav = await renderer.loadTemplate("layout/admin-nav.html");
   const html = await renderer.render(template, {
-      seo_title: "Admin — Level.casino",
-      seo_description: "Level.casino CMS Admin",
+      seo_title: `Admin — ${site.siteName}`,
+      seo_description: `${site.siteName} CMS Admin`,
 
       email: user.email,
       role: user.role,
@@ -1688,26 +1679,32 @@ export async function renderDashboardAI(request, env) {
   return renderAdminPage(request, env, "admin/ai.html");
 }
 
-
 async function renderUserPage(request, env, template) {
   const user = await getCurrentUser(request, env);
+
   if (!user) {
     return new Response(null, {
       status: 302,
-      headers: { Location: "/en/login" }
+      headers: {
+        Location: "/en/login"
+      }
     });
   }
 
   const renderer = new Renderer(env, request);
+  const site = await getSiteContext(request, env);
+
   const html = await renderer.render(template, {
-    seo_title: "Level.casino — Dashboard",
-    seo_description: "Manage your account",
+    seo_title: `${site.siteName} — Dashboard`,
+    seo_description: `Manage your ${site.siteName} account`,
     email: user.email,
     role: user.role
   });
 
   return new Response(html, {
-    headers: { "Content-Type": "text/html" }
+    headers: {
+      "Content-Type": "text/html"
+    }
   });
 }
 
@@ -1730,6 +1727,7 @@ export async function renderUserNotifications(request, env) {
 
 export async function renderCategoryList(request, env) {
   const renderer = new Renderer(env, request);
+  const site = await getSiteContext(request, env);
   const cats = await categories.getAllCategories(env.DB);
   const allComponents = await renderer.renderAllComponents("category_list", "category_list");
   const dynamicSeo = await renderer.loadDynamicSeo("category_list", "category_list");
@@ -1750,8 +1748,8 @@ export async function renderCategoryList(request, env) {
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
     components_sidebar: allComponents.sidebar,
-    seo_title: dynamicSeo.seo_title || "Casino Categories — Level.casino",
-    seo_description: dynamicSeo.seo_description || "Browse online casinos by category."
+    seo_title: dynamicSeo.seo_title || `Casino Categories — ${site.siteName}`,
+    seo_description: dynamicSeo.seo_description ||  `Browse online casinos by category on ${site.siteName}.`
   }, {}, buildBreadcrumbs("categoryList"));
 
   return new Response(html, { headers: cacheHeaders() });
@@ -1759,6 +1757,7 @@ export async function renderCategoryList(request, env) {
 
 export async function renderCountryList(request, env) {
   const renderer = new Renderer(env, request);
+  const site = await getSiteContext(request, env);
   const countriesList = await countries.getAllCountries(env.DB);
   const allComponents = await renderer.renderAllComponents("country_list", "country_list");
   const dynamicSeo = await renderer.loadDynamicSeo("country_list", "country_list");
@@ -1776,8 +1775,8 @@ export async function renderCountryList(request, env) {
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
     components_sidebar: allComponents.sidebar,
-    seo_title: dynamicSeo.seo_title || "Online Casinos by Country — Level.casino",
-    seo_description: dynamicSeo.seo_description || "Find online casinos available in your country."
+    seo_title: dynamicSeo.seo_title || `Online Casinos by Country — ${site.siteName}`,
+    seo_description: dynamicSeo.seo_description || `Find online casinos available in your country on ${site.siteName}.`
   }, {}, buildBreadcrumbs("countryList"));
 
   return new Response(html, { headers: cacheHeaders() });
@@ -1880,7 +1879,7 @@ export async function renderAuthor(request, env, slug) {
     components_sidebar: allComponents.sidebar,
     seo_title: dynamicSeo.seo_title || author.name + " — " + site.siteName,
     seo_description: dynamicSeo.seo_description || author.bio || author.name + " is a " + (author.role || "editor") + " at " + site.siteName ,
-    canonical: dynamicSeo.canonical || site.url("/en/author/${slug}")
+    canonical: dynamicSeo.canonical || site.url(`/en/author/${slug}`)
   }, authorSchema, [{ label: "Home", url: "/en" }, { label: "Authors", url: null }, { label: author.name, url: null }]);
 
   return new Response(html, { headers: cacheHeaders() });
