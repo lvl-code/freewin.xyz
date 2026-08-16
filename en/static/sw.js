@@ -1,4 +1,4 @@
-const CACHE_NAME = "levelcasino-v1";
+const CACHE_NAME = `platform-${self.location.hostname}-v1`;
 
 const STATIC_ASSETS = [
   "/",
