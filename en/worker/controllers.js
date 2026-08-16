@@ -952,6 +952,7 @@ export async function renderCountry(request, env, slug) {
   
   const geoData = await prepareGeoData(env, request, casinoList);
   const renderer = new Renderer(env, request);
+  const site = await getSiteContext(request, env);
   const countrySchema = {
     "@context": "https://schema.org",
     "@type": "ItemList",
