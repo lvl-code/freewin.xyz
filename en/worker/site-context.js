@@ -1,22 +1,41 @@
 // en/worker/site-context.js — Add this guard at the TOP of getSiteContext
 
 export async function getSiteContext(request, env) {
-  // Guard: if request is missing or has no URL, fall back to env or hostname
+  // Fallback only when no request URL is available.
+  // Do not hardcode a tenant/domain here.
   if (!request || !request.url) {
-    const fallbackOrigin = env?.SITE_URL || 'https://unknown.local';
+    const fallbackOrigin = env?.SITE_URL;
+
+    if (!fallbackOrigin) {
+      throw new Error(
+        "SITE_URL is required when request URL is unavailable"
+      );
+    }
+
     const fallbackHostname = new URL(fallbackOrigin).hostname;
 
     return {
       origin: fallbackOrigin,
       hostname: fallbackHostname,
       siteName: env?.SITE_NAME || fallbackHostname,
-      description: '',
-      logoUrl: new URL('/static/images/logo.png', fallbackOrigin).href,
-      ogImageUrl: new URL('/static/images/og-image.png', fallbackOrigin).href,
+      description: "",
+      logoUrl: new URL(
+        "/static/images/logo.png",
+        fallbackOrigin
+      ).href,
+      ogImageUrl: new URL(
+        "/static/images/og-image.png",
+        fallbackOrigin
+      ).href,
+
       url(path = "/") {
         if (!path) return fallbackOrigin;
         if (/^https?:\/\//i.test(path)) return path;
-        return new URL(path.startsWith("/") ? path : `/${path}`, fallbackOrigin).href;
+
+        return new URL(
+          path.startsWith("/") ? path : `/${path}`,
+          fallbackOrigin
+        ).href;
       }
     };
   }
