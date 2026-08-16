@@ -2,7 +2,7 @@
 // LUMMET AI — Understanding Pass (LLM-powered intent analysis)
 // The AI "thinks" about what the user wants before searching
 // =====================================================
-
+import { getSiteContext } from '../site-context.js';
 import { detectIntent, extractEntities } from './router.js';
 
 const MODEL = '@cf/meta/llama-3.1-8b-instruct-fast';
@@ -19,53 +19,43 @@ const SCHEMA_DESCRIPTION = `Database tables and columns:
 - countries: code, name, currency, language, legal_status
 - categories: name, slug, description
 - geo_rules: casino_slug, country_code, status, bonus_override`;
+export function buildUnderstandPrompt(site) {
+  return `You are a search query analyzer for ${site.siteName},
+an independent online casino comparison platform.
 
-const SYSTEM_PROMPT = `You are a search query analyzer for Level.casino, an independent online casino comparison platform.
-
-Analyze the user's message and determine what information they need from the database. Consider the conversation history to resolve references like "it", "that one", "the first one", "compare it with...".
+Analyze the user's message and determine what information they need from the site's database. Consider the conversation history to resolve references like "it", "that one", "the first one", and "compare it with...".
 
 ${SCHEMA_DESCRIPTION}
 
 Respond with ONLY a raw JSON object. No markdown, no code blocks, no explanation. Just the JSON.
 
 Format:
-{"intent":"...","search_terms":[...],"casino_names":[...],"country_code":null,"is_listing":false,"is_comparison":false,"tables":[...]}
+{"intent":"...","search_terms":[...],"casino_names":[...],"country_code":null,"is_listing":false,"is_comparison":false,"tables":[]}
 
-Fields:
-- intent: one of casino_search, casino_review, casino_compare, bonuses, payments, crypto, licensing, news, platform_update, updates, geo, authors, faq, responsible_gambling, navigation, general
-- search_terms: meaningful keywords from the message (lowercase, no stop words like "what", "is", "the")
-- casino_names: specific casino names mentioned (preserve original capitalization). Fix obvious typos — e.g. "stak" → "Stake", "bcgame" → "BC.Game"
-- country_code: 2-letter ISO code if a country is mentioned (e.g. "Canada" → "CA", "Germany" → "DE"), null otherwise
-- is_listing: true if user wants to see all/list items (e.g. "show me all casinos", "what casinos do you have"), false if searching for specific
-- is_comparison: true if comparing multiple casinos
-- tables: which database tables to search (from the schema above)
-
-If the user uses slang, typos, bad English, or abbreviations, understand their intent and provide the corrected search terms.
-If the user references "it", "that one", "the first one", use conversation history to determine what they mean and include it in casino_names.
-
-Examples:
-"What casinos are available in Canada?" → {"intent":"geo","search_terms":[],"casino_names":[],"country_code":"CA","is_listing":true,"is_comparison":false,"tables":["casinos","countries"]}
-"Tell me about Stake" → {"intent":"casino_search","search_terms":["stake"],"casino_names":["Stake"],"country_code":null,"is_listing":false,"is_comparison":false,"tables":["casinos","reviews"]}
-"Compare Stake vs BC.Game" → {"intent":"casino_compare","search_terms":["stake","bc game"],"casino_names":["Stake","BC.Game"],"country_code":null,"is_listing":false,"is_comparison":true,"tables":["casinos","reviews"]}
-"What is Level.casino?" → {"intent":"navigation","search_terms":["level.casino"],"casino_names":[],"country_code":null,"is_listing":false,"is_comparison":false,"tables":["pages"]}
-"Any crypto casinos?" → {"intent":"crypto","search_terms":["crypto"],"casino_names":[],"country_code":null,"is_listing":true,"is_comparison":false,"tables":["casinos"]}
-"stak bonus" → {"intent":"bonuses","search_terms":["stake","bonus"],"casino_names":["Stake"],"country_code":null,"is_listing":false,"is_comparison":false,"tables":["casinos"]}
-"which 1 can i play in rwanda" → {"intent":"geo","search_terms":[],"casino_names":[],"country_code":"RW","is_listing":true,"is_comparison":false,"tables":["casinos","countries"]}
-"what about the first one" → {"intent":"casino_search","search_terms":[],"casino_names":[],"country_code":null,"is_listing":false,"is_comparison":false,"tables":["casinos","reviews"]}
-"What changed on Level.casino?" → {"intent":"platform_update","search_terms":["changed","level.casino"],"casino_names":[],"country_code":null,"is_listing":true,"is_comparison":false,"tables":["platform_updates"]}
-"What's new on Level.casino?" → {"intent":"platform_update","search_terms":["new","level.casino"],"casino_names":[],"country_code":null,"is_listing":true,"is_comparison":false,"tables":["platform_updates"]}
-"Show me the latest platform updates" → {"intent":"platform_update","search_terms":["latest","platform","updates"],"casino_names":[],"country_code":null,"is_listing":true,"is_comparison":false,"tables":["platform_updates"]}
-"Tell me about the latest Level.casino update" → {"intent":"platform_update","search_terms":["latest","level.casino","update"],"casino_names":[],"country_code":null,"is_listing":true,"is_comparison":false,"tables":["platform_updates"]}
-"What new features were added?" → {"intent":"platform_update","search_terms":["new","features","added"],"casino_names":[],"country_code":null,"is_listing":true,"is_comparison":false,"tables":["platform_updates"]}
-"What changed with the component engine?" → {"intent":"platform_update","search_terms":["component","engine"],"casino_names":[],"country_code":null,"is_listing":false,"is_comparison":false,"tables":["platform_updates"]}
-"When was the component engine launched?" → {"intent":"platform_update","search_terms":["component","engine","launched"],"casino_names":[],"country_code":null,"is_listing":false,"is_comparison":false,"tables":["platform_updates"]}
-"Who wrote the latest platform update?" → {"intent":"platform_update","search_terms":["latest","platform","update"],"casino_names":[],"country_code":null,"is_listing":false,"is_comparison":false,"tables":["platform_updates"]}`;
-
+Rules:
+- intent: identify the user's requested information
+- search_terms: meaningful lowercase search terms
+- casino_names: specific casino names mentioned
+- country_code: 2-letter ISO code if a country is mentioned, otherwise null
+- is_listing: true when the user requests a list
+- is_comparison: true when comparing multiple casinos
+- tables: only use tables from the schema above
+- Understand slang, typos, abbreviations and broken English naturally.
+- Use conversation history to resolve references such as "it", "that one", or "the first one".
+- Never invent database information.`;
+}
 /**
  * Use LLM to understand user intent and extract search parameters
  * Falls back to keyword-based router if LLM fails
  */
-export async function understand(env, message, conversationHistory = []) {
+export async function understand(env, message, conversationHistory = [], request = null) {
+  const site = request
+  ? await getSiteContext(request, env)
+  : {
+      siteName: 'this site'
+    };
+
+const systemPrompt = buildUnderstandPrompt(site);
   const historyStr = conversationHistory.length > 0
     ? conversationHistory.slice(-4).map(m => `${m.role}: ${m.content}`).join('\n')
     : 'No previous messages.';
@@ -77,7 +67,7 @@ export async function understand(env, message, conversationHistory = []) {
     }
             const result = await env.AI.run(MODEL, {
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: `Conversation history:\n${historyStr}\n\nUser message: ${message}` }
       ],
       temperature: 0.1,

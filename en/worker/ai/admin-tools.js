@@ -7,8 +7,9 @@ const MODEL = '@cf/zai-org/glm-4.7-flash';
 /**
  * Generate a full casino review (admin tool)
  */
-export async function generateReview(env, casinoName, countryCode, slug) {
-  const systemPrompt = `You are a professional iGaming editorial writer for Level.casino.
+export async function generateReview(env, casinoName, countryCode, slug, request) {
+    const site = await getSiteContext(request, env);
+    const systemPrompt = `You are a professional iGaming editorial writer for ${site.siteName}.
 
 Create an accurate casino review.
 

@@ -540,9 +540,9 @@ function isGeoText(text) {
 /**
  * Build context string from retrieved results for the LLM prompt
  */
-export function buildContextString(results, country) {
+export function buildContextString(results, country, request, env) {
   const parts = [];
-
+  const site = await getSiteContext(request, env);
   if (results.casinos && results.casinos.length > 0) {
     parts.push('=== CASINOS ===');
     for (const c of results.casinos) {
