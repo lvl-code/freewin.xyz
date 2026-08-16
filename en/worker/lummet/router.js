@@ -362,31 +362,6 @@ async function handleChatStream(request, env) {
 }
 
 
-async function serveLummetIndex(request, env) {
-  const assetRequest = new Request(
-    new URL("/lummet/index.html", request.url),
-    request
-  );
-
-  const response = await env.ASSETS.fetch(assetRequest);
-
-  if (!response.ok) {
-    return response;
-  }
-
-  const site = await getSiteContext(request, env);
-
-  let html = await response.text();
-
-  html = html
-
-
-  return new Response(html, {
-    status: response.status,
-    headers: new Headers(response.headers)
-  });
-}
-
 // =====================================================
 // SESSION
 // =====================================================
