@@ -58,7 +58,7 @@ export async function chat(env, message, userContext = {}, request) {
   const plan = await understand(env, sanitized, conversationHistory);
 
   // 5. PASS 2 — Retrieve: Database queries based on AI's plan
-  const context = await retrieve(env, sanitized, country, plan, conversationHistory);
+  const context = await retrieve(env, sanitized, country, plan, conversationHistory, request);
 
   console.log('Lummet retrieval results:', JSON.stringify({
     casinos: context.casinos?.length || 0,
@@ -137,7 +137,7 @@ export async function chatStream(env, message, userContext = {}, request) {
   const plan = await understand(env, sanitized, conversationHistory);
 
   // 5. PASS 2 — Retrieve
-  const context = await retrieve(env, sanitized, country, plan, conversationHistory);
+  const context = await retrieve(env, sanitized, country, plan, conversationHistory, request);
   
   console.log('Lummet stream retrieval:', JSON.stringify({
     casinos: context.casinos?.length || 0,
