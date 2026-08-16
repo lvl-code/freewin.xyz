@@ -71,7 +71,7 @@ export async function chat(env, message, userContext = {}, request) {
   }));
 
   // 6. Build prompt
-  const systemPrompt = buildSystemPrompt(context, country, plan?.intent, conversationHistory);
+  const systemPrompt = buildSystemPrompt(context, country, plan?.intent, conversationHistory, request, env);
   const messages = buildMessages(systemPrompt, sanitized, conversationHistory);
 
   // 7. PASS 3 — Respond: AI generates human-like response
@@ -152,7 +152,7 @@ export async function chatStream(env, message, userContext = {}, request) {
  // }));
 
   // 6. Build prompt
-  const systemPrompt = buildSystemPrompt(context, country, plan?.intent, conversationHistory);
+  const systemPrompt = buildSystemPrompt(context, country, plan?.intent, conversationHistory, request, env);
   const messages = buildMessages(systemPrompt, sanitized, conversationHistory);
 
   // 7. PASS 3 — Respond (streaming)
