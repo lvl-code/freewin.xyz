@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lummet AI — Your iGaming Intelligence Assistant | Level.casino</title>
-  <meta name="description" content="Lummet AI by Level.casino — Explore casino reviews, compare casinos, check bonuses, and discover the best iGaming options.">
+  <title>Lummet AI — Your iGaming Intelligence Assistant | {{site_name}}</title>
+  <meta name="description" content="Lummet AI by {{site_name}} — Explore casino reviews, compare casinos, check bonuses, and discover the best iGaming options.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -169,8 +169,8 @@
       <button class="new-chat-btn" onclick="newChat()">+ New Chat</button>
       <div class="chat-list" id="chatList"></div>
       <div class="sidebar-footer">
-        <a href="https://level.casino" class="back-link">
-          <span>←</span> Back to Level.casino
+        <a href="{{site_url}}" class="back-link">
+          <span>←</span> Back to {{site_name}}
         </a>
         <div class="admin-link" onclick="openAdmin()" style="margin-top: 4px;">
           <span>⚙️</span> Admin Dashboard
@@ -186,8 +186,8 @@
         </button>
         <div class="header-title"><span>✦</span> Lummet AI</div>
         <div class="header-actions">
-          <a href="https://level.casino" class="back-btn">
-            <span>←</span> Level.casino
+          <a href="{{site_url}}" class="back-btn">
+            <span>←</span> {{site_name}}
           </a>
           <button class="icon-btn" onclick="newChat()" title="New chat" aria-label="New chat">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
@@ -199,7 +199,7 @@
         <div class="welcome" id="welcome">
           <div class="welcome-icon">✦</div>
           <h2>Lummet AI</h2>
-          <p>Your iGaming Intelligence Assistant by Level.casino. Ask me about casino reviews, bonuses, payment methods, licenses, and more.</p>
+          <p>Your iGaming Intelligence Assistant by {{site_name}}. Ask me about casino reviews, bonuses, payment methods, licenses, and more.</p>
           <div class="suggestions">
             <div class="suggestion-card" onclick="sendSuggestion('Show me the best casinos available in my country')">
               <h3>🎰 Best casinos in my country</h3>
@@ -207,7 +207,7 @@
             </div>
             <div class="suggestion-card" onclick="sendSuggestion('What casino reviews are available?')">
               <h3>⭐ Browse casino reviews</h3>
-              <p>See all reviews published on Level.casino</p>
+              <p>See all reviews published on {{site_name}}</p>
             </div>
             <div class="suggestion-card" onclick="sendSuggestion('Which casinos support crypto payments?')">
               <h3>₿ Crypto casinos</h3>
@@ -225,9 +225,9 @@
               <h3>🛡️ Responsible gambling</h3>
               <p>Learn about safe gambling practices</p>
             </div>
-            <div class="suggestion-card" onclick="sendSuggestion('What is Level.casino?')">
-              <h3>ℹ️ About Level.casino</h3>
-              <p>Learn what Level.casino is and how it works</p>
+            <div class="suggestion-card" onclick="sendSuggestion('What is {{site_name}}?')">
+              <h3>ℹ️ About {{site_name}}</h3>
+              <p>Learn what {{site_name}} is and how it works</p>
             </div>
             <div class="suggestion-card" onclick="sendSuggestion('What payment methods do casinos support?')">
               <h3>💳 Payment methods</h3>
@@ -244,7 +244,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
         </div>
-        <div class="input-hint">Lummet AI uses editorial data from <a href="https://level.casino">Level.casino</a>. 18+ • Gamble responsibly.</div>
+        <div class="input-hint">Lummet AI uses editorial data from <a href="{{site_url}}">{{site_name}}</a>. 18+ • Gamble responsibly.</div>
       </div>
     </div>
   </div>
@@ -379,7 +379,7 @@
   <div class="login-overlay" id="loginOverlay">
     <div class="login-box">
       <h2>🔒 Lummet Admin</h2>
-      <p>Sign in to manage Level.casino</p>
+      <p>Sign in to manage {{site_name}}</p>
       <input class="login-input" id="loginEmail" type="email" placeholder="Email" onkeydown="if(event.key==='Enter')document.getElementById('loginPassword').focus()">
       <input class="login-input" id="loginPassword" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
       <button class="login-btn" onclick="doLogin()">Sign In</button>
@@ -535,15 +535,15 @@
         <div class="welcome" id="welcome">
           <div class="welcome-icon">✦</div>
           <h2>Lummet AI</h2>
-          <p>Your iGaming Intelligence Assistant by Level.casino. Ask me about casino reviews, bonuses, payment methods, licenses, and more.</p>
+          <p>Your iGaming Intelligence Assistant by {{site_name}}. Ask me about casino reviews, bonuses, payment methods, licenses, and more.</p>
           <div class="suggestions">
             <div class="suggestion-card" onclick="sendSuggestion('Show me the best casinos available in my country')"><h3>🎰 Best casinos in my country</h3><p>Find top-rated casinos available where you are</p></div>
-            <div class="suggestion-card" onclick="sendSuggestion('What casino reviews are available?')"><h3>⭐ Browse casino reviews</h3><p>See all reviews published on Level.casino</p></div>
+            <div class="suggestion-card" onclick="sendSuggestion('What casino reviews are available?')"><h3>⭐ Browse casino reviews</h3><p>See all reviews published on {{site_name}}</p></div>
             <div class="suggestion-card" onclick="sendSuggestion('Which casinos support crypto payments?')"><h3>₿ Crypto casinos</h3><p>Find casinos that accept Bitcoin and crypto</p></div>
             <div class="suggestion-card" onclick="sendSuggestion('Compare Stake and BC.Game')"><h3>⚖️ Compare casinos</h3><p>Compare features, bonuses, and ratings</p></div>
             <div class="suggestion-card" onclick="sendSuggestion('What bonuses are available?')"><h3>🎁 Casino bonuses</h3><p>Find the best welcome offers and promotions</p></div>
             <div class="suggestion-card" onclick="sendSuggestion('Tell me about responsible gambling')"><h3>🛡️ Responsible gambling</h3><p>Learn about safe gambling practices</p></div>
-            <div class="suggestion-card" onclick="sendSuggestion('What is Level.casino?')"><h3>ℹ️ About Level.casino</h3><p>Learn what Level.casino is and how it works</p></div>
+            <div class="suggestion-card" onclick="sendSuggestion('What is {{site_name}}?')"><h3>ℹ️ About {{site_name}}</h3><p>Learn what {{site_name}} is and how it works</p></div>
             <div class="suggestion-card" onclick="sendSuggestion('What payment methods do casinos support?')"><h3>💳 Payment methods</h3><p>Discover deposit and withdrawal options</p></div>
           </div>
         </div>`;

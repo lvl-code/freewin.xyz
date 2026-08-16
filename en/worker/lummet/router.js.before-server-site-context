@@ -19,7 +19,7 @@ import {
   handleBulkFAQs,
   handleBulkReviews
 } from './admin-api.js';
-import { getSiteContext } from "../site-context.js";
+
 
 /**
  * Lummet subdomain router.
@@ -27,7 +27,7 @@ import { getSiteContext } from "../site-context.js";
  * Works for any tenant:
  *
  *   lummet.freewin.xyz
- *   lummet.example.com
+ *   lummet.level.casino
  *   lummet.cluster.casino
  *
  * No tenant/domain identity is hardcoded here.
@@ -174,47 +174,24 @@ export async function handleLummetRequest(request, env, ctx) {
  * IMPORTANT:
  * Do NOT hardcode:
  *
- *   https://lummet.example.com
+ *   https://lummet.level.casino
  *
  * The current request hostname is used instead.
  */
-async async function serveIndex(request, env) {
-  const assetUrl = new URL("/lummet/index.html", request.url);
+function serveIndex(request, env) {
+  const url = new URL(request.url);
 
-  const assetRequest = new Request(assetUrl.toString(), {
-    method: "GET",
-    headers: request.headers
-  });
+  const assetUrl = new URL(
+    "/lummet/index.html",
+    url.origin
+  );
 
-  const response = await env.ASSETS.fetch(assetRequest);
-
-  if (!response.ok) {
-    return response;
-  }
-
-  const site = await getSiteContext(request, env);
-
-  let html = await response.text();
-
-  // Server-side tenant/site rendering.
-  html = html
-    .replaceAll("{{site_name}}", site.siteName)
-    .replaceAll("{{site_url}}", site.origin)
-    .replaceAll("{{site_hostname}}", site.hostname);
-
-  const headers = new Headers(response.headers);
-
-  // HTML was modified, so do not keep an old compressed/content-length response.
-  headers.delete("content-length");
-  headers.delete("content-encoding");
-
-  headers.set("content-type", "text/html; charset=UTF-8");
-
-  return new Response(html, {
-    status: response.status,
-    statusText: response.statusText,
-    headers
-  });
+  return env.ASSETS.fetch(
+    new Request(assetUrl.toString(), {
+      method: "GET",
+      headers: request.headers
+    })
+  );
 }
 
 
@@ -361,31 +338,6 @@ async function handleChatStream(request, env) {
   }
 }
 
-
-async function serveLummetIndex(request, env) {
-  const assetRequest = new Request(
-    new URL("/lummet/index.html", request.url),
-    request
-  );
-
-  const response = await env.ASSETS.fetch(assetRequest);
-
-  if (!response.ok) {
-    return response;
-  }
-
-  const site = await getSiteContext(request, env);
-
-  let html = await response.text();
-
-  html = html
-
-
-  return new Response(html, {
-    status: response.status,
-    headers: new Headers(response.headers)
-  });
-}
 
 // =====================================================
 // SESSION
