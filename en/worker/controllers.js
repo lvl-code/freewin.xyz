@@ -960,7 +960,7 @@ export async function renderCountry(request, env, slug) {
     "itemListElement": casinoList.map((c, index) => ({
       "@type": "ListItem",
       "position": index + 1,
-      "url": site.url(`/en/country/${code}`)
+      "url": site.url(`/en/casino/${c.slug}`)
     }))
   };
 
