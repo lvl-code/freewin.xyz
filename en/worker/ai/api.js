@@ -34,7 +34,7 @@ export async function handleChat(request, env, user) {
       country: request.cf?.country || 'RW',
       sessionId,
       userId: user?.user_id || user?.id || null
-    });
+    }, request );
 
     return Response.json({ success: true, ...result });
   } catch (error) {

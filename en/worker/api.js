@@ -30,8 +30,11 @@ import {
 
 import { aiAssistant } from "./ai/assistant.js";
 
-import { handleChatStream, handleClearChat } from "./ai/api.js";
-
+import {
+  handleChat,
+  handleChatStream,
+  handleClearChat
+} from "./ai/api.js";
 
 import {
   login,
@@ -843,63 +846,9 @@ if (path === "/api/v1/platform-updates/delete" &&request.method === "POST") {ret
     }
 
 
-   if(
-path === "/api/v1/ai/chat"
-&&
-request.method==="POST"
-){
-
-
-const body =
-await request.json();
-
-
-
-if(
-!body.message ||
-body.message.length > 300
-){
-
-return Response.json({
-
-error:"Invalid message"
-
-},
-{
-status:400
-});
-
-}
-
-
-
-const result =
-await aiAssistant.chat(
-
-env,
-
-body.message,
-
-{
-
-country:
-request.cf?.country
-
-}
-
-);
-
-
-
-return Response.json({
-
-success:true,
-
-...result
-
-});
-
-
+// ── LUMMET AI NON-STREAMING CHAT ──
+if (path === "/api/v1/ai/chat" && request.method === "POST") {
+  return handleChat(request, env, user);
 }
     // ── LUMMET AI STREAMING CHAT ──
 if (path === "/api/v1/ai/chat/stream" && request.method === "POST") {
