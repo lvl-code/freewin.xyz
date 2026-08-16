@@ -233,7 +233,7 @@ function createErrorStream(message) {
   return createSSEStream([{ type: 'error', content: message }, { type: 'done' }]);
 }
 
-function generateFallback(message, context, country, request, env) {
+async function generateFallback(message, context, country, request, env) {
   const countryNameStr = COUNTRY_NAMES[country] || country || 'your country';
   const text = message.toLowerCase();
   const site = await getSiteContext(request, env);
