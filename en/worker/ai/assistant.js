@@ -248,7 +248,7 @@ async function generateFallback(message, context, country, request, env) {
         const list = available.slice(0, 5).map((c, i) => `${i + 1}. **${c.name}** — ⭐ ${c.rating || 'N/A'}/5${c.bonus_title ? ` — ${c.bonus_title}` : ''}\n   🔗 ${site.url(`/en/casino/${c.slug}`)}`).join('\n\n');
         return `Here are the casinos available in ${countryNameStr} according to the ${site.siteName} database:\n\n${list}\n\nWould you like me to show you the full review for any of these?`;
       } else if (blocked.length > 0) {
-        return `Based on the ${site.siteName} database, the casinos I found are not available in ${countryNameStr}. You can browse all casinos at site.url("/en/casino/") to check for alternatives.`;
+        return `Based on the ${site.siteName} database, the casinos I found are not available in ${countryNameStr}. You can browse all casinos at ${site.url("/en/casino/")} to check for alternatives.`;
       }
     }
     const list = context.casinos.slice(0, 5).map((c, i) => {
