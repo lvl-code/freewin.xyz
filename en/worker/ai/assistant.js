@@ -79,7 +79,7 @@ export async function chat(env, message, userContext = {}, request) {
   try {
     if (!env.AI) {
       console.warn('Lummet: AI binding missing, using fallback');
-      answer = generateFallback(sanitized, context, country);
+      answer = generateFallback(sanitized, context, country, request, env);
     } else {
       const result = await env.AI.run(MODEL, {
         messages,
@@ -90,12 +90,12 @@ export async function chat(env, message, userContext = {}, request) {
       answer = result?.response || result?.choices?.[0]?.message?.content || result?.result?.response || result?.output?.text || null;
       if (!answer) {
         console.warn('Lummet: AI returned empty, using fallback');
-        answer = generateFallback(sanitized, context, country);
+        answer = generateFallback(sanitized, context, country, request, env);
       }
     }
   } catch (error) {
     console.error('Lummet AI inference error:', error.message);
-    answer = generateFallback(sanitized, context, country);
+    answer = generateFallback(sanitized, context, country, request, env);
   }
 
   answer = answer.trim();
@@ -193,7 +193,7 @@ export async function chatStream(env, message, userContext = {}, request) {
               }
             }
           } else {
-            fullAnswer = result?.response || result?.choices?.[0]?.message?.content || generateFallback(sanitized, context, country);
+            fullAnswer = result?.response || result?.choices?.[0]?.message?.content || await generateFallback(sanitized, context, country, request, env);
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'delta', content: fullAnswer })}\n\n`));
           }
         }
