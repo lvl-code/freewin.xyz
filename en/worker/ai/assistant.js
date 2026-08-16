@@ -71,7 +71,7 @@ export async function chat(env, message, userContext = {}, request) {
   }));
 
   // 6. Build prompt
-  const systemPrompt = buildSystemPrompt(context, country, plan?.intent, conversationHistory, request, env);
+  const systemPrompt = await buildSystemPrompt(context, country, plan?.intent, conversationHistory, request, env);
   const messages = buildMessages(systemPrompt, sanitized, conversationHistory);
 
   // 7. PASS 3 — Respond: AI generates human-like response
@@ -152,7 +152,7 @@ export async function chatStream(env, message, userContext = {}, request) {
  // }));
 
   // 6. Build prompt
-  const systemPrompt = buildSystemPrompt(context, country, plan?.intent, conversationHistory, request, env);
+  const systemPrompt = await buildSystemPrompt(context, country, plan?.intent, conversationHistory, request, env);
   const messages = buildMessages(systemPrompt, sanitized, conversationHistory);
 
   // 7. PASS 3 — Respond (streaming)
@@ -164,7 +164,7 @@ export async function chatStream(env, message, userContext = {}, request) {
 
       try {
         if (!env.AI) {
-          fullAnswer = generateFallback(sanitized, context, country);
+          fullAnswer = await generateFallback(sanitized, context, country, request, env);
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'delta', content: fullAnswer })}\n\n`));
         } else {
           const result = await env.AI.run(MODEL, { messages, temperature: TEMPERATURE, max_tokens: MAX_TOKENS, stream: true });
@@ -199,7 +199,7 @@ export async function chatStream(env, message, userContext = {}, request) {
         }
       } catch (error) {
         console.error('Lummet stream error:', error.message);
-        fullAnswer = generateFallback(sanitized, context, country);
+        fullAnswer = await generateFallback(sanitized, context, country, request, env);
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'delta', content: fullAnswer })}\n\n`));
       }
 
