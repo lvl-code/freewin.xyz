@@ -2,6 +2,9 @@
 // LUMMET AI — Admin API Handlers
 // =====================================================
 
+// en/worker/lummet/admin-api.js — Add import at TOP of file
+
+import { getSiteContext } from '../site-context.js';
 import { generateReview, generateSeo, generateFAQs } from '../ai/admin-tools.js';
 
 const ADMIN_ROLES = ['admin', 'editor', 'super_admin'];

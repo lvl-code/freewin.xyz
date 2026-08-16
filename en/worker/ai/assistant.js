@@ -46,7 +46,7 @@ export async function chat(env, message, userContext = {}, request) {
   if (injection.isInjection) {
     return {
       success: true,
-      answer: "I'm Lummet AI, here to help you explore ${site.siteName}'s editorial content. I can help you find casino reviews, compare casinos, check bonuses, or answer questions about payment methods. What would you like to know?",
+      answer: `I'm Lummet AI, here to help you explore ${site.siteName}'s editorial content. I can help you find casino reviews, compare casinos, check bonuses, or answer questions about payment methods. What would you like to know?`,
       intent: 'security_block'
     };
   }
@@ -55,7 +55,7 @@ export async function chat(env, message, userContext = {}, request) {
   const conversationHistory = await getRecentHistory(db, sessionId, 6);
 
   // 4. PASS 1 — Understand: AI analyzes intent and creates search plan
-  const plan = await understand(env, sanitized, conversationHistory);
+  const plan = await understand(env, sanitized, conversationHistory, request);
 
   // 5. PASS 2 — Retrieve: Database queries based on AI's plan
   const context = await retrieve(env, sanitized, country, plan, conversationHistory, request);
@@ -79,7 +79,7 @@ export async function chat(env, message, userContext = {}, request) {
   try {
     if (!env.AI) {
       console.warn('Lummet: AI binding missing, using fallback');
-      answer = generateFallback(sanitized, context, country, request, env);
+      answer = await generateFallback(sanitized, context, country, request, env);
     } else {
       const result = await env.AI.run(MODEL, {
         messages,
@@ -90,12 +90,12 @@ export async function chat(env, message, userContext = {}, request) {
       answer = result?.response || result?.choices?.[0]?.message?.content || result?.result?.response || result?.output?.text || null;
       if (!answer) {
         console.warn('Lummet: AI returned empty, using fallback');
-        answer = generateFallback(sanitized, context, country, request, env);
+        answer = await generateFallback(sanitized, context, country, request, env);
       }
     }
   } catch (error) {
     console.error('Lummet AI inference error:', error.message);
-    answer = generateFallback(sanitized, context, country, request, env);
+    answer = await generateFallback(sanitized, context, country, request, env);
   }
 
   answer = answer.trim();
@@ -125,7 +125,7 @@ export async function chatStream(env, message, userContext = {}, request) {
   const injection = detectInjection(sanitized);
   if (injection.isInjection) {
     return createSSEStream([
-      { type: 'delta', content: "I'm Lummet AI, here to help you explore ${site.siteName}'s editorial content. What would you like to know?" },
+      { type: 'delta', content: `I'm Lummet AI, here to help you explore ${site.siteName}'s editorial content. What would you like to know?` },
       { type: 'done' }
     ]);
   }
@@ -134,7 +134,7 @@ export async function chatStream(env, message, userContext = {}, request) {
   const conversationHistory = await getRecentHistory(db, sessionId, 6);
 
   // 4. PASS 1 — Understand
-  const plan = await understand(env, sanitized, conversationHistory);
+  const plan = await understand(env, sanitized, conversationHistory, request);
 
   // 5. PASS 2 — Retrieve
   const context = await retrieve(env, sanitized, country, plan, conversationHistory, request);
@@ -290,7 +290,7 @@ async function generateFallback(message, context, country, request, env) {
     return `**${c.name} (${c.code})**\n\n- Currency: ${c.currency || 'N/A'}\n- Language: ${c.language || 'N/A'}\n- Legal Status: ${c.legal_status || 'N/A'}\n\nWould you like to see casinos available in ${c.name}?`;
   }
 
-  return `I couldn't find that information in the ${site.siteName} database. You can browse our independent casino reviews, guides, news, and responsible gambling resources at ${site.url} — or contact us at ${site.url}/en/contact and we'll be happy to help.`;
+  return `I couldn't find that information in the ${site.siteName} database. You can browse our independent casino reviews, guides, news, and responsible gambling resources at ${site.url("/en/")} — or contact us at ${site.url("/en/contact")} and we'll be happy to help.`;
 }
 
 export const aiAssistant = {

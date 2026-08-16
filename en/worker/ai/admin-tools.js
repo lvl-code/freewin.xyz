@@ -2,6 +2,7 @@
 // LUMMET AI — Admin Tools (Editorial AI Features)
 // =====================================================
 
+import { getSiteContext } from '../site-context.js';
 const MODEL = '@cf/zai-org/glm-4.7-flash';
 
 /**
@@ -94,8 +95,8 @@ Create a localized SEO title (under 60 chars) and meta description (under 155 ch
 /**
  * Generate FAQ entries (admin tool)
  */
-export async function generateFAQs(env, casinoName, context = '') {
-  const systemPrompt = `You are an iGaming FAQ generator for Level.casino. Generate 5 common questions and answers about a casino.
+export async function generateFAQs(env, casinoName, context = '', siteName = 'this site') {
+  const systemPrompt = `You are an iGaming FAQ generator for ${siteName}. Generate 5 common questions and answers about a casino.
 Return a JSON array of objects with "q" and "a" fields. No code blocks, no markdown. Raw JSON only.`;
 
   const userPrompt = `Generate 5 FAQs for "${casinoName}". Context: ${context}. Each answer should be factual and concise (2-3 sentences).`;
@@ -152,10 +153,9 @@ Return raw JSON only. No code blocks, no markdown.`;
 /**
  * Generate article outline (admin tool)
  */
-export async function generateOutline(env, topic, contentType = 'review') {
-  const systemPrompt = `You are an editorial planner for Level.casino. Generate a detailed article outline.
+export async function generateOutline(env, topic, contentType = 'review', siteName = 'this site') {
+  const systemPrompt = `You are an editorial planner for ${siteName}. Generate a detailed article outline.
 Return as a JSON array of section objects with "title" and "points" (array of bullet points). Raw JSON only.`;
-
   const userPrompt = `Generate an outline for a ${contentType} article about: ${topic}`;
 
   try {
@@ -181,16 +181,20 @@ Return as a JSON array of section objects with "title" and "points" (array of bu
 /**
  * Improve editorial content (admin tool)
  */
-export async function improveContent(env, content, improvementType = 'readability') {
+// improveContent — BEFORE:
+// const systemPrompt = `You are an editorial editor for Level.casino...`
+
+// AFTER:
+export async function improveContent(env, content, improvementType = 'readability', siteName = 'this site') {
+  const systemPrompt = `You are an editorial editor for ${siteName}. ${prompts[improvementType] || prompts.readability}
+Return only the improved text. No explanations, no markdown.`;
+
   const prompts = {
     readability: 'Improve readability while keeping all facts. Use shorter sentences, simpler words, and better flow.',
     seo: 'Optimize for SEO. Improve headings, keyword density, and meta-friendly structure. Keep all facts.',
     clarity: 'Improve clarity and conciseness. Remove redundancy. Keep all facts.',
     tone: 'Improve editorial tone to be more professional and neutral. Keep all facts.'
   };
-
-  const systemPrompt = `You are an editorial editor for Level.casino. ${prompts[improvementType] || prompts.readability}
-Return only the improved text. No explanations, no markdown.`;
 
   try {
     if (!env.AI) return content;

@@ -1,7 +1,5 @@
-// =====================================================
-// LUMMET AI — Understanding Pass (LLM-powered intent analysis)
-// The AI "thinks" about what the user wants before searching
-// =====================================================
+// en/worker/ai/understand.js —  entire file
+
 import { getSiteContext } from '../site-context.js';
 import { detectIntent, extractEntities } from './router.js';
 
@@ -19,6 +17,7 @@ const SCHEMA_DESCRIPTION = `Database tables and columns:
 - countries: code, name, currency, language, legal_status
 - categories: name, slug, description
 - geo_rules: casino_slug, country_code, status, bonus_override`;
+
 export function buildUnderstandPrompt(site) {
   return `You are a search query analyzer for ${site.siteName},
 an independent online casino comparison platform.
@@ -43,30 +42,24 @@ Fields:
 
 Understand slang, typos, bad English, and abbreviations naturally.`;
 }
-/**
- * Use LLM to understand user intent and extract search parameters
- * Falls back to keyword-based router if LLM fails
- */
+
 export async function understand(env, message, conversationHistory = [], request = null) {
   const site = request
-  ? await getSiteContext(request, env)
-  : {
-      siteName: 'this site'
-    };
+    ? await getSiteContext(request, env)
+    : { siteName: 'this site' };
 
-const systemPrompt = buildUnderstandPrompt(site);
+  const systemPrompt = buildUnderstandPrompt(site);
   const historyStr = conversationHistory.length > 0
     ? conversationHistory.slice(-4).map(m => `${m.role}: ${m.content}`).join('\n')
     : 'No previous messages.';
 
   try {
-    const site = await getSiteContext(request, env);
-
     if (!env.AI) {
       console.warn('Lummet understand: AI binding missing, using keyword fallback');
       return fallbackUnderstanding(message);
     }
-            const result = await env.AI.run(MODEL, {
+
+    const result = await env.AI.run(MODEL, {
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: `Conversation history:\n${historyStr}\n\nUser message: ${message}` }
@@ -80,15 +73,12 @@ const systemPrompt = buildUnderstandPrompt(site);
                    result?.output?.text ||
                    '';
 
-    // Ensure response is a string
     if (typeof response !== 'string') {
       response = JSON.stringify(response);
     }
 
-    // Strip markdown code blocks if present
     response = response.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
 
-    // Extract JSON between first { and last }
     const firstBrace = response.indexOf('{');
     const lastBrace = response.lastIndexOf('}');
     if (firstBrace === -1 || lastBrace === -1) {
@@ -102,12 +92,11 @@ const systemPrompt = buildUnderstandPrompt(site);
     try {
       plan = JSON.parse(jsonStr);
     } catch (parseError) {
-      // Try to fix common JSON issues
       let fixed = jsonStr
-        .replace(/,\s*}/g, '}')        // Remove trailing commas
-        .replace(/,\s*]/g, ']')        // Remove trailing commas in arrays
-        .replace(/'/g, '"')            // Replace single quotes with double quotes
-        .replace(/(\w+):/g, '"$1":')   // Quote unquoted keys
+        .replace(/,\s*}/g, '}')
+        .replace(/,\s*]/g, ']')
+        .replace(/'/g, '"')
+        .replace(/(\w+):/g, '"$1":')
         .trim();
       try {
         plan = JSON.parse(fixed);
@@ -118,7 +107,6 @@ const systemPrompt = buildUnderstandPrompt(site);
     }
 
     console.log('Lummet understand plan:', JSON.stringify(plan));
-
     return normalizePlan(plan);
   } catch (error) {
     console.error('Lummet understand error:', error.message);
@@ -126,9 +114,6 @@ const systemPrompt = buildUnderstandPrompt(site);
   }
 }
 
-/**
- * Normalize the plan from LLM output
- */
 function normalizePlan(plan) {
   const validTables = ['casinos', 'reviews', 'review_blocks', 'news', 'platform_updates', 'pages', 'faqs', 'authors', 'countries', 'categories', 'geo_rules', 'seo_meta'];
 
@@ -149,9 +134,6 @@ function normalizePlan(plan) {
   };
 }
 
-/**
- * Fallback to keyword-based understanding (from router.js)
- */
 function fallbackUnderstanding(message) {
   const { intent } = detectIntent(message);
   const entities = extractEntities(message);

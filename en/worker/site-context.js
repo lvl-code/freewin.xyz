@@ -1,19 +1,35 @@
-import { getSetting } from "./database/settings.js";
+// en/worker/site-context.js — Add this guard at the TOP of getSiteContext
 
 export async function getSiteContext(request, env) {
+  // Guard: if request is missing or has no URL, fall back to env or hostname
+  if (!request || !request.url) {
+    const fallbackOrigin = env?.SITE_URL || 'https://unknown.local';
+    const fallbackHostname = new URL(fallbackOrigin).hostname;
+
+    return {
+      origin: fallbackOrigin,
+      hostname: fallbackHostname,
+      siteName: env?.SITE_NAME || fallbackHostname,
+      description: '',
+      logoUrl: new URL('/static/images/logo.png', fallbackOrigin).href,
+      ogImageUrl: new URL('/static/images/og-image.png', fallbackOrigin).href,
+      url(path = "/") {
+        if (!path) return fallbackOrigin;
+        if (/^https?:\/\//i.test(path)) return path;
+        return new URL(path.startsWith("/") ? path : `/${path}`, fallbackOrigin).href;
+      }
+    };
+  }
+
   const requestUrl = new URL(request.url);
 
   let hostname = requestUrl.hostname;
 
-  // Lummet belongs to the parent tenant.
-  // lummet.level.casino -> level.casino
-  // lummet.cluster.casino -> cluster.casino
   if (hostname.startsWith("lummet.")) {
     hostname = hostname.slice("lummet.".length);
   }
 
-  const origin =
-    `${requestUrl.protocol}//${hostname}`;
+  const origin = `${requestUrl.protocol}//${hostname}`;
 
   const db = env?.DB;
 
@@ -36,26 +52,12 @@ export async function getSiteContext(request, env) {
         getSetting(db, "site_og_image")
       ]);
 
-      if (dbSiteName) {
-        siteName = dbSiteName;
-      }
-
-      if (dbDescription) {
-        description = dbDescription;
-      }
-
-      if (dbLogo) {
-        logoPath = dbLogo;
-      }
-
-      if (dbOgImage) {
-        ogImagePath = dbOgImage;
-      }
+      if (dbSiteName) siteName = dbSiteName;
+      if (dbDescription) description = dbDescription;
+      if (dbLogo) logoPath = dbLogo;
+      if (dbOgImage) ogImagePath = dbOgImage;
     } catch (error) {
-      console.warn(
-        "Site context settings unavailable:",
-        error.message
-      );
+      console.warn("Site context settings unavailable:", error.message);
     }
   }
 
@@ -64,30 +66,12 @@ export async function getSiteContext(request, env) {
     hostname,
     siteName,
     description,
-
-    logoUrl: new URL(
-      logoPath,
-      origin
-    ).href,
-
-    ogImageUrl: new URL(
-      ogImagePath,
-      origin
-    ).href,
-
+    logoUrl: new URL(logoPath, origin).href,
+    ogImageUrl: new URL(ogImagePath, origin).href,
     url(path = "/") {
-      if (!path) {
-        return origin;
-      }
-
-      if (/^https?:\/\//i.test(path)) {
-        return path;
-      }
-
-      return new URL(
-        path.startsWith("/") ? path : `/${path}`,
-        origin
-      ).href;
+      if (!path) return origin;
+      if (/^https?:\/\//i.test(path)) return path;
+      return new URL(path.startsWith("/") ? path : `/${path}`, origin).href;
     }
   };
 }

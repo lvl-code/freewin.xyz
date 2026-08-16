@@ -242,7 +242,8 @@ async function handleChat(request, env) {
         country: request.cf?.country || "RW",
         sessionId,
         userId: null
-      }
+      },
+      request
     );
 
     return Response.json({
@@ -316,7 +317,8 @@ async function handleChatStream(request, env) {
         country: request.cf?.country || "RW",
         sessionId,
         userId: null
-      }
+      },
+      request
     );
 
   } catch (error) {

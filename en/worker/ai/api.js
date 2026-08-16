@@ -71,11 +71,16 @@ export async function handleChatStream(request, env, user) {
     }
     await logRequest(env.DB, ipHash);
 
-    return await aiAssistant.chatStream(env, body.message, {
-      country: request.cf?.country || 'RW',
-      sessionId,
-      userId: user?.user_id || user?.id || null
-    });
+    return await aiAssistant.chatStream(
+      env,
+      body.message,
+      {
+        country: request.cf?.country || 'RW',
+        sessionId,
+        userId: user?.user_id || user?.id || null
+      },
+      request
+    );
   } catch (error) {
     console.error('Lummet stream API error:', error.message);
     return Response.json({
