@@ -116,7 +116,7 @@ if (path === "/api/v1/geo/check") {
   const slug = url.searchParams.get("slug");  
   if (!slug) return failure("slug is required");  
   
-  const country = request.cf?.country || "RW";  
+  const country = request.cf?.country || null;  
     
   // Get ALL rules for this casino  
   const allRules = await env.DB.prepare(`  
@@ -229,7 +229,7 @@ if (path === "/api/v1/public/news/list") {
 }
 
 if (path === "/api/v1/public/casinos/geo") {
-  const country = request.cf?.country || "RW";
+  const country = request.cf?.country || null;
 
   // Try cached casinos + geo rules
   let casinoList = await getCached(env, CACHE_KEYS.PUBLIC_CASINOS);
@@ -300,7 +300,7 @@ if (path === "/api/v1/public/casinos/geo") {
 
 
 if (path === "/api/v1/public/reviews/geo") {
-  const country = request.cf?.country || "RW";
+  const country = request.cf?.country || null;
   const result = await env.DB.prepare(`
     SELECT r.*, c.name as casino_name, c.logo as casino_logo, c.slug as casino_slug
     FROM reviews r
@@ -529,7 +529,7 @@ if (path === "/api/v1/old/geo/check") {
     const slug = url.searchParams.get("slug");
     if (!slug) return failure("slug is required");
 
-    const country = request.cf?.country || "RW";
+    const country = request.cf?.country || null;
     const rule = await geo.getGeoRule(env.DB, slug, country);
 
     if (rule) {

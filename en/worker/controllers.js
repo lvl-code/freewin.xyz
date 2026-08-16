@@ -231,7 +231,7 @@ export async function renderCasino(request, env, slug) {
     "☆".repeat(5 - fullStars - (hasHalf ? 1 : 0));
 
   const edgeGeo = {
-    country: request.cf?.country || "RW",
+    country: request.cf?.country || null,
     city: request.cf?.city || "Unknown"
   };
   const geoInfo = geoEngine.process(request, edgeGeo);
@@ -313,7 +313,7 @@ function countryToFlag(code) {
 
 async function prepareGeoData(env, request, casinoList) {
   const edgeGeo = {
-    country: request.cf?.country || "RW",
+    country: request.cf?.country || null,
     city: request.cf?.city || "Unknown"
   };
   const geoInfo = geoEngine.process(request, edgeGeo);
@@ -611,7 +611,7 @@ try {
   let geoFlag = "";
   if (review.casino_slug) {
     const edgeGeo = {
-      country: request.cf?.country || "RW",
+      country: request.cf?.country || null,
       city: request.cf?.city || "Unknown"
     };
     const geoInfo = geoEngine.process(request, edgeGeo);
@@ -836,7 +836,7 @@ handleAffiliateRedirect(
 await logClick(
   env.DB,
   slug,
-  request.cf?.country || "RW",
+  request.cf?.country || null,
   request.cf?.city || "",
   ipHash,
   request.headers.get(
@@ -1047,6 +1047,7 @@ export async function renderDynamicPage(request, env, slug) {
   if (!page) return render404(request, env);
 
   const renderer = new Renderer(env, request);
+  const site = await getSiteContext(request, env);
   let author = null;
   if (page.author_id) {
     author = await authors.getAuthorById(env.DB, page.author_id);
