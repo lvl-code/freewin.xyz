@@ -1,5 +1,5 @@
 // =====================================================
-// LEVELCASINO FRONTEND APP
+// Tenant FRONTEND APP
 // =====================================================
 document.addEventListener("DOMContentLoaded", () => {
   initNavToggle();

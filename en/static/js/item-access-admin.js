@@ -1,6 +1,6 @@
 // =====================================================
 // item-access-admin.js — Admin UI for item-level access
-// Uses the Level.casino admin layout CSS classes
+// Uses the tenant admin layout CSS classes
 // =====================================================
 
 const ITEM_ACCESS_RESOURCES = [

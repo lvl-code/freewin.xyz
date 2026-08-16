@@ -1,6 +1,6 @@
 /* =====================================================
    LUMMET AI — Frontend Chat Widget
-   Level.casino AI Intelligence Assistant
+   tenant AI Intelligence Assistant
    ===================================================== */
 
 (function () {
