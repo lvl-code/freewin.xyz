@@ -219,10 +219,10 @@ export default {
         return renderDashboardCategories(request, env);
       case "dashboardCountries":
         return renderDashboardCountries(request, env);
-      case "author":
-        return renderAuthor(request, env, route.slug);
       case "authorList":
         return renderAuthorList(request, env);
+      case "author":
+        return renderAuthor(request, env, route.slug);
       case "dashboardAuthors":
         return renderDashboardAuthors(request, env);
       case "dashboardMedia":
