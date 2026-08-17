@@ -3,10 +3,14 @@
 // =====================================================
 import { sanitizeHtml } from './sanitize.js';
 import { getSiteContext } from "./site-context.js";
+import { buildComplianceHtml } from "./site-settings.js";
+
 import {
   buildBreadcrumbSchema,
   renderBreadcrumbs
 } from "./breadcrumbs.js";
+
+
 // ── Content fields that contain user-authored HTML ──
 // These fields are sanitized via sanitizeHtml() before
 // being inserted into templates. Add new content field
@@ -308,10 +312,9 @@ async buildSEO(data = {}) {
 <meta name="theme-color" content="#0f172a">
 <meta name="apple-mobile-web-app-title" content="${this.escapeHtml(site.siteName)}">
 <meta name="application-name" content="${this.escapeHtml(site.siteName)}">
-<link rel="mask-icon" href="/static/icon/favicon.svg" color="#0f172a">
+<link rel="mask-icon" href="${site.faviconSvgUrl}" color="#0f172a">
 `;
 }
-
   // =====================================================
   // JSON-LD
   // =====================================================
@@ -340,15 +343,52 @@ ${JSON.stringify(schema)}
   this.request,
   this.env
 );
+site.complianceHtml =
+  buildComplianceHtml(site);
 
 const allData = {
   ...navData,
+
+  // --------------------------------------------------------
+  // Tenant identity
+  // --------------------------------------------------------
   site_name: site.siteName,
   site_url: site.origin,
   site_hostname: site.hostname,
   site_origin: site.origin,
-  site_logo: site.logoUrl,
   site_description: site.description,
+
+  // --------------------------------------------------------
+  // Tenant branding
+  // --------------------------------------------------------
+  site_logo: site.logoUrl,
+  site_og_image: site.ogImageUrl,
+
+  // --------------------------------------------------------
+  // Tenant icons
+  // --------------------------------------------------------
+  site_favicon_96: site.favicon96Url,
+  site_favicon_svg: site.faviconSvgUrl,
+  site_favicon_ico: site.faviconIcoUrl,
+  site_apple_touch_icon: site.appleTouchIconUrl,
+  site_manifest: site.manifestUrl,
+
+  // --------------------------------------------------------
+  // Tenant hero
+  // --------------------------------------------------------
+  site_hero_image: site.heroImageUrl,
+
+  // --------------------------------------------------------
+  // Footer / compliance
+  // --------------------------------------------------------
+  footer_compliance: site.complianceHtml,
+  footer_disclaimer: site.footerDisclaimer,
+  footer_responsible_text: site.responsibleText,
+  footer_responsible_url: site.responsibleUrl,
+  footer_responsible_help_text: site.responsibleHelpText,
+  footer_responsible_help_url: site.responsibleHelpUrl,
+  footer_responsible_help_label: site.responsibleHelpLabel,
+
   ...data
 };
 

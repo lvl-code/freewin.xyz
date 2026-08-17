@@ -1,22 +1,23 @@
 <header class="site-header">
   <div class="container header-inner">
-   <!-- <a href="/en" class="logo">
-      <img src="/static/images/logo/leveliconlogo.png" alt="Level" height="36">
-      <span>Level<span class="logo-accent">Casino</span></span>
-    </a> -->
-    <a href="/en" class="logo" aria-label= {{site_name}} >
+    <a
+  href="/en"
+  class="logo"
+  aria-label="{{site_name}}"
+>
   <img
-    src="/static/images/logo.png"
-    alt={{site_name}}
+    src="{{site_logo}}"
+    alt="{{site_name}}"
     class="logo-icon"
     width="40"
-    height="40">
+    height="40"
+    loading="eager"
+  >
 
   <span class="logo-text">
     {{site_name}}
   </span>
 </a>
-
     <nav class="main-nav" id="mainNav">
       {{header_nav}}
     </nav>

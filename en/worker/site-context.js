@@ -1,8 +1,16 @@
-// en/worker/site-context.js — Add this guard at the TOP of getSiteContext
+// ============================================================
+// TENANT SITE CONTEXT
+// ============================================================
+
+import { getSetting } from "./database/settings.js";
+import { getSiteSettings } from "./site-settings.js";
 
 export async function getSiteContext(request, env) {
-  // Fallback only when no request URL is available.
-  // Do not hardcode a tenant/domain here.
+
+  // ----------------------------------------------------------
+  // Fallback when request URL is unavailable
+  // ----------------------------------------------------------
+
   if (!request || !request.url) {
     const fallbackOrigin = env?.SITE_URL;
 
@@ -12,85 +20,153 @@ export async function getSiteContext(request, env) {
       );
     }
 
-    const fallbackHostname = new URL(fallbackOrigin).hostname;
+    const fallbackHostname =
+      new URL(fallbackOrigin).hostname;
+
+    const siteSettings =
+      await getSiteSettings(
+        env?.DB,
+        fallbackOrigin
+      );
 
     return {
       origin: fallbackOrigin,
       hostname: fallbackHostname,
-      siteName: env?.SITE_NAME || fallbackHostname,
+
+      siteName:
+        env?.SITE_NAME ||
+        fallbackHostname,
+
       description: "",
-      logoUrl: new URL(
-        "/static/images/logo.png",
-        fallbackOrigin
-      ).href,
-      ogImageUrl: new URL(
-        "/static/images/og-image.png",
-        fallbackOrigin
-      ).href,
+
+      ...siteSettings,
 
       url(path = "/") {
         if (!path) return fallbackOrigin;
-        if (/^https?:\/\//i.test(path)) return path;
+
+        if (/^https?:\/\//i.test(path)) {
+          return path;
+        }
 
         return new URL(
-          path.startsWith("/") ? path : `/${path}`,
+          path.startsWith("/")
+            ? path
+            : `/${path}`,
           fallbackOrigin
         ).href;
       }
     };
   }
 
-  const requestUrl = new URL(request.url);
 
-  let hostname = requestUrl.hostname;
+  // ----------------------------------------------------------
+  // Determine tenant from request hostname
+  // ----------------------------------------------------------
 
+  const requestUrl =
+    new URL(request.url);
+
+  let hostname =
+    requestUrl.hostname;
+
+  // Lummet belongs to the tenant
   if (hostname.startsWith("lummet.")) {
-    hostname = hostname.slice("lummet.".length);
+    hostname =
+      hostname.slice("lummet.".length);
   }
 
-  const origin = `${requestUrl.protocol}//${hostname}`;
+  const origin =
+    `${requestUrl.protocol}//${hostname}`;
+
+
+  // ----------------------------------------------------------
+  // Existing site identity settings
+  // ----------------------------------------------------------
 
   const db = env?.DB;
 
   let siteName = hostname;
   let description = "";
-  let logoPath = "/static/images/logo.png";
-  let ogImagePath = "/static/images/og-image.png";
 
   if (db) {
     try {
       const [
         dbSiteName,
-        dbDescription,
-        dbLogo,
-        dbOgImage
+        dbDescription
       ] = await Promise.all([
         getSetting(db, "site_name"),
-        getSetting(db, "site_description"),
-        getSetting(db, "site_logo"),
-        getSetting(db, "site_og_image")
+        getSetting(db, "site_description")
       ]);
 
-      if (dbSiteName) siteName = dbSiteName;
-      if (dbDescription) description = dbDescription;
-      if (dbLogo) logoPath = dbLogo;
-      if (dbOgImage) ogImagePath = dbOgImage;
+      if (dbSiteName) {
+        siteName = dbSiteName;
+      }
+
+      if (dbDescription) {
+        description = dbDescription;
+      }
+
     } catch (error) {
-      console.warn("Site context settings unavailable:", error.message);
+      console.warn(
+        "Site identity settings unavailable:",
+        error.message
+      );
     }
   }
+
+
+  // ----------------------------------------------------------
+  // Extended tenant settings
+  // ----------------------------------------------------------
+
+  let siteSettings;
+
+  try {
+    siteSettings =
+      await getSiteSettings(
+        db,
+        origin
+      );
+  } catch (error) {
+    console.warn(
+      "Site settings unavailable:",
+      error.message
+    );
+
+    siteSettings =
+      await getSiteSettings(
+        null,
+        origin
+      );
+  }
+
+
+  // ----------------------------------------------------------
+  // Final tenant context
+  // ----------------------------------------------------------
 
   return {
     origin,
     hostname,
+
     siteName,
     description,
-    logoUrl: new URL(logoPath, origin).href,
-    ogImageUrl: new URL(ogImagePath, origin).href,
+
+    ...siteSettings,
+
     url(path = "/") {
       if (!path) return origin;
-      if (/^https?:\/\//i.test(path)) return path;
-      return new URL(path.startsWith("/") ? path : `/${path}`, origin).href;
+
+      if (/^https?:\/\//i.test(path)) {
+        return path;
+      }
+
+      return new URL(
+        path.startsWith("/")
+          ? path
+          : `/${path}`,
+        origin
+      ).href;
     }
   };
 }

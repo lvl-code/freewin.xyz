@@ -371,73 +371,389 @@ function initPageForm() {
   });
 }
 
-// ============================================
-// SETTINGS
-// ============================================
+
+// ============================================================
+// SITE SETTINGS
+// ============================================================
+
+let currentComplianceItems = [];
 
 async function loadSettingsForm() {
-  const form = document.getElementById("settingsForm");
+
+  const form =
+    document.getElementById("settingsForm");
+
   if (!form) return;
 
   try {
-    const res = await fetch("/en/api/v1/settings/get");
-    const data = await res.json();
-    const settings = data.settings || {};
 
-    for (const [key, value] of Object.entries(settings)) {
-      const input = form.querySelector(`[name="${key}"]`);
-      if (input) input.value = value;
+    const res =
+      await fetch("/en/api/v1/settings/get");
+
+    if (!res.ok) {
+      throw new Error(
+        `Settings request failed: ${res.status}`
+      );
     }
-  } catch {
-    console.error("Failed to load settings");
+
+    const data =
+      await res.json();
+
+    const settings =
+      data.settings || {};
+
+
+    // --------------------------------------------------------
+    // Populate normal fields
+    // --------------------------------------------------------
+
+    form.querySelectorAll(
+      "input[name], textarea[name]"
+    ).forEach(input => {
+
+      const key =
+        input.name;
+
+      if (
+        key === "footer_compliance"
+      ) {
+        return;
+      }
+
+      if (
+        settings[key] !== undefined &&
+        settings[key] !== null
+      ) {
+        input.value =
+          settings[key];
+      }
+    });
+
+
+    // --------------------------------------------------------
+    // Compliance JSON
+    // --------------------------------------------------------
+
+    currentComplianceItems = [];
+
+    if (settings.footer_compliance) {
+
+      try {
+
+        const parsed =
+          JSON.parse(
+            settings.footer_compliance
+          );
+
+        if (Array.isArray(parsed)) {
+          currentComplianceItems =
+            parsed;
+        }
+
+      } catch (error) {
+
+        console.warn(
+          "Invalid footer compliance JSON"
+        );
+
+      }
+    }
+
+
+    renderComplianceRows();
+
+  } catch (error) {
+
+    console.error(
+      "Failed to load settings:",
+      error
+    );
+
   }
 }
 
+
+// ------------------------------------------------------------
+// Compliance rows
+// ------------------------------------------------------------
+
+function renderComplianceRows() {
+
+  const container =
+    document.getElementById(
+      "complianceRows"
+    );
+
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  currentComplianceItems.forEach(
+    (item, index) => {
+
+      const row =
+        document.createElement("div");
+
+      row.className =
+        "site-compliance-row";
+
+      row.style.cssText = `
+        border:1px solid var(--border);
+        border-radius:8px;
+        padding:16px;
+        margin:12px 0;
+      `;
+
+      row.innerHTML = `
+        <div class="form-group">
+          <label>Image URL</label>
+          <input
+            type="url"
+            class="compliance-image"
+            value="${escapeHtmlAttribute(item.image || "")}"
+            placeholder="/static/images/logo/example.svg"
+          >
+        </div>
+
+        <div class="form-group">
+          <label>Link URL</label>
+          <input
+            type="url"
+            class="compliance-url"
+            value="${escapeHtmlAttribute(item.url || "")}"
+            placeholder="https://..."
+          >
+        </div>
+
+        <div class="form-group">
+          <label>Alt Text</label>
+          <input
+            type="text"
+            class="compliance-alt"
+            value="${escapeHtmlAttribute(item.alt || "")}"
+            placeholder="Compliance organization"
+          >
+        </div>
+
+        <button
+          type="button"
+          class="btn btn--ghost remove-compliance"
+        >
+          Remove
+        </button>
+      `;
+
+      row
+        .querySelector(
+          ".remove-compliance"
+        )
+        .addEventListener(
+          "click",
+          () => {
+
+            currentComplianceItems
+              .splice(index, 1);
+
+            renderComplianceRows();
+
+          }
+        );
+
+      container.appendChild(row);
+    }
+  );
+}
+
+
+// ------------------------------------------------------------
+// Add compliance item
+// ------------------------------------------------------------
+
+function addComplianceRow() {
+
+  currentComplianceItems.push({
+    image: "",
+    url: "",
+    alt: ""
+  });
+
+  renderComplianceRows();
+}
+
+
+// ------------------------------------------------------------
+// Read compliance rows
+// ------------------------------------------------------------
+
+function collectComplianceRows() {
+
+  const rows =
+    document.querySelectorAll(
+      "#complianceRows .site-compliance-row"
+    );
+
+  return Array.from(rows)
+    .map(row => ({
+      image:
+        row.querySelector(
+          ".compliance-image"
+        )?.value.trim() || "",
+
+      url:
+        row.querySelector(
+          ".compliance-url"
+        )?.value.trim() || "",
+
+      alt:
+        row.querySelector(
+          ".compliance-alt"
+        )?.value.trim() || ""
+    }))
+    .filter(item => item.image);
+}
+
+
+// ------------------------------------------------------------
+// Escape HTML attribute
+// ------------------------------------------------------------
+
+function escapeHtmlAttribute(value) {
+
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+
+// ------------------------------------------------------------
+// Initialize settings form
+// ------------------------------------------------------------
+
 function initSettingsForm() {
-  const form = document.getElementById("settingsForm");
+
+  const form =
+    document.getElementById(
+      "settingsForm"
+    );
+
   if (!form) return;
 
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const alertEl = document.getElementById("settingsFormAlert");
-    if (alertEl) alertEl.style.display = "none";
 
-    const formData = new FormData(form);
-    const payload = {};
+  const addButton =
+    document.getElementById(
+      "addComplianceBtn"
+    );
 
-    for (const [key, value] of formData.entries()) {
-      payload[key] = value;
-    }
+  if (addButton) {
 
-    try {
-      const res = await fetch("/en/api/v1/settings/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
+    addButton.addEventListener(
+      "click",
+      addComplianceRow
+    );
 
-      if (data.success) {
-        if (alertEl) {
-          alertEl.className = "alert alert--success";
-          alertEl.textContent = "Settings saved!";
-          alertEl.style.display = "block";
+  }
+
+
+  form.addEventListener(
+    "submit",
+    async event => {
+
+      event.preventDefault();
+
+      const alertEl =
+        document.getElementById(
+          "settingsFormAlert"
+        );
+
+      try {
+
+        const formData =
+          new FormData(form);
+
+        const payload = {};
+
+
+        for (
+          const [key, value]
+          of formData.entries()
+        ) {
+
+          payload[key] =
+            String(value);
+
         }
-      } else {
-        if (alertEl) {
-          alertEl.className = "alert alert--error";
-          alertEl.textContent = data.error || "Failed";
-          alertEl.style.display = "block";
+
+
+        payload.footer_compliance =
+          JSON.stringify(
+            collectComplianceRows()
+          );
+
+
+        const res =
+          await fetch(
+            "/en/api/v1/settings/save",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type":
+                  "application/json"
+              },
+              body:
+                JSON.stringify(payload)
+            }
+          );
+
+
+        const data =
+          await res.json();
+
+
+        if (!res.ok || data.success === false) {
+
+          throw new Error(
+            data.error ||
+            "Failed to save settings"
+          );
+
         }
+
+
+        if (alertEl) {
+
+          alertEl.style.display =
+            "block";
+
+          alertEl.textContent =
+            "Site settings saved successfully.";
+
+        }
+
+      } catch (error) {
+
+        console.error(
+          "Failed to save settings:",
+          error
+        );
+
+        if (alertEl) {
+
+          alertEl.style.display =
+            "block";
+
+          alertEl.textContent =
+            error.message ||
+            "Failed to save settings.";
+
+        }
+
       }
-    } catch {
-      if (alertEl) {
-        alertEl.className = "alert alert--error";
-        alertEl.textContent = "Network error";
-        alertEl.style.display = "block";
-      }
+
     }
-  });
+  );
 }
 
 // ============================================

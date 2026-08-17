@@ -1,0 +1,326 @@
+// ============================================================
+// SITE SETTINGS
+// Tenant-specific branding, icons, hero and footer compliance.
+// Uses the existing `settings` database table.
+// ============================================================
+
+import { getSetting } from "./database/settings.js";
+
+const DEFAULTS = {
+  logo: "/static/images/logo.png",
+  ogImage: "/static/images/og-image.png",
+
+  favicon96: "/static/icon/favicon-96x96.png",
+  faviconSvg: "/static/icon/favicon.svg",
+  faviconIco: "/static/icon/favicon.ico",
+  appleTouchIcon: "/static/icon/apple-touch-icon.png",
+  manifest: "/static/icon/site.webmanifest",
+
+  heroImage: "",
+
+  footerDisclaimer:
+    "{{site_name}} is an independent casino comparison and affiliate platform. We do not operate gambling services or take bets. Operator availability depends on your jurisdiction. Users are responsible for complying with local laws. We may earn a commission via affiliate links.",
+
+  responsibleText:
+    "18+ | Gambling can be addictive, please play responsibly.",
+
+  responsibleUrl: "/en/responsible-gambling",
+
+  responsibleHelpText:
+    "If you or someone you know needs help, visit",
+
+  responsibleHelpUrl:
+    "https://www.gambleaware.org/",
+
+  responsibleHelpLabel:
+    "GambleAware.org",
+
+  compliance: [
+    {
+      image: "/static/images/logo/18plus.png",
+      url: "",
+      alt: "18+ Only"
+    },
+    {
+      image: "/static/images/logo/gamble-aware-logo.svg",
+      url: "https://www.gambleaware.org/",
+      alt: "GambleAware"
+    },
+    {
+      image: "/static/images/logo/curacao-gaming-contro-board-license.svg",
+      url: "https://www.gamingcontrolcuracao.org/",
+      alt: "Curaçao Gaming Control Board"
+    },
+    {
+      image: "/static/images/logo/malta-gaming-authority-mga.svg",
+      url: "https://www.mga.org.mt/",
+      alt: "Malta Gaming Authority"
+    },
+    {
+      image: "/static/images/logo/uk-gc-rectangle.svg",
+      url: "https://www.gamblingcommission.gov.uk/",
+      alt: "UK Gambling Commission"
+    },
+    {
+      image: "/static/images/logo/gamstop.svg",
+      url: "https://www.gamstop.co.uk/",
+      alt: "GAMSTOP"
+    },
+    {
+      image: "/static/images/logo/betblocker.svg",
+      url: "https://betblocker.org/",
+      alt: "BetBlocker"
+    }
+  ]
+};
+
+
+// ------------------------------------------------------------
+// URL handling
+// ------------------------------------------------------------
+
+function resolveUrl(value, origin, fallback = "") {
+  const input = String(value || "").trim();
+
+  if (!input) {
+    return fallback
+      ? new URL(fallback, origin).href
+      : "";
+  }
+
+  try {
+    const url = new URL(input, origin);
+
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return fallback
+        ? new URL(fallback, origin).href
+        : "";
+    }
+
+    return url.href;
+  } catch {
+    return fallback
+      ? new URL(fallback, origin).href
+      : "";
+  }
+}
+
+
+// ------------------------------------------------------------
+// HTML escaping
+// ------------------------------------------------------------
+
+function escapeHtml(value = "") {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+
+// ------------------------------------------------------------
+// Read JSON setting safely
+// ------------------------------------------------------------
+
+function parseJson(value, fallback) {
+  if (!value) return fallback;
+
+  try {
+    const parsed = JSON.parse(value);
+    return parsed ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+
+// ------------------------------------------------------------
+// Load all tenant site settings
+// ------------------------------------------------------------
+
+export async function getSiteSettings(db, origin) {
+  const keys = [
+    "site_logo",
+    "site_og_image",
+
+    "site_favicon_96",
+    "site_favicon_svg",
+    "site_favicon_ico",
+    "site_apple_touch_icon",
+    "site_manifest",
+
+    "site_hero_image",
+
+    "footer_disclaimer",
+    "footer_responsible_text",
+    "footer_responsible_url",
+    "footer_responsible_help_text",
+    "footer_responsible_help_url",
+    "footer_responsible_help_label",
+
+    "footer_compliance"
+  ];
+
+  const values = {};
+
+  if (db) {
+    const results = await Promise.all(
+      keys.map(async key => {
+        try {
+          return [key, await getSetting(db, key)];
+        } catch {
+          return [key, null];
+        }
+      })
+    );
+
+    for (const [key, value] of results) {
+      values[key] = value;
+    }
+  }
+
+  const compliance = parseJson(
+    values.footer_compliance,
+    DEFAULTS.compliance
+  );
+
+  const safeCompliance = Array.isArray(compliance)
+    ? compliance
+        .filter(item => item && item.image)
+        .map(item => ({
+          image: resolveUrl(
+            item.image,
+            origin,
+            ""
+          ),
+          url: resolveUrl(
+            item.url,
+            origin,
+            ""
+          ),
+          alt: String(item.alt || "Compliance")
+        }))
+        .filter(item => item.image)
+    : DEFAULTS.compliance;
+
+  return {
+    logoUrl: resolveUrl(
+      values.site_logo,
+      origin,
+      DEFAULTS.logo
+    ),
+
+    ogImageUrl: resolveUrl(
+      values.site_og_image,
+      origin,
+      DEFAULTS.ogImage
+    ),
+
+    favicon96Url: resolveUrl(
+      values.site_favicon_96,
+      origin,
+      DEFAULTS.favicon96
+    ),
+
+    faviconSvgUrl: resolveUrl(
+      values.site_favicon_svg,
+      origin,
+      DEFAULTS.faviconSvg
+    ),
+
+    faviconIcoUrl: resolveUrl(
+      values.site_favicon_ico,
+      origin,
+      DEFAULTS.faviconIco
+    ),
+
+    appleTouchIconUrl: resolveUrl(
+      values.site_apple_touch_icon,
+      origin,
+      DEFAULTS.appleTouchIcon
+    ),
+
+    manifestUrl: resolveUrl(
+      values.site_manifest,
+      origin,
+      DEFAULTS.manifest
+    ),
+
+    heroImageUrl: resolveUrl(
+      values.site_hero_image,
+      origin,
+      ""
+    ),
+
+    footerDisclaimer:
+      values.footer_disclaimer ||
+      DEFAULTS.footerDisclaimer,
+
+    responsibleText:
+      values.footer_responsible_text ||
+      DEFAULTS.responsibleText,
+
+    responsibleUrl:
+      values.footer_responsible_url ||
+      DEFAULTS.responsibleUrl,
+
+    responsibleHelpText:
+      values.footer_responsible_help_text ||
+      DEFAULTS.responsibleHelpText,
+
+    responsibleHelpUrl:
+      resolveUrl(
+        values.footer_responsible_help_url,
+        origin,
+        DEFAULTS.responsibleHelpUrl
+      ),
+
+    responsibleHelpLabel:
+      values.footer_responsible_help_label ||
+      DEFAULTS.responsibleHelpLabel,
+
+    compliance: safeCompliance
+  };
+}
+
+
+// ------------------------------------------------------------
+// Render compliance logos safely
+// ------------------------------------------------------------
+
+export function buildComplianceHtml(siteSettings) {
+  const items = siteSettings?.compliance || [];
+
+  return items
+    .map(item => {
+      const image = escapeHtml(item.image);
+      const alt = escapeHtml(item.alt);
+
+      if (item.url) {
+        return `
+          <a
+            href="${escapeHtml(item.url)}"
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+          >
+            <img
+              src="${image}"
+              alt="${alt}"
+              style="height:36px;width:auto;object-fit:contain;"
+            >
+          </a>
+        `;
+      }
+
+      return `
+        <img
+          src="${image}"
+          alt="${alt}"
+          style="height:36px;width:auto;object-fit:contain;"
+        >
+      `;
+    })
+    .join("\n");
+}

@@ -1,15 +1,276 @@
 <div class="admin-wrapper">
+
   {{admin_nav}}
+
   <div class="admin-content">
-    <h1>Settings</h1>
-    <form id="settingsForm" class="admin-form">
-      <div class="form-group"><label>Site Name</label><input type="text" name="site_name" placeholder="{{site_name}}"></div>
-      <div class="form-group"><label>Site URL</label><input type="text" name="site_url" placeholder="{{site_url}}"></div>
-      <div class="form-group"><label>Contact Email</label><input type="email" name="contact_email"></div>
-      <div class="form-group"><label>Default Country</label><input type="text" name="default_country" placeholder="RW"></div>
-      <div class="form-group"><label>Footer Text</label><input type="text" name="footer_text"></div>
-      <div id="settingsFormAlert" class="alert" style="display:none"></div>
-      <button type="submit" class="btn btn--primary btn--lg">Save Settings</button>
+
+    <h1>Site Settings</h1>
+
+    <p class="muted">
+      Configure tenant-specific branding, icons, homepage hero,
+      responsible gambling information and footer compliance.
+    </p>
+
+    <form
+      id="settingsForm"
+      class="admin-form"
+    >
+
+      <!-- ================================================== -->
+      <!-- GENERAL -->
+      <!-- ================================================== -->
+
+      <h2>General</h2>
+
+      <div class="form-group">
+        <label>Site Name</label>
+        <input
+          type="text"
+          name="site_name"
+          placeholder="{{site_name}}"
+        >
+      </div>
+
+      <div class="form-group">
+        <label>Site URL</label>
+        <input
+          type="url"
+          name="site_url"
+          placeholder="{{site_url}}"
+        >
+      </div>
+
+      <div class="form-group">
+        <label>Site Description</label>
+        <textarea
+          name="site_description"
+          rows="3"
+          placeholder="Short description of this website"
+        ></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Contact Email</label>
+        <input
+          type="email"
+          name="contact_email"
+        >
+      </div>
+
+      <div class="form-group">
+        <label>Default Country</label>
+        <input
+          type="text"
+          name="default_country"
+          placeholder="RW"
+        >
+      </div>
+
+
+      <!-- ================================================== -->
+      <!-- BRANDING -->
+      <!-- ================================================== -->
+
+      <h2>Branding</h2>
+
+      <div class="form-group">
+        <label>Logo URL</label>
+        <input
+          type="url"
+          name="site_logo"
+          placeholder="/static/images/logo.png or https://..."
+        >
+        <small class="muted">
+          Main header/site logo.
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label>Open Graph Image URL</label>
+        <input
+          type="url"
+          name="site_og_image"
+          placeholder="/static/images/og-image.png or https://..."
+        >
+      </div>
+
+
+      <!-- ================================================== -->
+      <!-- FAVICONS / PWA -->
+      <!-- ================================================== -->
+
+      <h2>Favicons & App Icons</h2>
+
+      <div class="form-group">
+        <label>Favicon 96×96 URL</label>
+        <input
+          type="url"
+          name="site_favicon_96"
+          placeholder="/static/icon/favicon-96x96.png"
+        >
+      </div>
+
+      <div class="form-group">
+        <label>Favicon SVG URL</label>
+        <input
+          type="url"
+          name="site_favicon_svg"
+          placeholder="/static/icon/favicon.svg"
+        >
+      </div>
+
+      <div class="form-group">
+        <label>Favicon ICO URL</label>
+        <input
+          type="url"
+          name="site_favicon_ico"
+          placeholder="/static/icon/favicon.ico"
+        >
+      </div>
+
+      <div class="form-group">
+        <label>Apple Touch Icon URL</label>
+        <input
+          type="url"
+          name="site_apple_touch_icon"
+          placeholder="/static/icon/apple-touch-icon.png"
+        >
+      </div>
+
+      <div class="form-group">
+        <label>Web Manifest URL</label>
+        <input
+          type="url"
+          name="site_manifest"
+          placeholder="/static/icon/site.webmanifest"
+        >
+      </div>
+
+
+      <!-- ================================================== -->
+      <!-- HERO -->
+      <!-- ================================================== -->
+
+      <h2>Homepage Hero</h2>
+
+      <div class="form-group">
+        <label>Hero Background Image URL</label>
+        <input
+          type="url"
+          name="site_hero_image"
+          placeholder="/static/images/hero.jpg or https://..."
+        >
+      </div>
+
+
+      <!-- ================================================== -->
+      <!-- RESPONSIBLE GAMBLING -->
+      <!-- ================================================== -->
+
+      <h2>Responsible Gambling</h2>
+
+      <div class="form-group">
+        <label>Responsible Gambling Text</label>
+        <input
+          type="text"
+          name="footer_responsible_text"
+          placeholder="18+ | Gambling can be addictive, please play responsibly."
+        >
+      </div>
+
+      <div class="form-group">
+        <label>Responsible Gambling Page URL</label>
+        <input
+          type="text"
+          name="footer_responsible_url"
+          placeholder="/en/responsible-gambling"
+        >
+      </div>
+
+      <div class="form-group">
+        <label>Help Text</label>
+        <input
+          type="text"
+          name="footer_responsible_help_text"
+          placeholder="If you or someone you know needs help, visit"
+        >
+      </div>
+
+      <div class="form-group">
+        <label>Help Organization URL</label>
+        <input
+          type="url"
+          name="footer_responsible_help_url"
+          placeholder="https://..."
+        >
+      </div>
+
+      <div class="form-group">
+        <label>Help Organization Label</label>
+        <input
+          type="text"
+          name="footer_responsible_help_label"
+          placeholder="GambleAware.org"
+        >
+      </div>
+
+
+      <!-- ================================================== -->
+      <!-- FOOTER -->
+      <!-- ================================================== -->
+
+      <h2>Footer</h2>
+
+      <div class="form-group">
+        <label>Footer Disclaimer</label>
+        <textarea
+          name="footer_disclaimer"
+          rows="5"
+          placeholder="Independent comparison and affiliate disclosure..."
+        ></textarea>
+      </div>
+
+
+      <!-- ================================================== -->
+      <!-- COMPLIANCE -->
+      <!-- ================================================== -->
+
+      <h2>Footer Compliance Logos</h2>
+
+      <p class="muted">
+        Add one compliance logo per row. Use a local path or
+        an external HTTPS URL.
+      </p>
+
+      <div id="complianceRows"></div>
+
+      <button
+        type="button"
+        class="btn btn--ghost"
+        id="addComplianceBtn"
+      >
+        + Add Compliance Logo
+      </button>
+
+
+      <!-- ================================================== -->
+      <!-- ALERT -->
+      <!-- ================================================== -->
+
+      <div
+        id="settingsFormAlert"
+        class="alert"
+        style="display:none;margin-top:20px"
+      ></div>
+
+      <button
+        type="submit"
+        class="btn btn--primary btn--lg"
+      >
+        Save Site Settings
+      </button>
+
     </form>
+
   </div>
 </div>
