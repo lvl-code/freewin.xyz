@@ -1,36 +1,46 @@
 {
   "name": "freewin",
   "main": "en/worker/index.js",
+
   "compatibility_date": "2024-04-01",
+
   "compatibility_flags": [
     "nodejs_compat"
   ],
-  
+
   "assets": {
     "binding": "ASSETS",
     "directory": "./en",
     "run_worker_first": true
   },
 
-  "d1_databases": [{
-    "binding": "DB",
-    "database_name": "freewin-db",
-    "database_id": "8aa163e4-7dc1-4539-b505-b1b43b021e30"
- }],
+  // ============================================================
+  // FREEWIN - DEFAULT / NORMAL DEPLOYMENT
+  // ============================================================
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "freewin-db",
+      "database_id": "8aa163e4-7dc1-4539-b505-b1b43b021e30"
+    }
+  ],
+
   "ai": {
     "binding": "AI"
   },
-  
+
   "kv_namespaces": [
     {
       "binding": "CACHE",
-      "id": "b8a8a5da18074de9890a62e3db56908c"
+      "id": "2fcbbbf788d4419dba6c2e5e4ae3e764"
     }
   ],
+
   "r2_buckets": [
     {
       "binding": "MEDIA_BUCKET",
-      "bucket_name": "level-casino-media"
+      "bucket_name": "freewin-media"
     }
   ],
 
@@ -38,6 +48,102 @@
     "crons": [
       "0 */6 * * *"
     ]
-  }
+  },
 
+  // ============================================================
+  // ADDITIONAL WORKER ENVIRONMENTS
+  // ============================================================
+
+  "env": {
+
+    // ==========================================================
+    // NEUROODDS
+    // ==========================================================
+
+    "neuroodds": {
+      "name": "neuroodds",
+
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "neuroodds-db",
+          "database_id": "0458754e-5bed-4e9d-8ab8-d40cb2ea9ee8"
+        }
+      ],
+
+      "kv_namespaces": [
+        {
+          "binding": "CACHE",
+          "id": "356f2c2e0edb4c56944fa634be782925"
+        }
+      ],
+
+      "r2_buckets": [
+        {
+          "binding": "MEDIA_BUCKET",
+          "bucket_name": "neuroodds-media"
+        }
+      ]
+    },
+
+    // ==========================================================
+    // LEGENDODDS
+    // ==========================================================
+
+    "legendodds": {
+      "name": "legendodds",
+
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "legendodds-db",
+          "database_id": "8b3fcac1-37e3-4f94-acb7-57aa82143e22"
+        }
+      ],
+
+      "kv_namespaces": [
+        {
+          "binding": "CACHE",
+          "id": "7e6c444ce12c42f3815976fc27017511"
+        }
+      ],
+
+      "r2_buckets": [
+        {
+          "binding": "MEDIA_BUCKET",
+          "bucket_name": "legendodds-media"
+        }
+      ]
+    },
+
+    // ==========================================================
+    // BRILLIANTODDS
+    // ==========================================================
+
+    "brilliantodds": {
+      "name": "brilliantodds",
+
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "brilliantodds-db",
+          "database_id": "c1f2d69f-cbea-46e5-b468-1cfa60f601c2"
+        }
+      ],
+
+      "kv_namespaces": [
+        {
+          "binding": "CACHE",
+          "id": "b102cd35227a42fbac829d10e2a09700"
+        }
+      ],
+
+      "r2_buckets": [
+        {
+          "binding": "MEDIA_BUCKET",
+          "bucket_name": "brilliantodds-media"
+        }
+      ]
+    }
+  }
 }

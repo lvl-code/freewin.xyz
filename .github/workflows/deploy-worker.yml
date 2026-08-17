@@ -1,11 +1,11 @@
-name: Deploy Cloudflare Worker Engine
+name: Deploy Freewin Worker
 
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
 
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -15,7 +15,7 @@ jobs:
       - name: Checkout Code Base
         uses: actions/checkout@v4
 
-      - name: Deploy Worker to Cloudflare Edge
+      - name: Deploy Freewin Worker
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
