@@ -1,0 +1,183 @@
+name: Seed Multiple Worker Admins
+
+on:
+  workflow_dispatch:
+
+jobs:
+  seed-admins:
+    name: Seed Admins
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install Wrangler
+        run: npm install --no-save wrangler@4
+
+      # ============================================================
+      # GENERATE ONE HASH
+      # The same password/hash is used for all three admins.
+      # ============================================================
+
+      - name: Generate admin password hash
+        env:
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+        run: |
+          node <<'EOF' > /tmp/password-hash.txt
+          const crypto = require("crypto");
+
+          const password = process.env.ADMIN_PASSWORD;
+
+          if (!password) {
+            throw new Error("ADMIN_PASSWORD secret is not configured");
+          }
+
+          const salt = crypto.randomBytes(16);
+
+          const hash = crypto.pbkdf2Sync(
+            password,
+            salt,
+            100000,
+            32,
+            "sha256"
+          );
+
+          console.log(
+            `${salt.toString("hex")}:${hash.toString("hex")}`
+          );
+          EOF
+
+      # ============================================================
+      # NEUROODDS
+      # ============================================================
+
+      - name: Seed NeuroOdds admin
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          HASH=$(cat /tmp/password-hash.txt)
+
+          npx wrangler d1 execute neuroodds-db \
+            --remote \
+            --command "
+              INSERT INTO users (
+                email,
+                password_hash,
+                role
+              )
+              VALUES (
+                'admin@neuroodds.com',
+                '$HASH',
+                'admin'
+              )
+              ON CONFLICT(email) DO UPDATE SET
+                password_hash = excluded.password_hash,
+                role = 'admin',
+                updated_at = CURRENT_TIMESTAMP;
+            "
+
+      - name: Verify NeuroOdds admin
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx wrangler d1 execute neuroodds-db \
+            --remote \
+            --command "
+              SELECT id, email, role, created_at, updated_at
+              FROM users
+              WHERE email = 'admin@neuroodds.com';
+            "
+
+      # ============================================================
+      # LEGENDODDS
+      # ============================================================
+
+      - name: Seed LegendOdds admin
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          HASH=$(cat /tmp/password-hash.txt)
+
+          npx wrangler d1 execute legendodds-db \
+            --remote \
+            --command "
+              INSERT INTO users (
+                email,
+                password_hash,
+                role
+              )
+              VALUES (
+                'admin@legendodds.com',
+                '$HASH',
+                'admin'
+              )
+              ON CONFLICT(email) DO UPDATE SET
+                password_hash = excluded.password_hash,
+                role = 'admin',
+                updated_at = CURRENT_TIMESTAMP;
+            "
+
+      - name: Verify LegendOdds admin
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx wrangler d1 execute legendodds-db \
+            --remote \
+            --command "
+              SELECT id, email, role, created_at, updated_at
+              FROM users
+              WHERE email = 'admin@legendodds.com';
+            "
+
+      # ============================================================
+      # BRILLIANTODDS
+      # ============================================================
+
+      - name: Seed BrilliantOdds admin
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          HASH=$(cat /tmp/password-hash.txt)
+
+          npx wrangler d1 execute brilliantodds-db \
+            --remote \
+            --command "
+              INSERT INTO users (
+                email,
+                password_hash,
+                role
+              )
+              VALUES (
+                'admin@brilliantodds.com',
+                '$HASH',
+                'admin'
+              )
+              ON CONFLICT(email) DO UPDATE SET
+                password_hash = excluded.password_hash,
+                role = 'admin',
+                updated_at = CURRENT_TIMESTAMP;
+            "
+
+      - name: Verify BrilliantOdds admin
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx wrangler d1 execute brilliantodds-db \
+            --remote \
+            --command "
+              SELECT id, email, role, created_at, updated_at
+              FROM users
+              WHERE email = 'admin@brilliantodds.com';
+            "
