@@ -1882,8 +1882,7 @@ export async function renderAuthor(request, env, slug) {
     seo_title: dynamicSeo.seo_title || author.name + " — " + site.siteName,
     seo_description: dynamicSeo.seo_description || author.bio || author.name + " is a " + (author.role || "editor") + " at " + site.siteName ,
     canonical: dynamicSeo.canonical || site.url(`/en/author/${slug}`)
-  }, authorSchema, [{ label: "Home", url: "/en" }, { label: "Authors", url: null }, { label: author.name, url: null }]);
-
+  }, authorSchema, buildBreadcrumbs("author", {author_name: author.name }));
   return new Response(html, { headers: cacheHeaders() });
 }
 
