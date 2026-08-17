@@ -14,7 +14,18 @@ export async function getNews(
 
 }
 
-export async function getAllNews(
+
+export async function getAllNews(db) {
+  const result = await db.prepare(`
+    SELECT *
+    FROM news
+    WHERE published = 1
+    ORDER BY created_at DESC
+  `).all();
+
+  return result.results || [];
+}
+export async function getAllNewsbackup(
   db
 ){
 

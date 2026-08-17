@@ -16,7 +16,7 @@
     const news = (data.news || []).slice(0, {{limit}});
     if (news.length === 0) { grid.innerHTML = '<p class="muted">No news yet.</p>'; return; }
     grid.innerHTML = news.map(n => `
-      <a href="/en/news/${n.slug}" class="news-card">
+      <a href="${site.url(`/en/news/${n.slug}`)}" class="news-card">
         <h3>${n.title}</h3>
         <p>${(n.content || "").substring(0, 120)}...</p>
         <span class="news-date">${new Date(n.created_at).toLocaleDateString()}</span>

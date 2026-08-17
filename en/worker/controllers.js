@@ -38,6 +38,35 @@ function formatDate(date) {
     day: "numeric"
   });
 }
+
+function stripHtml(text = "") {
+  return String(text)
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function truncateText(text = "", max = 160) {
+  const clean = stripHtml(text);
+
+  if (clean.length <= max) {
+    return clean;
+  }
+
+  return clean.slice(0, max).replace(/\s+\S*$/, "") + "…";
+}
+
+function toIsoDate(value) {
+  if (!value) return undefined;
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return undefined;
+  }
+
+  return date.toISOString();
+}
 const COUNTRY_NAMES = {
   // — Africa —
   DZ:"Algeria", AO:"Angola", BJ:"Benin", BW:"Botswana", BF:"Burkina Faso",
@@ -747,6 +776,187 @@ export async function renderNews(request, env, slug) {
 
   const renderer = new Renderer(env, request);
   const site = await getSiteContext(request, env);
+
+  let author = null;
+
+  if (article.author_id) {
+    author = await authors.getAuthorById(
+      env.DB,
+      article.author_id
+    );
+  }
+
+  const allComponents =
+    await renderer.renderAllComponents("news", slug);
+
+  const reviewBlocksHtml =
+    await renderer.renderReviewBlocks(slug);
+
+  const dynamicSeo =
+    await renderer.loadDynamicSeo("news", slug);
+
+  const canonical =
+    dynamicSeo.canonical ||
+    site.url(`/en/news/${article.slug}`);
+
+  const description =
+    dynamicSeo.seo_description ||
+    article.seo_description ||
+    truncateText(article.content, 160);
+
+  const published =
+    toIsoDate(article.created_at);
+
+  const modified =
+    toIsoDate(
+      article.updated_at ||
+      article.created_at
+    );
+
+  const cleanArticleBody =
+    stripHtml(article.content || "");
+
+  const articleAuthorName =
+    author?.name ||
+    article.author ||
+    site.siteName;
+
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+
+    "@id": `${canonical}#newsarticle`,
+
+    "url": canonical,
+
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": canonical
+    },
+
+    "headline": article.title,
+
+    "description": description,
+
+    "datePublished": published,
+
+    "dateModified": modified,
+
+    "author": {
+      "@type": "Person",
+      "name": articleAuthorName,
+      ...(author?.slug
+        ? {
+            "url": site.url(
+              `/en/author/${author.slug}`
+            )
+          }
+        : {})
+    },
+
+    "publisher": {
+      "@type": "Organization",
+      "name": site.siteName,
+      "url": site.origin,
+
+      ...(site.logoUrl
+        ? {
+            "logo": {
+              "@type": "ImageObject",
+              "url": site.logoUrl
+            }
+          }
+        : {})
+    },
+
+    "articleBody": cleanArticleBody,
+
+    "inLanguage": "en",
+
+    "isPartOf": {
+      "@type": "WebSite",
+      "name": site.siteName,
+      "url": site.origin
+    },
+
+    "articleSection": "News",
+
+    "wordCount": cleanArticleBody
+      ? cleanArticleBody.split(/\s+/).length
+      : 0
+  };
+
+  const html = await renderer.render(
+    "news.html",
+    {
+      ...article,
+
+      canonical,
+
+      author_name:
+        author?.name ||
+        article.author ||
+        "",
+
+      author_avatar:
+        author?.avatar_url ||
+        "",
+
+      author_role:
+        author?.role ||
+        "",
+
+      author_slug:
+        author?.slug ||
+        "",
+
+      components_top:
+        allComponents.top,
+
+      components_content_top:
+        allComponents.content_top,
+
+      components_content_bottom:
+        allComponents.content_bottom,
+
+      components_bottom:
+        allComponents.bottom,
+
+      components_sidebar:
+        allComponents.sidebar,
+
+      seo_title:
+        dynamicSeo.seo_title ||
+        article.seo_title ||
+        article.title,
+
+      seo_description:
+        description
+
+    },
+    articleSchema,
+    buildBreadcrumbs(
+      "news",
+      {
+        title: article.title
+      }
+    )
+  );
+
+  return new Response(
+    html,
+    {
+      headers: cacheHeaders()
+    }
+  );
+}
+
+export async function renderNewsbackup(request, env, slug) {
+  const article = await news.getNews(env.DB, slug);
+  if (!article) return render404(request, env);
+
+  const renderer = new Renderer(env, request);
+  const site = await getSiteContext(request, env);
   let author = null;
   if (article.author_id) {
     author = await authors.getAuthorById(env.DB, article.author_id);
@@ -1321,6 +1531,275 @@ export async function renderReviewList(request, env) {
 }
 
 export async function renderNewsList(request, env) {
+  const renderer =
+    new Renderer(env, request);
+
+  const site =
+    await getSiteContext(request, env);
+
+  const newsList =
+    await news.getAllNews(env.DB);
+
+  const allComponents =
+    await renderer.renderAllComponents(
+      "news_list",
+      "news_list"
+    );
+
+  const dynamicSeo =
+    await renderer.loadDynamicSeo(
+      "news_list",
+      "news_list"
+    );
+
+  const newsListUrl =
+    dynamicSeo.canonical ||
+    site.url("/en/news");
+
+  const newsCards =
+    newsList.map(article => {
+
+      const description =
+        truncateText(
+          article.content,
+          120
+        );
+
+      return `
+        <a
+          href="${site.url(`/en/news/${article.slug}`)}"
+          class="news-card"
+        >
+          <h3>${article.title}</h3>
+
+          <p>${description}...</p>
+
+          ${
+            article.created_at
+              ? `
+                <time
+                  class="news-date"
+                  datetime="${toIsoDate(article.created_at)}"
+                >
+                  ${new Date(
+                    article.created_at
+                  ).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric"
+                  })}
+                </time>
+              `
+              : ""
+          }
+        </a>
+      `;
+    }).join("");
+
+  const listSchema = {
+    "@context": "https://schema.org",
+
+    "@type": "CollectionPage",
+
+    "@id": `${newsListUrl}#webpage`,
+
+    "url": newsListUrl,
+
+    "name":
+      dynamicSeo.seo_title ||
+      `${site.siteName} News`,
+
+    "description":
+      dynamicSeo.seo_description ||
+      `Latest news and updates from ${site.siteName}.`,
+
+    "isPartOf": {
+      "@type": "WebSite",
+
+      "@id":
+        `${site.origin}#website`,
+
+      "name":
+        site.siteName,
+
+      "url":
+        site.origin
+    },
+
+    "mainEntity": {
+      "@type": "ItemList",
+
+      "@id":
+        `${newsListUrl}#itemlist`,
+
+      "name":
+        `${site.siteName} News`,
+
+      "numberOfItems":
+        newsList.length,
+
+      "itemListOrder":
+        "https://schema.org/ItemListOrderDescending",
+
+      "itemListElement":
+        newsList.map(
+          (article, index) => {
+
+            const articleUrl =
+              site.url(
+                `/en/news/${article.slug}`
+              );
+
+            const published =
+              toIsoDate(
+                article.created_at
+              );
+
+            const modified =
+              toIsoDate(
+                article.updated_at ||
+                article.created_at
+              );
+
+            return {
+              "@type":
+                "ListItem",
+
+              "position":
+                index + 1,
+
+              "url":
+                articleUrl,
+
+              "item": {
+                "@type":
+                  "NewsArticle",
+
+                "@id":
+                  `${articleUrl}#newsarticle`,
+
+                "url":
+                  articleUrl,
+
+                "headline":
+                  article.title,
+
+                "description":
+                  article.seo_description ||
+                  truncateText(
+                    article.content,
+                    160
+                  ),
+
+                ...(published
+                  ? {
+                      "datePublished":
+                        published
+                    }
+                  : {}),
+
+                ...(modified
+                  ? {
+                      "dateModified":
+                        modified
+                    }
+                  : {}),
+
+                "author": {
+                  "@type":
+                    "Person",
+
+                  "name":
+                    article.author ||
+                    site.siteName
+                },
+
+                "publisher": {
+                  "@type":
+                    "Organization",
+
+                  "name":
+                    site.siteName,
+
+                  "url":
+                    site.origin,
+
+                  ...(site.logoUrl
+                    ? {
+                        "logo": {
+                          "@type":
+                            "ImageObject",
+
+                          "url":
+                            site.logoUrl
+                        }
+                      }
+                    : {})
+                }
+              }
+            };
+          }
+        )
+    }
+  };
+
+  const html =
+    await renderer.render(
+      "category.html",
+      {
+        canonical:
+          newsListUrl,
+
+        category:
+          dynamicSeo.seo_title ||
+          `${site.siteName} News`,
+
+        description:
+          dynamicSeo.seo_description ||
+          `Latest news and updates from ${site.siteName}.`,
+
+        casino_cards:
+          `<div class="news-grid">${newsCards}</div>`,
+
+        components_top:
+          allComponents.top,
+
+        components_content_top:
+          allComponents.content_top,
+
+        components_content_bottom:
+          allComponents.content_bottom,
+
+        components_bottom:
+          allComponents.bottom,
+
+        components_sidebar:
+          allComponents.sidebar,
+
+        seo_title:
+          dynamicSeo.seo_title ||
+          `${site.siteName} News`,
+
+        seo_description:
+          dynamicSeo.seo_description ||
+          `Latest news and updates from ${site.siteName}.`
+      },
+
+      listSchema,
+
+      buildBreadcrumbs(
+        "newsList"
+      )
+    );
+
+  return new Response(
+    html,
+    {
+      headers: cacheHeaders()
+    }
+  );
+}
+export async function renderNewsListbackup(request, env) {
   const renderer = new Renderer(env, request);
   const site = await getSiteContext(request, env);
   const newsList = await news.getAllNews(env.DB);
