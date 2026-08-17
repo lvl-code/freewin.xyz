@@ -33,6 +33,7 @@ export function getRoute(request) {
   if (path === "/en/review") return { type: "reviewList" };
   if (path === "/en/news") return { type: "newsList" };
   if (path === "/en/updates") return { type: "updatesList" };
+  if (path === "/en/author") return { type: "authorList" };
 
   // =====================================================
   // CASINO
@@ -274,6 +275,10 @@ if (path === "/favicon.ico") {
   }
   if (path === "/sitemap-updates.xml" || path === "/en/sitemap-updates.xml") {
       return { type: "sitemap-updates" };
+  }
+
+  if (path === "/sitemap-authors.xml" || path === "/en/sitemap-authors.xml") {
+      return { type: "sitemap-authors" };
   }
 
   if (path === "/sitemap-categories.xml" || path === "/en/sitemap-categories.xml") {

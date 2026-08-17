@@ -1887,6 +1887,164 @@ export async function renderAuthor(request, env, slug) {
   return new Response(html, { headers: cacheHeaders() });
 }
 
+
+// =====================================================
+// AUTHORS LIST
+// /en/author
+// =====================================================
+
+export async function renderAuthorList(request, env) {
+  const renderer = new Renderer(env, request);
+
+  const authorsList = await authors.getAllAuthors(env.DB);
+
+  const allComponents = await renderer.renderAllComponents(
+    "author_list",
+    "author_list"
+  );
+
+  const dynamicSeo = await renderer.loadDynamicSeo(
+    "author_list",
+    "author_list"
+  );
+
+  const authorCards = (authorsList || []).map((author) => {
+    const avatar = author.avatar_url
+      ? `
+        <img
+          src="${author.avatar_url}"
+          alt="${author.name}"
+          class="author-card__avatar"
+          loading="lazy"
+        >
+      `
+      : "";
+
+    const bio = author.bio
+      ? author.bio.substring(0, 180)
+      : "";
+
+    return `
+      <article class="author-card">
+
+        <div class="author-card__media">
+          ${avatar}
+        </div>
+
+        <div class="author-card__body">
+
+          <h2>
+            <a href="/en/author/${author.slug}">
+              ${author.name}
+            </a>
+          </h2>
+
+          ${
+            author.role
+              ? `<div class="author-card__role">${author.role}</div>`
+              : ""
+          }
+
+          ${
+            bio
+              ? `
+                <p>
+                  ${bio}${author.bio.length > 180 ? "..." : ""}
+                </p>
+              `
+              : ""
+          }
+
+          <a
+            href="/en/author/${author.slug}"
+            class="btn btn--primary"
+          >
+            View Profile
+          </a>
+
+        </div>
+
+      </article>
+    `;
+  }).join("");
+
+  const listSchema = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "name":
+      dynamicSeo?.seo_title ||
+      "Authors",
+    "description":
+      dynamicSeo?.seo_description ||
+      "Meet the authors and editorial team behind our content.",
+    "url": new URL(request.url).origin + "/en/author",
+    "mainEntity": {
+      "@type": "ItemList",
+      "itemListElement": (authorsList || []).map(
+        (author, index) => ({
+          "@type": "ListItem",
+          "position": index + 1,
+          "name": author.name,
+          "url":
+            new URL(request.url).origin +
+            `/en/author/${author.slug}`
+        })
+      )
+    }
+  };
+
+  const html = await renderer.render(
+    "author_list.html",
+    {
+      canonical:
+        dynamicSeo?.canonical ||
+        "/en/author",
+
+      category: "Authors",
+
+      description:
+        dynamicSeo?.seo_description ||
+        "Meet the authors and editorial team behind our content.",
+
+      author_cards:
+        authorCards ||
+        '<p class="muted">No authors available.</p>',
+
+      author_count:
+        authorsList?.length || 0,
+
+      components_top:
+        allComponents?.top || "",
+
+      components_content_top:
+        allComponents?.content_top || "",
+
+      components_content_bottom:
+        allComponents?.content_bottom || "",
+
+      components_bottom:
+        allComponents?.bottom || "",
+
+      components_sidebar:
+        allComponents?.sidebar || "",
+
+      seo_title:
+        dynamicSeo?.seo_title ||
+        "Authors",
+
+      seo_description:
+        dynamicSeo?.seo_description ||
+        "Meet the authors and editorial team behind our content."
+    },
+    listSchema,
+    buildBreadcrumbs("authorList")
+  );
+
+  return new Response(html, {
+    headers: cacheHeaders()
+  });
+}
+
 // ==================================
 // ADMIN: AUTHORS
 // ==================================

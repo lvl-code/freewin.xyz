@@ -4,6 +4,7 @@ import { serveMedia } from './media-upload.js';
 import {
   renderHome,
   renderAuthor,
+  renderAuthorList,
   renderDashboardAuthors,
   renderNews,
   renderCasino,
@@ -220,6 +221,8 @@ export default {
         return renderDashboardCountries(request, env);
       case "author":
         return renderAuthor(request, env, route.slug);
+      case "authorList":
+        return renderAuthorList(request, env);
       case "dashboardAuthors":
         return renderDashboardAuthors(request, env);
       case "dashboardMedia":
@@ -332,6 +335,14 @@ case "sitemap-updates":
     env,
     env.DB,
     "updates"
+  );
+
+case "sitemap-authors":
+  return sitemapEngine.generate(
+    request,
+    env,
+    env.DB,
+    "authors"
   );
 
 case "sitemap-categories":
