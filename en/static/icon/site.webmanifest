@@ -3,13 +3,13 @@
   "short_name": "FreeWin",
   "icons": [
     {
-      "src": "/en/static/icon/web-app-manifest-192x192.png?v=20260817",
+      "src": "/static/icon/web-app-manifest-192x192.png?v=20260817",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/en/static/icon/web-app-manifest-512x512.png?v=20260817",
+      "src": "/static/icon/web-app-manifest-512x512.png?v=20260817",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
