@@ -537,47 +537,197 @@
 </div>
 
 
+
+<!-- ================================================== -->
+<!-- LIVE THEME PREVIEW -->
+<!-- ================================================== -->
+
 <div
   id="themePreview"
   style="
     margin:24px 0;
     padding:24px;
-    border:1px solid var(--border);
+    border:1px solid #27272a;
     border-radius:12px;
+    background:#050505;
+    color:#ffffff;
   "
 >
-
-  <strong>Theme Preview</strong>
 
   <div
     style="
       display:flex;
-      gap:12px;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
       flex-wrap:wrap;
+      margin-bottom:20px;
+    "
+  >
+
+    <div>
+
+      <strong
+        id="themePreviewTitle"
+        style="font-size:18px;"
+      >
+        Theme Preview
+      </strong>
+
+      <div
+        id="themePreviewMuted"
+        style="
+          margin-top:4px;
+          opacity:.7;
+          font-size:13px;
+        "
+      >
+        This preview updates as you customize the theme.
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- Preview Card -->
+
+  <div
+    id="themePreviewCard"
+    style="
+      padding:20px;
+      border:1px solid #27272a;
+      border-radius:12px;
+      background:#0f0f12;
+    "
+  >
+
+    <h3
+      id="themePreviewHeading"
+      style="
+        margin:0 0 8px;
+        color:#ffffff;
+      "
+    >
+      Your Platform Theme
+    </h3>
+
+    <p
+      id="themePreviewDescription"
+      style="
+        margin:0 0 18px;
+        color:#a1a1aa;
+      "
+    >
+      This is how your primary colors, surfaces, borders and
+      typography will appear across the public platform.
+    </p>
+
+
+    <div
+      style="
+        display:flex;
+        gap:10px;
+        flex-wrap:wrap;
+      "
+    >
+
+      <button
+        type="button"
+        id="themePreviewPrimary"
+        style="
+          border:0;
+          padding:10px 18px;
+          background:#8b5cf6;
+          color:#ffffff;
+          border-radius:8px;
+          cursor:pointer;
+        "
+      >
+        Primary Button
+      </button>
+
+
+      <button
+        type="button"
+        id="themePreviewSecondary"
+        style="
+          padding:10px 18px;
+          background:transparent;
+          color:#ffffff;
+          border:1px solid #27272a;
+          border-radius:8px;
+          cursor:pointer;
+        "
+      >
+        Secondary Button
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- Color indicators -->
+
+  <div
+    id="themePreviewColors"
+    style="
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(110px,1fr));
+      gap:10px;
       margin-top:16px;
     "
   >
 
-    <button
-      type="button"
-      class="btn btn--primary"
-      id="themePreviewPrimary"
-    >
-      Primary Button
-    </button>
+    <div
+      data-theme-preview-color="primary"
+      style="
+        height:55px;
+        border-radius:8px;
+        background:#8b5cf6;
+      "
+    ></div>
 
-    <button
-      type="button"
-      class="btn btn--ghost"
-      id="themePreviewSecondary"
-    >
-      Secondary Button
-    </button>
+    <div
+      data-theme-preview-color="secondary"
+      style="
+        height:55px;
+        border-radius:8px;
+        background:#ec4899;
+      "
+    ></div>
+
+    <div
+      data-theme-preview-color="accent"
+      style="
+        height:55px;
+        border-radius:8px;
+        background:#22d3ee;
+      "
+    ></div>
+
+    <div
+      data-theme-preview-color="background"
+      style="
+        height:55px;
+        border-radius:8px;
+        background:#050505;
+      "
+    ></div>
+
+    <div
+      data-theme-preview-color="surface"
+      style="
+        height:55px;
+        border-radius:8px;
+        background:#0f0f12;
+      "
+    ></div>
 
   </div>
 
 </div>
-
 
       <!-- ================================================== -->
       <!-- HERO -->
