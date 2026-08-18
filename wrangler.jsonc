@@ -85,6 +85,37 @@
       ]
     },
 
+    
+    // ==========================================================
+    // CLUSTERCASINO
+    // ==========================================================
+
+    "clustercasino": {
+      "name": "clustercasino",
+
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "clustercasino-db",
+          "database_id": "73c5c49d-e70a-4270-a97e-db3ceefedc31"
+        }
+      ],
+
+      "kv_namespaces": [
+        {
+          "binding": "CACHE",
+          "id": "18961fa2a8b844e9b717b9360d80dcf5"
+        }
+      ],
+
+      "r2_buckets": [
+        {
+          "binding": "MEDIA_BUCKET",
+          "bucket_name": "cluster-casino-media"
+        }
+      ]
+    },
+
     // ==========================================================
     // NEUROODDS
     // ==========================================================
