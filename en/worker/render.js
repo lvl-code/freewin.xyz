@@ -5,7 +5,7 @@ import { sanitizeHtml } from './sanitize.js';
 import { getSiteContext } from "./site-context.js";
 import {
   buildComplianceHtml,
-  buildHomepageSectionsHtml
+  buildHomepageSectionsHtml,
   buildThemeCss
 } from "./site-settings.js";
 import {
