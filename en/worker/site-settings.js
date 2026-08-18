@@ -4,7 +4,8 @@
 // Uses the existing `settings` database table.
 // ============================================================
 
-import { getSetting } from "./database/settings.js";
+//import { getSetting } from "./database/settings.js";
+import { getAllSettings } from "./database/settings.js";
 
 const DEFAULTS = {
   logo: "/static/images/logo.png",
@@ -277,7 +278,7 @@ function parseHomepageSections(value) {
 // ------------------------------------------------------------
 
 export async function getSiteSettings(db, origin) {
-  const keys = [
+  const keyss = [
     "site_logo",
     "site_og_image",
 
@@ -346,23 +347,28 @@ export async function getSiteSettings(db, origin) {
     "footer_compliance"
   ];
 
-  const values = {};
 
-  if (db) {
-    const results = await Promise.all(
-      keys.map(async key => {
-        try {
-          return [key, await getSetting(db, key)];
-        } catch {
-          return [key, null];
-        }
-      })
-    );
+  const values = db
+  ? await getAllSettings(db)
+  : {};
 
-    for (const [key, value] of results) {
-      values[key] = value;
-    }
-  }
+//  const values = {};
+
+//  if (db) {
+//    const results = await Promise.all(
+//      keys.map(async key => {
+//        try {
+//          return [key, await getSetting(db, key)];
+//        } catch {
+//          return [key, null];
+//        }
+//      })
+//    );
+//
+//    for (const [key, value] of results) {
+//      values[key] = value;
+//    }
+//  }
 
   const compliance = parseJson(
     values.footer_compliance,

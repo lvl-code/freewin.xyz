@@ -42,3 +42,24 @@ export async function saveSettings(
 
  return true;
 }
+
+
+
+export async function getAllSettings(db) {
+  if (!db) return {};
+
+  const result = await db
+    .prepare(`
+      SELECT key, value
+      FROM settings
+    `)
+    .all();
+
+  const settings = {};
+
+  for (const row of result.results || []) {
+    settings[row.key] = row.value;
+  }
+
+  return settings;
+}
