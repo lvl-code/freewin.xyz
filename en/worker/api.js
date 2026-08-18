@@ -54,7 +54,9 @@ import * as userDash from "./database/user_dashboard.js";
 import * as adminTools from "./database/admin_tools.js";
 import * as bannerDB from "./database/banners.js";
 import { getCached, setCached, CACHE_KEYS, invalidateCasinos, invalidateNews, invalidateCountries, invalidateCategories, invalidateNav } from "./cache.js";
-
+import {
+  deleteCached
+} from "./cache.js";
 import {
     handleUpload,
     handleDelete,
@@ -2046,6 +2048,15 @@ async function saveSettings(request, env) {
     env.DB,
     body
   );
+  const hostname =
+  new URL(request.url)
+    .hostname
+    .toLowerCase();
+
+await deleteCached(
+  env,
+  CACHE_KEYS.SITE_SETTINGS(hostname)
+);
 
   return success();
 }

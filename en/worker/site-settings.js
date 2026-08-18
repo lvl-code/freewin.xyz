@@ -6,7 +6,10 @@
 
 //import { getSetting } from "./database/settings.js";
 import { getAllSettings } from "./database/settings.js";
-
+import {
+  getCached,
+  setCached
+} from "./cache.js";
 const DEFAULTS = {
   logo: "/static/images/logo.png",
   ogImage: "/static/images/og-image.png",
@@ -138,7 +141,7 @@ const DEFAULTS = {
     }
   ],
   footerDisclaimer:
-    " ${site.siteName} is an independent casino comparison and affiliate platform. We do not operate gambling services or take bets. Operator availability depends on your jurisdiction. Users are responsible for complying with local laws. We may earn a commission via affiliate links.",
+    " This website is an independent casino comparison and affiliate platform. We do not operate gambling services or take bets. Operator availability depends on your jurisdiction. Users are responsible for complying with local laws. We may earn a commission via affiliate links.",
 
   responsibleText:
     "18+ | Gambling can be addictive, please play responsibly.",
@@ -277,80 +280,44 @@ function parseHomepageSections(value) {
 // Load all tenant site settings
 // ------------------------------------------------------------
 
-export async function getSiteSettings(db, origin) {
-  const keyss = [
-    "site_logo",
-    "site_og_image",
+export async function getSiteSettings(db, origin, env = null) {
 
-    "site_favicon_96",
-    "site_favicon_svg",
-    "site_favicon_ico",
-    "site_apple_touch_icon",
-    "site_manifest",
+  let values = {};
 
-    "site_hero_enabled",
-    "site_hero_image",
-    "site_hero_badge",
-    "site_hero_title",
-    "site_hero_subtitle",
-    "site_hero_description",
-    "site_hero_button_text",
-    "site_hero_button_url",
-    "site_hero_alignment",
-    "site_hero_overlay",
+if (db) {
 
-        // Theme
-    "theme_preset",
+  const hostname =
+    new URL(origin).hostname.toLowerCase();
 
-    "theme_primary",
-    "theme_primary_hover",
+  const cacheKey =
+    `site-settings:${hostname}`;
 
-    "theme_secondary",
-    "theme_secondary_hover",
+  if (env) {
+    values = await getCached(
+      env,
+      cacheKey
+    );
+  }
 
-    "theme_accent",
+  if (!values) {
 
-    "theme_background",
-    "theme_surface",
-    "theme_surface_alt",
+    values =
+      await getAllSettings(db);
 
-    "theme_text",
-    "theme_text_muted",
+    if (env) {
+      await setCached(
+        env,
+        cacheKey,
+        values,
+        600
+      );
+    }
+  }
+}
 
-    "theme_border",
-
-    "theme_button_text",
-
-    "theme_header_background",
-    "theme_footer_background",
-
-    "theme_card_radius",
-    "theme_button_radius",
-
-    "theme_container_width",
-
-    "theme_header_style",
-    "theme_card_style",
-    "theme_button_style",
-    "theme_layout_style",
-
-
-    "homepage_sections",
-
-    "footer_disclaimer",
-    "footer_responsible_text",
-    "footer_responsible_url",
-    "footer_responsible_help_text",
-    "footer_responsible_help_url",
-    "footer_responsible_help_label",
-
-    "footer_compliance"
-  ];
-
-
-  const values = db
-  ? await getAllSettings(db)
-  : {};
+ // const values = db
+//  ? await getAllSettings(db)
+//  : {};
 
 //  const values = {};
 
@@ -407,6 +374,13 @@ export async function getSiteSettings(db, origin) {
       DEFAULTS.ogImage
     ),
 
+    siteName:
+  values.site_name ||
+  "",
+
+description:
+  values.site_description ||
+  "",
     favicon96Url: resolveUrl(
       values.site_favicon_96,
       origin,
@@ -1151,6 +1125,8 @@ export function buildComplianceHtml(siteSettings) {
             <img
               src="${image}"
               alt="${alt}"
+              loading="lazy"
+              decoding="async"
               style="height:36px;width:auto;object-fit:contain;"
             >
           </a>
@@ -1161,6 +1137,8 @@ export function buildComplianceHtml(siteSettings) {
         <img
           src="${image}"
           alt="${alt}"
+          loading="lazy"
+          decoding="async"
           style="height:36px;width:auto;object-fit:contain;"
         >
       `;

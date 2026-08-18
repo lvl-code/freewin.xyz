@@ -46,7 +46,22 @@ export class Renderer {
     this.env = env;
     this.request = request;
     this.country = request?.cf?.country || null;
+    this.siteContext = null;
   }
+  async getSiteContext() {
+
+  if (this.siteContext) {
+    return this.siteContext;
+  }
+
+  this.siteContext =
+    await getSiteContext(
+      this.request,
+      this.env
+    );
+
+  return this.siteContext;
+}
 
   // =====================================================
   // LOAD TEMPLATE FILE
@@ -340,12 +355,15 @@ ${JSON.stringify(schema)}
     let page = await this.loadTemplate(`pages/${pageTemplate}`);
 
     // Load dynamic navigation data first
-    const navData = await this.loadNavData();
-
-    const site = await getSiteContext(
-  this.request,
-  this.env
-);
+//    const navData = await this.loadNavData();
+//    const site = await this.getSiteContext();
+    const [
+  navData,
+  site
+] = await Promise.all([
+  this.loadNavData(),
+  this.getSiteContext()
+]);
 
 site.complianceHtml =
   buildComplianceHtml(site);

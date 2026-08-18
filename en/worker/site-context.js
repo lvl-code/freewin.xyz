@@ -83,90 +83,64 @@ export async function getSiteContext(request, env) {
   // Existing site identity settings
   // ----------------------------------------------------------
 
-  const db = env?.DB;
 
-  let siteName = hostname;
-  let description = "";
+const db = env?.DB;
 
-  if (db) {
-    try {
-      const [
-        dbSiteName,
-        dbDescription
-      ] = await Promise.all([
-        getSetting(db, "site_name"),
-        getSetting(db, "site_description")
-      ]);
+let siteSettings = {};
 
-      if (dbSiteName) {
-        siteName = dbSiteName;
-      }
+try {
 
-      if (dbDescription) {
-        description = dbDescription;
-      }
-
-    } catch (error) {
-      console.warn(
-        "Site identity settings unavailable:",
-        error.message
-      );
-    }
-  }
-
-
-  // ----------------------------------------------------------
-  // Extended tenant settings
-  // ----------------------------------------------------------
-
-  let siteSettings;
-
-  try {
-    siteSettings =
-      await getSiteSettings(
-        db,
-        origin
-      );
-  } catch (error) {
-    console.warn(
-      "Site settings unavailable:",
-      error.message
+  siteSettings =
+    await getSiteSettings(
+      db,
+      origin,
+      env
     );
 
-    siteSettings =
-      await getSiteSettings(
-        null,
-        origin
-      );
-  }
+} catch (error) {
 
+  console.warn(
+    "Site settings unavailable:",
+    error.message
+  );
 
-  // ----------------------------------------------------------
-  // Final tenant context
-  // ----------------------------------------------------------
+  siteSettings =
+    await getSiteSettings(
+      null,
+      origin,
+      env
+    );
+}
 
-  return {
-    origin,
+return {
+  origin,
+  hostname,
+
+  siteName:
+    siteSettings.siteName ||
     hostname,
 
-    siteName,
-    description,
+  description:
+    siteSettings.description ||
+    "",
 
-    ...siteSettings,
+  ...siteSettings,
 
-    url(path = "/") {
-      if (!path) return origin;
+  url(path = "/") {
 
-      if (/^https?:\/\//i.test(path)) {
-        return path;
-      }
-
-      return new URL(
-        path.startsWith("/")
-          ? path
-          : `/${path}`,
-        origin
-      ).href;
+    if (!path) {
+      return origin;
     }
-  };
-}
+
+    if (/^https?:\/\//i.test(path)) {
+      return path;
+    }
+
+    return new URL(
+      path.startsWith("/")
+        ? path
+        : `/${path}`,
+      origin
+    ).href;
+  }
+};

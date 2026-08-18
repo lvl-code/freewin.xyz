@@ -55,6 +55,9 @@ export const CACHE_KEYS = {
   PUBLIC_COUNTRIES:  "public:countries:all",
   PUBLIC_CATEGORIES: "public:categories:all",
 
+  SITE_SETTINGS: (hostname) =>
+  `site-settings:${String(hostname || "").toLowerCase()}`,
+
   // Navigation (per location)
   NAV: (location) => `nav:${location}`,
 
@@ -85,4 +88,21 @@ export async function invalidateCategories(env) {
 
 export async function invalidateNav(env) {
   await invalidate(env, CACHE_KEYS.NAV_ALL_LOCATIONS);
+}
+
+
+export async function deleteCached(
+  env,
+  key
+) {
+  const cache =
+    env?.CACHE;
+
+  if (!cache) {
+    return false;
+  }
+
+  await cache.delete(key);
+
+  return true;
 }
