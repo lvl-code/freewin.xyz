@@ -403,6 +403,106 @@ async function loadSettingsForm() {
     const settings =
       data.settings || {};
 
+    homepageSections = [];
+
+if (settings.homepage_sections) {
+  try {
+    const parsed =
+      JSON.parse(
+        settings.homepage_sections
+      );
+
+    if (Array.isArray(parsed)) {
+      homepageSections = parsed;
+    }
+  } catch (error) {
+    console.warn(
+      "Invalid homepage_sections JSON",
+      error
+    );
+  }
+}
+
+if (!homepageSections.length) {
+  homepageSections = [
+    createHomepageSection(
+      "features"
+    )
+  ];
+
+  homepageSections[0].title =
+    "Why Choose Us";
+
+  homepageSections[0].cards = [
+    {
+      id: homepageId("card"),
+      enabled: true,
+      title: "Expert Reviews",
+      text:
+        "In-depth analysis from industry veterans with years of experience.",
+      iconType: "icon",
+      icon: "★",
+      imageUrl: "",
+      url: "",
+      target: "_self",
+      backgroundColor: "",
+      backgroundImage: "",
+      textColor: "",
+      iconColor: ""
+    },
+    {
+      id: homepageId("card"),
+      enabled: true,
+      title: "Exclusive Bonuses",
+      text:
+        "Access special bonus offers available only through {{site_name}}.",
+      iconType: "icon",
+      icon: "🔒",
+      imageUrl: "",
+      url: "",
+      target: "_self",
+      backgroundColor: "",
+      backgroundImage: "",
+      textColor: "",
+      iconColor: ""
+    },
+    {
+      id: homepageId("card"),
+      enabled: true,
+      title: "Geo-Targeted",
+      text:
+        "See casinos available in your country with localized bonus offers.",
+      iconType: "icon",
+      icon: "🌐",
+      imageUrl: "",
+      url: "",
+      target: "_self",
+      backgroundColor: "",
+      backgroundImage: "",
+      textColor: "",
+      iconColor: ""
+    },
+    {
+      id: homepageId("card"),
+      enabled: true,
+      title: "Real Data",
+      text:
+        "Click tracking and player analytics for transparent recommendations.",
+      iconType: "icon",
+      icon: "📊",
+      imageUrl: "",
+      url: "",
+      target: "_self",
+      backgroundColor: "",
+      backgroundImage: "",
+      textColor: "",
+      iconColor: ""
+    }
+  ];
+}
+
+renderHomepageSections();
+
     const heroEnabled =
   document.getElementById("siteHeroEnabled");
 
@@ -487,6 +587,8 @@ if (heroOverlay) {
 
   }
 }
+
+
 
 
 // ------------------------------------------------------------
@@ -644,6 +746,1187 @@ function escapeHtmlAttribute(value) {
 }
 
 
+
+
+
+
+
+
+// ============================================================
+// HOMEPAGE SECTION BUILDER
+// ============================================================
+
+let homepageSections = [];
+
+
+// ------------------------------------------------------------
+// Escape HTML attribute
+// ------------------------------------------------------------
+
+function homepageEscape(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+
+// ------------------------------------------------------------
+// Create IDs
+// ------------------------------------------------------------
+
+function homepageId(prefix = "item") {
+  return (
+    prefix +
+    "-" +
+    Date.now() +
+    "-" +
+    Math.random()
+      .toString(36)
+      .slice(2, 8)
+  );
+}
+
+
+// ------------------------------------------------------------
+// Default card
+// ------------------------------------------------------------
+
+function createHomepageCard() {
+
+  return {
+    id: homepageId("card"),
+
+    enabled: true,
+
+    title: "New Feature",
+
+    text:
+      "Add your feature description here.",
+
+    iconType: "icon",
+
+    icon: "★",
+
+    imageUrl: "",
+
+    url: "",
+
+    target: "_self",
+
+    backgroundColor: "",
+
+    backgroundImage: "",
+
+    textColor: "",
+
+    iconColor: ""
+  };
+}
+
+
+// ------------------------------------------------------------
+// Default section
+// ------------------------------------------------------------
+
+function createHomepageSection(type) {
+
+  const section = {
+
+    id:
+      homepageId("section"),
+
+    enabled: true,
+
+    type,
+
+    title: "",
+
+    subtitle: "",
+
+    description: "",
+
+    alignment: "center",
+
+    backgroundColor: "",
+
+    backgroundImage: "",
+
+    textColor: "",
+
+    cards: [],
+
+    paragraphs: [],
+
+    buttonText: "",
+
+    buttonUrl: "",
+
+    buttonStyle: "primary"
+  };
+
+
+  if (type === "features") {
+
+    section.title =
+      "Why Choose Us";
+
+    section.cards = [
+      createHomepageCard()
+    ];
+
+  }
+
+
+  if (type === "cards") {
+
+    section.title =
+      "Featured";
+
+    section.cards = [
+      createHomepageCard()
+    ];
+
+  }
+
+
+  return section;
+}
+
+
+// ------------------------------------------------------------
+// Render builder
+// ------------------------------------------------------------
+
+function renderHomepageSections() {
+
+  const container =
+    document.getElementById(
+      "homepageSections"
+    );
+
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  homepageSections.forEach(
+    (section, sectionIndex) => {
+
+      const wrapper =
+        document.createElement("div");
+
+      wrapper.className =
+        "homepage-admin-section";
+
+      wrapper.style.cssText = `
+        border:1px solid var(--border);
+        border-radius:10px;
+        padding:18px;
+        margin:16px 0;
+      `;
+
+      wrapper.innerHTML = `
+        <div
+          style="
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:10px;
+            flex-wrap:wrap;
+            margin-bottom:16px;
+          "
+        >
+
+          <strong>
+            Section ${sectionIndex + 1}
+          </strong>
+
+          <div style="display:flex;gap:6px">
+
+            <button
+              type="button"
+              class="btn btn--ghost move-up"
+            >
+              ↑
+            </button>
+
+            <button
+              type="button"
+              class="btn btn--ghost move-down"
+            >
+              ↓
+            </button>
+
+            <button
+              type="button"
+              class="btn btn--ghost duplicate-section"
+            >
+              Duplicate
+            </button>
+
+            <button
+              type="button"
+              class="btn btn--ghost remove-section"
+            >
+              Remove
+            </button>
+
+          </div>
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label>
+            Enabled
+          </label>
+
+          <input
+            type="checkbox"
+            class="section-enabled"
+            ${section.enabled !== false ? "checked" : ""}
+          >
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label>
+            Section Type
+          </label>
+
+          <select class="section-type">
+
+            <option
+              value="features"
+              ${section.type === "features" ? "selected" : ""}
+            >
+              Featured Grid
+            </option>
+
+            <option
+              value="cards"
+              ${section.type === "cards" ? "selected" : ""}
+            >
+              Cards
+            </option>
+
+            <option
+              value="text"
+              ${section.type === "text" ? "selected" : ""}
+            >
+              Text / Paragraphs
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label>
+            Section Title
+          </label>
+
+          <input
+            type="text"
+            class="section-title"
+            value="${homepageEscape(section.title)}"
+          >
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label>
+            Section Subtitle
+          </label>
+
+          <input
+            type="text"
+            class="section-subtitle"
+            value="${homepageEscape(section.subtitle)}"
+          >
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label>
+            Section Description
+          </label>
+
+          <textarea
+            class="section-description"
+            rows="3"
+          >${homepageEscape(section.description)}</textarea>
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label>
+            Alignment
+          </label>
+
+          <select class="section-alignment">
+
+            <option
+              value="left"
+              ${section.alignment === "left" ? "selected" : ""}
+            >
+              Left
+            </option>
+
+            <option
+              value="center"
+              ${section.alignment === "center" ? "selected" : ""}
+            >
+              Center
+            </option>
+
+            <option
+              value="right"
+              ${section.alignment === "right" ? "selected" : ""}
+            >
+              Right
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label>
+            Background Color
+          </label>
+
+          <input
+            type="text"
+            class="section-background-color"
+            value="${homepageEscape(section.backgroundColor)}"
+            placeholder="#111827 or rgba(...)"
+          >
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label>
+            Background Image URL
+          </label>
+
+          <input
+            type="url"
+            class="section-background-image"
+            value="${homepageEscape(section.backgroundImage)}"
+            placeholder="https://..."
+          >
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label>
+            Text Color
+          </label>
+
+          <input
+            type="text"
+            class="section-text-color"
+            value="${homepageEscape(section.textColor)}"
+            placeholder="#ffffff"
+          >
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label>
+            Button Text
+          </label>
+
+          <input
+            type="text"
+            class="section-button-text"
+            value="${homepageEscape(section.buttonText)}"
+          >
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label>
+            Button URL
+          </label>
+
+          <input
+            type="text"
+            class="section-button-url"
+            value="${homepageEscape(section.buttonUrl)}"
+          >
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label>
+            Button Style
+          </label>
+
+          <select class="section-button-style">
+
+            <option
+              value="primary"
+              ${section.buttonStyle === "primary" ? "selected" : ""}
+            >
+              Primary
+            </option>
+
+            <option
+              value="ghost"
+              ${section.buttonStyle === "ghost" ? "selected" : ""}
+            >
+              Ghost
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <h3>
+          Paragraphs
+        </h3>
+
+        <div class="section-paragraphs"></div>
+
+        <button
+          type="button"
+          class="btn btn--ghost add-paragraph"
+        >
+          + Add Paragraph
+        </button>
+
+
+        <h3 style="margin-top:24px">
+          Cards
+        </h3>
+
+        <div class="section-cards"></div>
+
+        <button
+          type="button"
+          class="btn btn--ghost add-card"
+        >
+          + Add Card
+        </button>
+      `;
+
+
+      // ------------------------------------------------------
+      // Paragraphs
+      // ------------------------------------------------------
+
+      const paragraphsContainer =
+        wrapper.querySelector(
+          ".section-paragraphs"
+        );
+
+      (section.paragraphs || [])
+        .forEach(
+          (paragraph, paragraphIndex) => {
+
+            const row =
+              document.createElement("div");
+
+            row.style.cssText = `
+              display:flex;
+              gap:8px;
+              margin-bottom:8px;
+            `;
+
+            row.innerHTML = `
+              <textarea
+                rows="3"
+                style="flex:1"
+                class="paragraph-input"
+              >${homepageEscape(paragraph)}</textarea>
+
+              <button
+                type="button"
+                class="btn btn--ghost remove-paragraph"
+              >
+                Remove
+              </button>
+            `;
+
+            row
+              .querySelector(
+                ".remove-paragraph"
+              )
+              .addEventListener(
+                "click",
+                () => {
+
+                  section.paragraphs
+                    .splice(
+                      paragraphIndex,
+                      1
+                    );
+
+                  renderHomepageSections();
+                }
+              );
+
+            paragraphsContainer
+              .appendChild(row);
+          }
+        );
+
+
+      // ------------------------------------------------------
+      // Cards
+      // ------------------------------------------------------
+
+      const cardsContainer =
+        wrapper.querySelector(
+          ".section-cards"
+        );
+
+
+      (section.cards || [])
+        .forEach(
+          (card, cardIndex) => {
+
+            const cardElement =
+              document.createElement("div");
+
+            cardElement.style.cssText = `
+              border:1px solid var(--border);
+              border-radius:8px;
+              padding:16px;
+              margin:12px 0;
+            `;
+
+            cardElement.innerHTML = `
+
+              <div
+                style="
+                  display:flex;
+                  justify-content:space-between;
+                  margin-bottom:12px;
+                "
+              >
+
+                <strong>
+                  Card ${cardIndex + 1}
+                </strong>
+
+                <button
+                  type="button"
+                  class="btn btn--ghost remove-card"
+                >
+                  Remove
+                </button>
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label>
+                  Enabled
+                </label>
+
+                <input
+                  type="checkbox"
+                  class="card-enabled"
+                  ${card.enabled !== false ? "checked" : ""}
+                >
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label>
+                  Title
+                </label>
+
+                <input
+                  type="text"
+                  class="card-title"
+                  value="${homepageEscape(card.title)}"
+                >
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label>
+                  Content
+                </label>
+
+                <textarea
+                  rows="3"
+                  class="card-text"
+                >${homepageEscape(card.text)}</textarea>
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label>
+                  Icon Type
+                </label>
+
+                <select class="card-icon-type">
+
+                  <option
+                    value="icon"
+                    ${card.iconType === "icon" ? "selected" : ""}
+                  >
+                    Text / Emoji / Symbol
+                  </option>
+
+                  <option
+                    value="image"
+                    ${card.iconType === "image" ? "selected" : ""}
+                  >
+                    Image URL
+                  </option>
+
+                </select>
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label>
+                  Icon / Symbol
+                </label>
+
+                <input
+                  type="text"
+                  class="card-icon"
+                  value="${homepageEscape(card.icon)}"
+                  placeholder="★ 🔒 🌐"
+                >
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label>
+                  Icon Image URL
+                </label>
+
+                <input
+                  type="url"
+                  class="card-image-url"
+                  value="${homepageEscape(card.imageUrl)}"
+                  placeholder="https://..."
+                >
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label>
+                  Card URL
+                </label>
+
+                <input
+                  type="text"
+                  class="card-url"
+                  value="${homepageEscape(card.url)}"
+                  placeholder="/en/review/example"
+                >
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label>
+                  Open Link
+                </label>
+
+                <select class="card-target">
+
+                  <option
+                    value="_self"
+                    ${card.target !== "_blank" ? "selected" : ""}
+                  >
+                    Same Window
+                  </option>
+
+                  <option
+                    value="_blank"
+                    ${card.target === "_blank" ? "selected" : ""}
+                  >
+                    New Window
+                  </option>
+
+                </select>
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label>
+                  Card Background Color
+                </label>
+
+                <input
+                  type="text"
+                  class="card-background-color"
+                  value="${homepageEscape(card.backgroundColor)}"
+                  placeholder="#111827"
+                >
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label>
+                  Card Background Image URL
+                </label>
+
+                <input
+                  type="url"
+                  class="card-background-image"
+                  value="${homepageEscape(card.backgroundImage)}"
+                  placeholder="https://..."
+                >
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label>
+                  Card Text Color
+                </label>
+
+                <input
+                  type="text"
+                  class="card-text-color"
+                  value="${homepageEscape(card.textColor)}"
+                  placeholder="#ffffff"
+                >
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label>
+                  Icon Color
+                </label>
+
+                <input
+                  type="text"
+                  class="card-icon-color"
+                  value="${homepageEscape(card.iconColor)}"
+                  placeholder="#ffffff"
+                >
+
+              </div>
+            `;
+
+
+            cardElement
+              .querySelector(
+                ".remove-card"
+              )
+              .addEventListener(
+                "click",
+                () => {
+
+                  section.cards
+                    .splice(
+                      cardIndex,
+                      1
+                    );
+
+                  renderHomepageSections();
+                }
+              );
+
+
+            cardsContainer
+              .appendChild(
+                cardElement
+              );
+          }
+        );
+
+
+      // ------------------------------------------------------
+      // Section controls
+      // ------------------------------------------------------
+
+      wrapper
+        .querySelector(
+          ".remove-section"
+        )
+        .addEventListener(
+          "click",
+          () => {
+
+            homepageSections
+              .splice(
+                sectionIndex,
+                1
+              );
+
+            renderHomepageSections();
+          }
+        );
+
+
+      wrapper
+        .querySelector(
+          ".duplicate-section"
+        )
+        .addEventListener(
+          "click",
+          () => {
+
+            const copy =
+              JSON.parse(
+                JSON.stringify(section)
+              );
+
+            copy.id =
+              homepageId("section");
+
+            homepageSections
+              .splice(
+                sectionIndex + 1,
+                0,
+                copy
+              );
+
+            renderHomepageSections();
+          }
+        );
+
+
+      wrapper
+        .querySelector(
+          ".move-up"
+        )
+        .addEventListener(
+          "click",
+          () => {
+
+            if (sectionIndex === 0)
+              return;
+
+            [
+              homepageSections[
+                sectionIndex - 1
+              ],
+              homepageSections[
+                sectionIndex
+              ]
+            ] = [
+              homepageSections[
+                sectionIndex
+              ],
+              homepageSections[
+                sectionIndex - 1
+              ]
+            ];
+
+            renderHomepageSections();
+          }
+        );
+
+
+      wrapper
+        .querySelector(
+          ".move-down"
+        )
+        .addEventListener(
+          "click",
+          () => {
+
+            if (
+              sectionIndex >=
+              homepageSections.length - 1
+            ) return;
+
+            [
+              homepageSections[
+                sectionIndex + 1
+              ],
+              homepageSections[
+                sectionIndex
+              ]
+            ] = [
+              homepageSections[
+                sectionIndex
+              ],
+              homepageSections[
+                sectionIndex + 1
+              ]
+            ];
+
+            renderHomepageSections();
+          }
+        );
+
+
+      wrapper
+        .querySelector(
+          ".add-paragraph"
+        )
+        .addEventListener(
+          "click",
+          () => {
+
+            section.paragraphs =
+              section.paragraphs || [];
+
+            section.paragraphs.push(
+              "New paragraph..."
+            );
+
+            renderHomepageSections();
+          }
+        );
+
+
+      wrapper
+        .querySelector(
+          ".add-card"
+        )
+        .addEventListener(
+          "click",
+          () => {
+
+            section.cards =
+              section.cards || [];
+
+            section.cards.push(
+              createHomepageCard()
+            );
+
+            renderHomepageSections();
+          }
+        );
+
+
+      container.appendChild(
+        wrapper
+      );
+    }
+  );
+}
+
+function collectHomepageSections() {
+
+  const containers =
+    document.querySelectorAll(
+      "#homepageSections .homepage-admin-section"
+    );
+
+  return Array.from(containers)
+    .map((wrapper, sectionIndex) => {
+
+      const original =
+        homepageSections[sectionIndex] ||
+        createHomepageSection(
+          "features"
+        );
+
+      const paragraphs =
+        Array.from(
+          wrapper.querySelectorAll(
+            ".paragraph-input"
+          )
+        )
+        .map(input =>
+          input.value.trim()
+        )
+        .filter(Boolean);
+
+
+      const cards =
+        Array.from(
+          wrapper.querySelectorAll(
+            ".section-cards > div"
+          )
+        )
+        .map(cardElement => ({
+
+          id:
+            homepageId("card"),
+
+          enabled:
+            cardElement.querySelector(
+              ".card-enabled"
+            )?.checked !== false,
+
+          title:
+            cardElement.querySelector(
+              ".card-title"
+            )?.value.trim() || "",
+
+          text:
+            cardElement.querySelector(
+              ".card-text"
+            )?.value.trim() || "",
+
+          iconType:
+            cardElement.querySelector(
+              ".card-icon-type"
+            )?.value || "icon",
+
+          icon:
+            cardElement.querySelector(
+              ".card-icon"
+            )?.value || "",
+
+          imageUrl:
+            cardElement.querySelector(
+              ".card-image-url"
+            )?.value.trim() || "",
+
+          url:
+            cardElement.querySelector(
+              ".card-url"
+            )?.value.trim() || "",
+
+          target:
+            cardElement.querySelector(
+              ".card-target"
+            )?.value === "_blank"
+              ? "_blank"
+              : "_self",
+
+          backgroundColor:
+            cardElement.querySelector(
+              ".card-background-color"
+            )?.value.trim() || "",
+
+          backgroundImage:
+            cardElement.querySelector(
+              ".card-background-image"
+            )?.value.trim() || "",
+
+          textColor:
+            cardElement.querySelector(
+              ".card-text-color"
+            )?.value.trim() || "",
+
+          iconColor:
+            cardElement.querySelector(
+              ".card-icon-color"
+            )?.value.trim() || ""
+        }));
+
+
+      return {
+
+        id:
+          original.id ||
+          homepageId("section"),
+
+        enabled:
+          wrapper.querySelector(
+            ".section-enabled"
+          )?.checked !== false,
+
+        type:
+          wrapper.querySelector(
+            ".section-type"
+          )?.value || "features",
+
+        title:
+          wrapper.querySelector(
+            ".section-title"
+          )?.value.trim() || "",
+
+        subtitle:
+          wrapper.querySelector(
+            ".section-subtitle"
+          )?.value.trim() || "",
+
+        description:
+          wrapper.querySelector(
+            ".section-description"
+          )?.value.trim() || "",
+
+        alignment:
+          wrapper.querySelector(
+            ".section-alignment"
+          )?.value || "center",
+
+        backgroundColor:
+          wrapper.querySelector(
+            ".section-background-color"
+          )?.value.trim() || "",
+
+        backgroundImage:
+          wrapper.querySelector(
+            ".section-background-image"
+          )?.value.trim() || "",
+
+        textColor:
+          wrapper.querySelector(
+            ".section-text-color"
+          )?.value.trim() || "",
+
+        cards,
+
+        paragraphs,
+
+        buttonText:
+          wrapper.querySelector(
+            ".section-button-text"
+          )?.value.trim() || "",
+
+        buttonUrl:
+          wrapper.querySelector(
+            ".section-button-url"
+          )?.value.trim() || "",
+
+        buttonStyle:
+          wrapper.querySelector(
+            ".section-button-style"
+          )?.value || "primary"
+      };
+    });
+}
+
+
 // ------------------------------------------------------------
 // Initialize settings form
 // ------------------------------------------------------------
@@ -671,6 +1954,71 @@ function initSettingsForm() {
     );
 
   }
+
+  const addFeaturesSectionButton =
+  document.getElementById(
+    "addFeaturesSectionBtn"
+  );
+
+if (addFeaturesSectionButton) {
+  addFeaturesSectionButton.addEventListener(
+    "click",
+    () => {
+
+      homepageSections.push(
+        createHomepageSection(
+          "features"
+        )
+      );
+
+      renderHomepageSections();
+    }
+  );
+}
+
+
+const addTextSectionButton =
+  document.getElementById(
+    "addTextSectionBtn"
+  );
+
+if (addTextSectionButton) {
+  addTextSectionButton.addEventListener(
+    "click",
+    () => {
+
+      homepageSections.push(
+        createHomepageSection(
+          "text"
+        )
+      );
+
+      renderHomepageSections();
+    }
+  );
+}
+
+
+const addCardsSectionButton =
+  document.getElementById(
+    "addCardsSectionBtn"
+  );
+
+if (addCardsSectionButton) {
+  addCardsSectionButton.addEventListener(
+    "click",
+    () => {
+
+      homepageSections.push(
+        createHomepageSection(
+          "cards"
+        )
+      );
+
+      renderHomepageSections();
+    }
+  );
+}
 
 
   form.addEventListener(
@@ -722,6 +2070,11 @@ payload.site_hero_overlay =
         payload.footer_compliance =
           JSON.stringify(
             collectComplianceRows()
+          );
+
+        payload.homepage_sections =
+          JSON.stringify(
+            collectHomepageSections()
           );
 
 

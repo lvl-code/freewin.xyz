@@ -3,8 +3,10 @@
 // =====================================================
 import { sanitizeHtml } from './sanitize.js';
 import { getSiteContext } from "./site-context.js";
-import { buildComplianceHtml } from "./site-settings.js";
-
+import {
+  buildComplianceHtml,
+  buildHomepageSectionsHtml
+} from "./site-settings.js";
 import {
   buildBreadcrumbSchema,
   renderBreadcrumbs
@@ -343,9 +345,15 @@ ${JSON.stringify(schema)}
   this.request,
   this.env
 );
+
 site.complianceHtml =
   buildComplianceHtml(site);
 
+site.homepageSectionsHtml =
+  buildHomepageSectionsHtml(
+    site.homepageSections,
+    site.origin
+  );
 const allData = {
   ...navData,
 
@@ -396,6 +404,7 @@ const allData = {
   footer_responsible_help_text: site.responsibleHelpText,
   footer_responsible_help_url: site.responsibleHelpUrl,
   footer_responsible_help_label: site.responsibleHelpLabel,
+  homepage_sections_html: site.homepageSectionsHtml,
 
   ...data
 };

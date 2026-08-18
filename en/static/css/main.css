@@ -1873,3 +1873,57 @@ padding:22px;
   }
 
 }
+
+
+
+
+
+.homepage-section__header--left {
+  text-align: left;
+}
+
+.homepage-section__header--center {
+  text-align: center;
+}
+
+.homepage-section__header--right {
+  text-align: right;
+}
+
+.homepage-section__content--left {
+  text-align: left;
+}
+
+.homepage-section__content--center {
+  text-align: center;
+}
+
+.homepage-section__content--right {
+  text-align: right;
+}
+
+.homepage-section__paragraph {
+  margin: 0 0 16px;
+}
+
+.homepage-section__paragraphs {
+  margin-top: 20px;
+}
+
+.homepage-section__subtitle {
+  margin-top: 8px;
+}
+
+.homepage-section__description {
+  margin-top: 10px;
+}
+
+.homepage-section__actions {
+  margin-top: 24px;
+}
+
+.feature-icon--image img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}

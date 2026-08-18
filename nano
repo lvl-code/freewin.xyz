@@ -19,7 +19,7 @@ const DEFAULTS = {
   heroImage: "",
 
   footerDisclaimer:
-    "{{site_name}} is an independent casino comparison and affiliate platform. We do not operate gambling services or take bets. Operator availability depends on your jurisdiction. Users are responsible for complying with local laws. We may earn a commission via affiliate links.",
+    " ${site.siteName} is an independent casino comparison and affiliate platform. We do not operate gambling services or take bets. Operator availability depends on your jurisdiction. Users are responsible for complying with local laws. We may earn a commission via affiliate links.",
 
   responsibleText:
     "18+ | Gambling can be addictive, please play responsibly.",
