@@ -26,7 +26,8 @@ export async function getSiteContext(request, env) {
     const siteSettings =
       await getSiteSettings(
         env?.DB,
-        fallbackOrigin
+        fallbackOrigin,
+        env
       );
 
     return {

@@ -285,10 +285,7 @@ escapeHtml(str = "") {
 }
 
 async buildSEO(data = {}) {
-  const site = await getSiteContext(
-    this.request,
-    this.env
-  );
+  const site = await this.getSiteContext();
 
   const title =
     data.seo_title ||
