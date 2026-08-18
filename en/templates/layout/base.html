@@ -54,8 +54,14 @@
   <link rel="stylesheet" href="/static/css/dashboard.css">
   <link rel="stylesheet" href="/static/css/lummet-ai.css">
   <link rel="stylesheet" href="/static/css/authors.css">
+  {{theme_css}}
 </head>
-<body>
+<body
+  class="theme-card-{{theme_card_style}}
+         theme-button-{{theme_button_style}}
+         theme-header-{{theme_header_style}}
+         theme-layout-{{theme_layout_style}}"
+>
   {{HEADER}}
   {{BANNERS_TOP}}
   <div class="layout-wrapper">

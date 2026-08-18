@@ -6,6 +6,7 @@ import { getSiteContext } from "./site-context.js";
 import {
   buildComplianceHtml,
   buildHomepageSectionsHtml
+  buildThemeCss
 } from "./site-settings.js";
 import {
   buildBreadcrumbSchema,
@@ -354,6 +355,10 @@ site.homepageSectionsHtml =
     site.homepageSections,
     site.origin
   );
+
+site.themeCss =
+  buildThemeCss(site);
+
 const allData = {
   ...navData,
 
@@ -404,7 +409,33 @@ const allData = {
   footer_responsible_help_text: site.responsibleHelpText,
   footer_responsible_help_url: site.responsibleHelpUrl,
   footer_responsible_help_label: site.responsibleHelpLabel,
+
+
   homepage_sections_html: site.homepageSectionsHtml,
+
+
+  theme_css: site.themeCss,
+
+theme_preset: site.themePreset,
+
+theme_primary: site.themePrimary,
+theme_secondary: site.themeSecondary,
+theme_accent: site.themeAccent,
+
+theme_background: site.themeBackground,
+theme_surface: site.themeSurface,
+theme_surface_alt: site.themeSurfaceAlt,
+
+theme_text: site.themeText,
+theme_text_muted: site.themeTextMuted,
+
+theme_border: site.themeBorder,
+
+theme_header_style: site.themeHeaderStyle,
+theme_card_style: site.themeCardStyle,
+theme_button_style: site.themeButtonStyle,
+theme_layout_style: site.themeLayoutStyle,
+
 
   ...data
 };

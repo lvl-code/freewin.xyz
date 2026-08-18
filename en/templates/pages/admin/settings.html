@@ -146,6 +146,438 @@
         >
       </div>
 
+      <!-- ================================================== -->
+<!-- PLATFORM THEME -->
+<!-- ================================================== -->
+
+<h2>Platform Theme</h2>
+
+<p class="muted">
+  Customize the visual identity and layout of this tenant.
+  Changes apply across the public website.
+</p>
+
+
+<div class="form-group">
+
+  <label>Theme Preset</label>
+
+  <select name="theme_preset" id="themePreset">
+
+    <option value="midnight">
+      Midnight
+    </option>
+
+    <option value="ocean">
+      Ocean
+    </option>
+
+    <option value="emerald">
+      Emerald
+    </option>
+
+    <option value="ruby">
+      Ruby
+    </option>
+
+    <option value="gold">
+      Gold
+    </option>
+
+    <option value="light">
+      Light
+    </option>
+
+    <option value="custom">
+      Custom
+    </option>
+
+  </select>
+
+</div>
+
+
+<div class="form-grid">
+
+  <div class="form-group">
+
+    <label>Primary Color</label>
+
+    <input
+      type="color"
+      name="theme_primary"
+      id="themePrimary"
+      value="#8b5cf6"
+    >
+
+  </div>
+
+
+  <div class="form-group">
+
+    <label>Primary Hover</label>
+
+    <input
+      type="color"
+      name="theme_primary_hover"
+      id="themePrimaryHover"
+      value="#7c3aed"
+    >
+
+  </div>
+
+
+  <div class="form-group">
+
+    <label>Secondary Color</label>
+
+    <input
+      type="color"
+      name="theme_secondary"
+      id="themeSecondary"
+      value="#ec4899"
+    >
+
+  </div>
+
+
+  <div class="form-group">
+
+    <label>Secondary Hover</label>
+
+    <input
+      type="color"
+      name="theme_secondary_hover"
+      id="themeSecondaryHover"
+      value="#db2777"
+    >
+
+  </div>
+
+
+  <div class="form-group">
+
+    <label>Accent Color</label>
+
+    <input
+      type="color"
+      name="theme_accent"
+      id="themeAccent"
+      value="#22d3ee"
+    >
+
+  </div>
+
+
+  <div class="form-group">
+
+    <label>Page Background</label>
+
+    <input
+      type="color"
+      name="theme_background"
+      id="themeBackground"
+      value="#050505"
+    >
+
+  </div>
+
+
+  <div class="form-group">
+
+    <label>Card / Surface</label>
+
+    <input
+      type="color"
+      name="theme_surface"
+      id="themeSurface"
+      value="#0f0f12"
+    >
+
+  </div>
+
+
+  <div class="form-group">
+
+    <label>Alternative Surface</label>
+
+    <input
+      type="color"
+      name="theme_surface_alt"
+      id="themeSurfaceAlt"
+      value="#15151a"
+    >
+
+  </div>
+
+
+  <div class="form-group">
+
+    <label>Main Text</label>
+
+    <input
+      type="color"
+      name="theme_text"
+      id="themeText"
+      value="#ffffff"
+    >
+
+  </div>
+
+
+  <div class="form-group">
+
+    <label>Muted Text</label>
+
+    <input
+      type="color"
+      name="theme_text_muted"
+      id="themeTextMuted"
+      value="#a1a1aa"
+    >
+
+  </div>
+
+
+  <div class="form-group">
+
+    <label>Border</label>
+
+    <input
+      type="color"
+      name="theme_border"
+      id="themeBorder"
+      value="#27272a"
+    >
+
+  </div>
+
+
+  <div class="form-group">
+
+    <label>Button Text</label>
+
+    <input
+      type="color"
+      name="theme_button_text"
+      id="themeButtonText"
+      value="#ffffff"
+    >
+
+  </div>
+
+</div>
+
+
+<!-- ================================================== -->
+<!-- LAYOUT -->
+<!-- ================================================== -->
+
+<h3>Layout</h3>
+
+
+<div class="form-group">
+
+  <label>Container Width</label>
+
+  <select name="theme_container_width">
+
+    <option value="1080px">
+      Compact
+    </option>
+
+    <option value="1200px" selected>
+      Standard
+    </option>
+
+    <option value="1440px">
+      Wide
+    </option>
+
+  </select>
+
+</div>
+
+
+<div class="form-group">
+
+  <label>Header Style</label>
+
+  <select name="theme_header_style">
+
+    <option value="default">
+      Default
+    </option>
+
+    <option value="solid">
+      Solid
+    </option>
+
+    <option value="glass">
+      Glass
+    </option>
+
+    <option value="transparent">
+      Transparent
+    </option>
+
+  </select>
+
+</div>
+
+
+<div class="form-group">
+
+  <label>Card Style</label>
+
+  <select name="theme_card_style">
+
+    <option value="default">
+      Default
+    </option>
+
+    <option value="flat">
+      Flat
+    </option>
+
+    <option value="bordered">
+      Bordered
+    </option>
+
+    <option value="glass">
+      Glass
+    </option>
+
+    <option value="elevated">
+      Elevated
+    </option>
+
+  </select>
+
+</div>
+
+
+<div class="form-group">
+
+  <label>Button Style</label>
+
+  <select name="theme_button_style">
+
+    <option value="default">
+      Default
+    </option>
+
+    <option value="rounded">
+      Rounded
+    </option>
+
+    <option value="pill">
+      Pill
+    </option>
+
+    <option value="square">
+      Square
+    </option>
+
+  </select>
+
+</div>
+
+
+<div class="form-group">
+
+  <label>Layout Style</label>
+
+  <select name="theme_layout_style">
+
+    <option value="default">
+      Default
+    </option>
+
+    <option value="compact">
+      Compact
+    </option>
+
+    <option value="wide">
+      Wide
+    </option>
+
+  </select>
+
+</div>
+
+
+<div class="form-grid">
+
+  <div class="form-group">
+
+    <label>Card Radius</label>
+
+    <input
+      type="text"
+      name="theme_card_radius"
+      placeholder="12px"
+    >
+
+  </div>
+
+
+  <div class="form-group">
+
+    <label>Button Radius</label>
+
+    <input
+      type="text"
+      name="theme_button_radius"
+      placeholder="8px"
+    >
+
+  </div>
+
+</div>
+
+
+<div
+  id="themePreview"
+  style="
+    margin:24px 0;
+    padding:24px;
+    border:1px solid var(--border);
+    border-radius:12px;
+  "
+>
+
+  <strong>Theme Preview</strong>
+
+  <div
+    style="
+      display:flex;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-top:16px;
+    "
+  >
+
+    <button
+      type="button"
+      class="btn btn--primary"
+      id="themePreviewPrimary"
+    >
+      Primary Button
+    </button>
+
+    <button
+      type="button"
+      class="btn btn--ghost"
+      id="themePreviewSecondary"
+    >
+      Secondary Button
+    </button>
+
+  </div>
+
+</div>
+
 
       <!-- ================================================== -->
       <!-- HERO -->
