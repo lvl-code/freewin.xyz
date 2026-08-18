@@ -150,8 +150,132 @@
       <!-- ================================================== -->
       <!-- HERO -->
       <!-- ================================================== -->
+<!-- ================================================== -->
+<!-- HOMEPAGE HERO -->
+<!-- ================================================== -->
 
-      <h2>Homepage Hero</h2>
+<h2>Homepage Hero</h2>
+
+<div class="form-group">
+  <label>
+    <input
+      type="checkbox"
+      name="site_hero_enabled"
+      value="true"
+      id="siteHeroEnabled"
+    >
+    Hero Enabled
+  </label>
+
+  <small class="muted">
+    Disable this to completely hide the homepage hero.
+  </small>
+</div>
+
+<div class="form-group">
+  <label>Hero Image URL</label>
+
+  <input
+    type="url"
+    name="site_hero_image"
+    placeholder="https://example.com/media/general/hero.png"
+  >
+
+  <small class="muted">
+    Use your uploaded media URL or a local image path.
+  </small>
+</div>
+
+<div class="form-group">
+  <label>Hero Badge / Eyebrow</label>
+
+  <input
+    type="text"
+    name="site_hero_badge"
+    placeholder="Find Your Perfect Casino"
+  >
+</div>
+
+<div class="form-group">
+  <label>Hero Title</label>
+
+  <input
+    type="text"
+    name="site_hero_title"
+    placeholder="Find Your Perfect Casino"
+  >
+</div>
+
+<div class="form-group">
+  <label>Hero Subtitle</label>
+
+  <textarea
+    name="site_hero_subtitle"
+    rows="3"
+    placeholder="Expert reviews, exclusive bonuses, and real player data for {{casino_count}}+ casinos worldwide."
+  ></textarea>
+</div>
+
+<div class="form-group">
+  <label>Hero Description</label>
+
+  <textarea
+    name="site_hero_description"
+    rows="4"
+    placeholder="Additional description displayed below the hero subtitle."
+  ></textarea>
+</div>
+
+<div class="form-group">
+  <label>Hero Button Text</label>
+
+  <input
+    type="text"
+    name="site_hero_button_text"
+    placeholder="Browse Casinos"
+  >
+</div>
+
+<div class="form-group">
+  <label>Hero Button URL</label>
+
+  <input
+    type="text"
+    name="site_hero_button_url"
+    placeholder="/en/casino"
+  >
+</div>
+
+<div class="form-group">
+  <label>Hero Alignment</label>
+
+  <select name="site_hero_alignment">
+    <option value="left">Left</option>
+    <option value="center">Center</option>
+    <option value="right">Right</option>
+  </select>
+</div>
+
+<div class="form-group">
+
+  <label>
+    <input
+      type="checkbox"
+      name="site_hero_overlay"
+      value="true"
+      id="siteHeroOverlay"
+    >
+
+    Hero Overlay
+  </label>
+
+  <small class="muted">
+    Adds a dark overlay over the hero image to improve text readability.
+  </small>
+
+</div>
+
+      <!--<h2>Homepage Hero</h2>
 
       <div class="form-group">
         <label>Hero Background Image URL</label>
@@ -160,7 +284,7 @@
           name="site_hero_image"
           placeholder="/static/images/hero.jpg or https://..."
         >
-      </div>
+      </div>-->
 
 
       <!-- ================================================== -->

@@ -144,6 +144,60 @@ a:hover { text-decoration: underline; }
 .hero p { font-size: 18px; opacity: 0.85; margin-bottom: 24px; }
 .hero-actions { display: flex; gap: 12px; justify-content: center; }
 
+/* ============================================================
+   Dynamic homepage hero
+   ============================================================ */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
+.hero .container {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-content {
+  max-width: 900px;
+}
+
+.hero-content--left {
+  margin-right: auto;
+  text-align: left;
+}
+
+.hero-content--center {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+.hero-content--right {
+  margin-left: auto;
+  text-align: right;
+}
+
+.hero-badge {
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+.hero-subtitle {
+  margin-bottom: 12px;
+}
+
+.hero-description {
+  margin-bottom: 24px;
+}
+
 /* Sections */
 .section { padding: 50px 0; }
 .section--alt { background: var(--white); }

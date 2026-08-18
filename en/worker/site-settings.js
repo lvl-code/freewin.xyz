@@ -151,7 +151,16 @@ export async function getSiteSettings(db, origin) {
     "site_apple_touch_icon",
     "site_manifest",
 
+    "site_hero_enabled",
     "site_hero_image",
+    "site_hero_badge",
+    "site_hero_title",
+    "site_hero_subtitle",
+    "site_hero_description",
+    "site_hero_button_text",
+    "site_hero_button_url",
+    "site_hero_alignment",
+    "site_hero_overlay",
 
     "footer_disclaimer",
     "footer_responsible_text",
@@ -248,11 +257,47 @@ export async function getSiteSettings(db, origin) {
       DEFAULTS.manifest
     ),
 
-    heroImageUrl: resolveUrl(
-      values.site_hero_image,
-      origin,
-      ""
-    ),
+    heroEnabled:
+  values.site_hero_enabled !== "false",
+
+heroImageUrl: resolveUrl(
+  values.site_hero_image,
+  origin,
+  ""
+),
+
+heroBadge:
+  values.site_hero_badge ||
+  "Find Your Perfect Casino",
+
+heroTitle:
+  values.site_hero_title ||
+  "Find Your Perfect Casino",
+
+heroSubtitle:
+  values.site_hero_subtitle ||
+  "Expert reviews, exclusive bonuses, and real player data for {{casino_count}}+ casinos worldwide.",
+
+heroDescription:
+  values.site_hero_description ||
+  "",
+
+heroButtonText:
+  values.site_hero_button_text ||
+  "Browse Casinos",
+
+heroButtonUrl:
+  values.site_hero_button_url ||
+  "/en/casino",
+
+heroAlignment:
+  values.site_hero_alignment ||
+  "center",
+
+heroOverlay:
+  values.site_hero_overlay !== "false",
+
+
 
     footerDisclaimer:
       values.footer_disclaimer ||

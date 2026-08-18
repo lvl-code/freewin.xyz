@@ -1,4 +1,4 @@
-<section class="hero" {{#if site_hero_image}} style=" background-image:url('{{site_hero_image}}'); background-size:cover; background-position:center; " {{/if}} >
+<!--<section class="hero" {{#if site_hero_image}} style=" background-image:url('{{site_hero_image}}'); background-size:cover; background-position:center; " {{/if}} >
   <div class="container">
     <h1>Find Your Perfect Casino</h1>
     <p>Expert reviews, exclusive bonuses, and real player data for {{casino_count}}+ casinos worldwide.</p>
@@ -7,7 +7,76 @@
       <a href="/en/review" class="btn btn--ghost btn--lg">Read Reviews</a>
     </div>
   </div>
+</section>-->
+
+{{#if site_hero_enabled}}
+<section
+  class="hero"
+  {{#if site_hero_image}}
+  style="
+    background-image:url('{{site_hero_image}}');
+    background-size:cover;
+    background-position:center;
+  "
+  {{/if}}
+>
+
+  {{#if site_hero_overlay}}
+  <div
+    class="hero-overlay"
+    aria-hidden="true"
+  ></div>
+  {{/if}}
+
+  <div class="container">
+
+    <div
+      class="hero-content hero-content--{{site_hero_alignment}}"
+    >
+
+      {{#if site_hero_badge}}
+      <div class="hero-badge">
+        {{site_hero_badge}}
+      </div>
+      {{/if}}
+
+      {{#if site_hero_title}}
+      <h1>
+        {{site_hero_title}}
+      </h1>
+      {{/if}}
+
+      {{#if site_hero_subtitle}}
+      <p class="hero-subtitle">
+        {{site_hero_subtitle}}
+      </p>
+      {{/if}}
+
+      {{#if site_hero_description}}
+      <p class="hero-description">
+        {{site_hero_description}}
+      </p>
+      {{/if}}
+
+      <div class="hero-actions">
+
+        {{#if site_hero_button_text}}
+        <a
+          href="{{site_hero_button_url}}"
+          class="btn btn--primary btn--lg"
+        >
+          {{site_hero_button_text}}
+        </a>
+        {{/if}}
+
+      </div>
+
+    </div>
+
+  </div>
+
 </section>
+{{/if}}
 
 <section class="section">
   <div class="container">

@@ -399,9 +399,25 @@ async function loadSettingsForm() {
     const data =
       await res.json();
 
+
     const settings =
       data.settings || {};
 
+    const heroEnabled =
+  document.getElementById("siteHeroEnabled");
+
+if (heroEnabled) {
+  heroEnabled.checked =
+    settings.site_hero_enabled !== "false";
+}
+
+const heroOverlay =
+  document.getElementById("siteHeroOverlay");
+
+if (heroOverlay) {
+  heroOverlay.checked =
+    settings.site_hero_overlay !== "false";
+}
 
     // --------------------------------------------------------
     // Populate normal fields
@@ -686,6 +702,22 @@ function initSettingsForm() {
 
         }
 
+        const heroEnabled =
+  document.getElementById("siteHeroEnabled");
+
+payload.site_hero_enabled =
+  heroEnabled && heroEnabled.checked
+    ? "true"
+    : "false";
+
+
+const heroOverlay =
+  document.getElementById("siteHeroOverlay");
+
+payload.site_hero_overlay =
+  heroOverlay && heroOverlay.checked
+    ? "true"
+    : "false";
 
         payload.footer_compliance =
           JSON.stringify(

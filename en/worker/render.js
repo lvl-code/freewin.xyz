@@ -376,8 +376,16 @@ const allData = {
   // --------------------------------------------------------
   // Tenant hero
   // --------------------------------------------------------
+  site_hero_enabled: site.heroEnabled,
   site_hero_image: site.heroImageUrl,
-
+  site_hero_badge: site.heroBadge,
+  site_hero_title: site.heroTitle,
+  site_hero_subtitle: site.heroSubtitle,
+  site_hero_description: site.heroDescription,
+  site_hero_button_text: site.heroButtonText,
+  site_hero_button_url: site.heroButtonUrl,
+  site_hero_alignment: site.heroAlignment,
+  site_hero_overlay: site.heroOverlay,
   // --------------------------------------------------------
   // Footer / compliance
   // --------------------------------------------------------
