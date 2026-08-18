@@ -55,6 +55,35 @@
   // ============================================================
 
   "env": {
+    // ==========================================================
+    // LEVELCASINO
+    // ==========================================================
+
+    "levelcasino": {
+      "name": "levelcasino",
+
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "levelcasino-db",
+          "database_id": ""8e68c1f7-e284-415c-a67c-6ba0c5d0a1f8" "
+        }
+      ],
+
+      "kv_namespaces": [
+        {
+          "binding": "CACHE",
+          "id": "0557421566ac40a999c365bb6936a53f"
+        }
+      ],
+
+      "r2_buckets": [
+        {
+          "binding": "MEDIA_BUCKET",
+          "bucket_name": "level-casino-media"
+        }
+      ]
+    },
 
     // ==========================================================
     // NEUROODDS

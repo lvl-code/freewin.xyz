@@ -12,6 +12,7 @@ jobs:
 
       matrix:
         worker:
+          - levelcasino
           - neuroodds
           - legendodds
           - brilliantodds
