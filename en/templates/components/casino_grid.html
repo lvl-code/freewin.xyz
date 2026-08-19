@@ -44,7 +44,7 @@
           <span class="bookmark-icon" aria-hidden="true">♡</span>
         </button>
         <div class="casino-card__header">
-          <img src="${c.logo || '/static/images/logo.png'}" alt="${c.name}" class="casino-card__logo" onerror="this.src='/static/images/logo.png'" loading="lazy">
+          <img src="${c.logo || '/static/images/default.png'}" alt="${c.name}" class="casino-card__logo" onerror="this.src='/static/images/default.png'" loading="lazy">
           <div class="casino-card__rating">${'★'.repeat(Math.round(c.rating||0))}${'☆'.repeat(5-Math.round(c.rating||0))}</div>
         </div>
         <div class="casino-card__body">

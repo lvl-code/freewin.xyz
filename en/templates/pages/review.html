@@ -6,7 +6,7 @@
       <h1>{{title}}</h1>
       {{#if author_name}}
       <div class="review-author-info" style="display:flex;align-items:center;gap:12px;margin-top:16px;padding:12px;background:var(--bg);border-radius:8px">
-        {{#if author_avatar}}<img src="{{author_avatar}}" alt="{{author_name}}" style="width:40px;height:40px;border-radius:50%" onerror="this.src='/static/images/logo.png'">{{/if}}
+        {{#if author_avatar}}<img src="{{author_avatar}}" alt="{{author_name}}" style="width:40px;height:40px;border-radius:50%" onerror="this.src='/static/images/default.png'">{{/if}}
         <div>
           <strong>By <a href="/en/author/{{author_slug}}">{{author_name}}</a></strong>
           {{#if author_role}}<br><span class="muted" style="font-size:13px">{{author_role}}</span>{{/if}}

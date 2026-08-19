@@ -72,7 +72,7 @@ async function initSidebar() {
       const geoClass = c.geo_status === "allowed" ? "geo-allowed" : "geo-blocked";
       return `
       <a href="/en/casino/${c.slug}" class="sidebar-casino">
-        <img src="${c.logo || "/static/images/logo.png"}" alt="${c.name}" onerror="this.src='/static/images/logo.png'">
+        <img src="${c.logo || "/static/images/default.png"}" alt="${c.name}" onerror="this.src='/static/images/default.png'">
         <div>
           <strong>${c.name}</strong>
           <span class="rating">★ ${c.rating || "N/A"} <span class="${geoClass}" style="font-size:10px;margin-left:4px">${flag} ${geoIcon}</span></span>
@@ -287,7 +287,7 @@ function initMobileSearch() {
           } else {
             results.innerHTML = matches.slice(0, 8).map(c => `
               <a href="/en/casino/${c.slug}" class="search-result-item">
-                <img src="${c.logo || "/static/images/logo.png"}" alt="${c.name}" onerror="this.src='/static/images/logo.png'">
+                <img src="${c.logo || "/static/images/default.png"}" alt="${c.name}" onerror="this.src='/static/images/default.png'">
                 <div><strong>${c.name}</strong><span class="muted">★ ${c.rating || "N/A"}</span></div>
               </a>`).join("");
           }
