@@ -492,7 +492,7 @@ function buildCasinoCards(casinoList, geoData = null) {
           <span class="bookmark-icon" aria-hidden="true">♡</span>
        </button>
       <div class="casino-card__header">
-        <img src="${casino.logo || '/static/images/logo.png'}" alt="${casino.name}" class="casino-card__logo" onerror="this.src='/static/images/logo.png'" loading="lazy">
+        <img src="${casino.logo || '/static/images/default.png'}" alt="${casino.name}"  class="casino-card__logo"  onerror="this.src='/static/images/default.png'"   loading="lazy">
         <div class="casino-card__rating">${'★'.repeat(Math.round(casino.rating))}${'☆'.repeat(5 - Math.round(casino.rating))}</div>
       </div>
       <div class="casino-card__body">
@@ -573,7 +573,7 @@ function buildReviewCasinoCards(casinoList, geoData = null) {
         <span class="bookmark-icon" aria-hidden="true">♡</span>
       </button>
       <div class="casino-card__header">
-        <img src="${casino.logo || '/static/images/logo.png'}" alt="${casino.name}" class="casino-card__logo" onerror="this.src='/static/images/logo.png'" loading="lazy">
+        <img src="${casino.logo || '/static/images/default.png'}" alt="${casino.name}"  class="casino-card__logo"  onerror="this.src='/static/images/default.png'"   loading="lazy">
         <div class="casino-card__rating">${'★'.repeat(Math.round(casino.rating))}${'☆'.repeat(5 - Math.round(casino.rating))}</div>
       </div>
       <div class="casino-card__body">
@@ -2344,7 +2344,7 @@ export async function renderAuthor(request, env, slug) {
     ...author,
     author_name: author.name,
     author_bio: author.bio || "",
-    author_avatar: author.avatar_url || "/static/images/logo.png",
+    author_avatar: author.avatar_url || site.logoUrl,
     author_role: author.role || "Editor",
     author_social: author.social_links || "",
     review_cards: reviewCards,
