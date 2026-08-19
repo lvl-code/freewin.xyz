@@ -12,6 +12,7 @@ jobs:
 
       matrix:
         worker:
+          - lummet
           - levelcasino
           - clustercasino
           - neuroodds
