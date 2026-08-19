@@ -97,6 +97,48 @@ export default {
     }
 
 
+    // ==========================================================
+// HOST-AWARE PWA MANIFEST
+// ==========================================================
+
+if (
+  request.method === "GET" &&
+  url.pathname === "/site.webmanifest"
+) {
+  const site = await getSiteContext(
+    request,
+    env
+  );
+
+  const { buildSiteManifest } =
+    await import("./site-settings.js");
+
+  const manifest =
+    buildSiteManifest(
+      site,
+      site.origin
+    );
+
+  return new Response(
+    JSON.stringify(
+      manifest,
+      null,
+      2
+    ),
+    {
+      status: 200,
+      headers: {
+        "content-type":
+          "application/manifest+json; charset=utf-8",
+
+        "cache-control":
+          "public, max-age=300"
+      }
+    }
+  );
+}
+
+
     // Serve static assets
     if (
       url.pathname.startsWith("/static/")

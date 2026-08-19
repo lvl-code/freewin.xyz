@@ -11,14 +11,14 @@ import {
   setCached
 } from "./cache.js";
 const DEFAULTS = {
-  logo: "/static/images/logo.png",
-  ogImage: "/static/images/og-image.png",
+  logo: "",
+  ogImage: "",
 
-  favicon96: "/static/icon/favicon-96x96.png",
-  faviconSvg: "/static/icon/favicon.svg",
-  faviconIco: "/static/icon/favicon.ico",
-  appleTouchIcon: "/static/icon/apple-touch-icon.png",
-  manifest: "/static/icon/site.webmanifest",
+  favicon96: "",
+  faviconSvg: "",
+  faviconIco: "",
+  appleTouchIcon: "",
+  manifest: "/site.webmanifest",
 
   heroImage: "",
   
@@ -228,6 +228,65 @@ function resolveUrl(value, origin, fallback = "") {
 }
 
 
+
+export function buildSiteManifest(site, origin) {
+  const manifest = {
+    name:
+      site.siteName ||
+      new URL(origin).hostname,
+
+    short_name:
+      site.siteShortName ||
+      site.siteName ||
+      new URL(origin).hostname,
+
+    start_url:
+      site.manifestStartUrl ||
+      "/en/",
+
+    scope:
+      site.manifestScope ||
+      "/",
+
+    display:
+      site.manifestDisplay ||
+      "standalone",
+
+    theme_color:
+      site.themePrimary ||
+      "#0f172a",
+
+    background_color:
+      site.themeBackground ||
+      "#ffffff",
+
+    description:
+      site.description ||
+      "",
+
+    icons: []
+  };
+
+  if (site.pwaIcon192Url) {
+    manifest.icons.push({
+      src: site.pwaIcon192Url,
+      sizes: "192x192",
+      type: "image/png",
+      purpose: "any maskable"
+    });
+  }
+
+  if (site.pwaIcon512Url) {
+    manifest.icons.push({
+      src: site.pwaIcon512Url,
+      sizes: "512x512",
+      type: "image/png",
+      purpose: "any maskable"
+    });
+  }
+
+  return manifest;
+}
 // ------------------------------------------------------------
 // HTML escaping
 // ------------------------------------------------------------
@@ -315,28 +374,6 @@ if (db) {
   }
 }
 
- // const values = db
-//  ? await getAllSettings(db)
-//  : {};
-
-//  const values = {};
-
-//  if (db) {
-//    const results = await Promise.all(
-//      keys.map(async key => {
-//        try {
-//          return [key, await getSetting(db, key)];
-//        } catch {
-//          return [key, null];
-//        }
-//      })
-//    );
-//
-//    for (const [key, value] of results) {
-//      values[key] = value;
-//    }
-//  }
-
   const compliance = parseJson(
     values.footer_compliance,
     DEFAULTS.compliance
@@ -404,12 +441,38 @@ description:
       origin,
       DEFAULTS.appleTouchIcon
     ),
+    manifestUrl:
+  new URL("/site.webmanifest", origin).href,
 
-    manifestUrl: resolveUrl(
-      values.site_manifest,
-      origin,
-      DEFAULTS.manifest
-    ),
+pwaIcon192Url: resolveUrl(
+  values.site_pwa_icon_192,
+  origin,
+  ""
+),
+
+pwaIcon512Url: resolveUrl(
+  values.site_pwa_icon_512,
+  origin,
+  ""
+),
+
+siteShortName:
+  values.site_short_name ||
+  values.site_name ||
+  "",
+
+manifestStartUrl:
+  values.site_manifest_start_url ||
+  "/en/",
+
+manifestScope:
+  values.site_manifest_scope ||
+  "/",
+
+manifestDisplay:
+  values.site_manifest_display ||
+  "standalone",
+
 
     heroEnabled:
   values.site_hero_enabled !== "false",
