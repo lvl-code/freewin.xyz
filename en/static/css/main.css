@@ -208,20 +208,174 @@ a:hover { text-decoration: underline; }
 .section-header h2 { font-size: 28px; }
 .link { font-size: 14px; font-weight: 600; }
 
+
+
+
+
+/* ============================================================
+   CASINO GRID
+   ============================================================ */
+
 .casino-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 20px;
   align-items: stretch;
 }
-/* .casino-card {
-  min-height: 400;
-} */
-/* Casino Grid */
-/* .casino-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+
+
+/* ============================================================
+   CASINO CARD — CONSISTENT HEIGHT
+   ============================================================ */
+
+.casino-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+
+  display: flex;
+  flex-direction: column;
+
+  /*
+   * Every card fills the grid row.
+   * min-height establishes a consistent professional baseline.
+   */
+  height: 100%;
+  min-height: 400px;
+
+  box-sizing: border-box;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.casino-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+
+/* ============================================================
+   CARD HEADER
+   ============================================================ */
+
+.casino-card__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  flex: 0 0 auto;
+}
+
+.casino-card__logo {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.casino-card__rating {
+  color: var(--warning);
+  font-size: 14px;
+}
+
+
+/* ============================================================
+   CARD BODY
+   ============================================================ */
+
+.casino-card__body {
+  padding: 0 16px 12px;
+
+  /*
+   * IMPORTANT:
+   * Body expands to consume available card height.
+   */
+  flex: 1 1 auto;
+
+  /*
+   * Allows long content to remain inside a flex layout.
+   */
+  min-height: 0;
+
+  display: flex;
+  flex-direction: column;
+}
+
+.casino-card__body h3 {
+  font-size: 18px;
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+
+/* ============================================================
+   BONUS AREA
+   ============================================================ */
+
+.casino-card__bonus {
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 10px 12px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  /*
+   * Keeps the bonus area toward the lower portion of cards
+   * when card content lengths differ.
+   */
+  margin-top: auto;
+}
+
+.bonus-title {
+  font-size: 12px;
+  color: var(--gray);
+  text-transform: uppercase;
+}
+
+.bonus-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+
+/* ============================================================
+   CARD ACTIONS
+   ============================================================ */
+
+.casino-card__actions {
+  display: flex;
+  gap: 8px;
+
+  padding: 0 16px 16px;
+
+  /*
+   * Actions stay at the exact bottom of every card.
+   */
+  margin-top: auto;
+
+  flex: 0 0 auto;
+}
+
+.casino-card__actions .btn {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/*
+.casino-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 20px;
-} */
+  align-items: stretch;
+}
+
 .casino-card {
   background: var(--white);
   border-radius: var(--radius);
@@ -233,16 +387,10 @@ a:hover { text-decoration: underline; }
   height: 100%;
 }
 
-/* Casino Card */
-/* .casino-card {
-  background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow);
-  overflow: hidden; transition: transform 0.2s, box-shadow 0.2s;
-} */
 .casino-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
 .casino-card__header { display: flex; align-items: center; gap: 12px; padding: 16px; }
 .casino-card__logo { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; }
 .casino-card__rating { color: var(--warning); font-size: 14px; }
-/* .casino-card__body { padding: 0 16px 16px; } */
 .casino-card__body {
   padding: 0 16px 12px;
   flex-grow:0 1 auto;
@@ -252,9 +400,11 @@ a:hover { text-decoration: underline; }
   background: var(--bg); border-radius: 8px; padding: 10px 12px;
   display: flex; flex-direction: column; gap: 2px;
 }
+
+
+
 .bonus-title { font-size: 12px; color: var(--gray); text-transform: uppercase; }
 .bonus-value { font-size: 16px; font-weight: 700; color: var(--primary); }
-/* .casino-card__actions { display: flex; gap: 8px; padding: 0 16px 16px; } */
 .casino-card__actions {
   display: flex;
   gap: 8px;
@@ -263,7 +413,8 @@ a:hover { text-decoration: underline; }
 }
 .casino-card__actions .btn { flex: 1; }
 
-/* Features Grid */
+*/
+
 .features-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 20px;
