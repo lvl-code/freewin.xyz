@@ -384,3 +384,1048 @@ pre,.code-block,.json-viewer,.schema-preview{overflow:auto;max-width:100%;paddin
  .breadcrumbs::-webkit-scrollbar{display:none}
 }
 @media (max-width:520px){.breadcrumbs{margin-bottom:14px;padding:7px 10px;font-size:12px}.site-footer{margin-top:48px}.site-footer :where(p,li,dd,dt,span,small,.rg-text,.disclaimer-text,.footer-bottom){color:rgba(255,255,255,.82)}}
+
+
+
+
+
+
+
+
+/* ==========================================================================
+   31. FINAL TYPOGRAPHY + CONTENT VISIBILITY / CONTRAST PASS
+   ==========================================================================
+   Purpose:
+   - Make every important title, subtitle, author, date and card text clearly
+     readable across light, dark, gradient and image-backed surfaces.
+   - Preserve existing layout, sizing and functionality.
+   - Avoid relying on shadows alone for readability.
+   ========================================================================== */
+
+
+/* --------------------------------------------------------------------------
+   31.1 CORE TYPOGRAPHY
+   -------------------------------------------------------------------------- */
+
+:root {
+  --text-strong: #111827;
+  --text-body: #263244;
+  --text-secondary: #526174;
+  --text-muted-strong: #64748b;
+
+  --dark-text-strong: #ffffff;
+  --dark-text-body: rgba(255,255,255,.91);
+  --dark-text-secondary: rgba(255,255,255,.78);
+  --dark-text-muted: rgba(255,255,255,.68);
+
+  --text-outline-light: rgba(255,255,255,.08);
+  --text-outline-dark: rgba(15,23,42,.08);
+}
+
+body {
+  font-family: var(--support-font-body);
+  color: var(--text-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+
+/* --------------------------------------------------------------------------
+   31.2 ALL IMPORTANT HEADINGS
+   -------------------------------------------------------------------------- */
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--text-strong);
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: -.025em;
+  text-rendering: optimizeLegibility;
+}
+
+h1 {
+  font-weight: 800;
+}
+
+h2 {
+  font-weight: 780;
+}
+
+h3 {
+  font-weight: 740;
+}
+
+h4,
+h5,
+h6 {
+  font-weight: 700;
+}
+
+
+/* --------------------------------------------------------------------------
+   31.3 SECTION TITLES / SUBTITLES
+   -------------------------------------------------------------------------- */
+
+.section-header h1,
+.section-header h2,
+.section-header h3,
+.section-title,
+.section-heading {
+  color: #111827;
+  font-weight: 800;
+  letter-spacing: -.03em;
+}
+
+.section-subtitle,
+.section-description,
+.section-header p,
+.section-intro,
+.section-lead {
+  color: #4b5a6e;
+  font-weight: 500;
+  line-height: 1.65;
+  letter-spacing: -.005em;
+}
+
+.section-subtitle strong,
+.section-description strong,
+.section-header p strong,
+.section-intro strong,
+.section-lead strong {
+  color: #263244;
+  font-weight: 700;
+}
+
+
+/* --------------------------------------------------------------------------
+   31.4 HERO TYPOGRAPHY
+   -------------------------------------------------------------------------- */
+
+.hero h1,
+.hero h2,
+.hero h3,
+.hero h4,
+.hero .hero-title {
+  color: #ffffff;
+  font-weight: 850;
+  letter-spacing: -.035em;
+  text-shadow:
+    0 2px 3px rgba(0,0,0,.30),
+    0 8px 24px rgba(0,0,0,.20);
+}
+
+.hero p,
+.hero .hero-subtitle,
+.hero .hero-description,
+.hero .hero-lead {
+  color: rgba(255,255,255,.92);
+  font-weight: 500;
+  line-height: 1.72;
+  text-shadow:
+    0 1px 2px rgba(0,0,0,.32),
+    0 4px 16px rgba(0,0,0,.15);
+}
+
+.hero .hero-badge,
+.hero .badge,
+.hero .tag,
+.hero .chip {
+  color: #ffffff;
+  font-weight: 750;
+  text-shadow: 0 1px 2px rgba(0,0,0,.25);
+}
+
+
+/* --------------------------------------------------------------------------
+   31.5 HERO / DARK CONTENT — FORCE HIGH CONTRAST
+   -------------------------------------------------------------------------- */
+
+.hero :where(
+  h1,h2,h3,h4,h5,h6,
+  p,li,span,strong,b,
+  .title,.subtitle,.description,
+  .meta,.date,.author
+) {
+  color: #ffffff;
+}
+
+.hero :where(
+  .subtitle,
+  .description,
+  .meta,
+  .date,
+  .author,
+  small
+) {
+  color: rgba(255,255,255,.84);
+}
+
+
+/* --------------------------------------------------------------------------
+   31.6 DATES / AUTHORS / METADATA
+   -------------------------------------------------------------------------- */
+
+.date,
+.dates,
+.post-date,
+.publish-date,
+.published-date,
+.created-date,
+.updated-date,
+.article-date,
+.news-date,
+.review-date,
+.author,
+.author-name,
+.post-author,
+.article-author,
+.review-author,
+.meta,
+.metadata,
+.post-meta,
+.article-meta,
+.review-meta,
+.card-meta {
+  color: #526174;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.author,
+.author-name,
+.post-author,
+.article-author,
+.review-author {
+  color: #334155;
+  font-weight: 700;
+}
+
+.date,
+.dates,
+.post-date,
+.publish-date,
+.published-date,
+.created-date,
+.updated-date,
+.article-date,
+.news-date,
+.review-date {
+  color: #475569;
+  font-weight: 600;
+}
+
+.meta strong,
+.metadata strong,
+.post-meta strong,
+.article-meta strong,
+.review-meta strong {
+  color: #1f2937;
+  font-weight: 750;
+}
+
+
+/* --------------------------------------------------------------------------
+   31.7 PUBLIC CONTENT / ARTICLES / REVIEWS
+   -------------------------------------------------------------------------- */
+
+.review-content,
+.news-content,
+.page-content,
+.article-content,
+.rich-content {
+  color: #263244;
+}
+
+.review-content p,
+.news-content p,
+.page-content p,
+.article-content p,
+.rich-content p {
+  color: #263244;
+}
+
+.review-content li,
+.news-content li,
+.page-content li,
+.article-content li,
+.rich-content li {
+  color: #263244;
+}
+
+.review-content h2,
+.review-content h3,
+.review-content h4,
+.news-content h2,
+.news-content h3,
+.news-content h4,
+.page-content h2,
+.page-content h3,
+.page-content h4,
+.article-content h2,
+.article-content h3,
+.article-content h4,
+.rich-content h2,
+.rich-content h3,
+.rich-content h4 {
+  color: #111827;
+  font-weight: 780;
+}
+
+.review-content strong,
+.news-content strong,
+.page-content strong,
+.article-content strong,
+.rich-content strong {
+  color: #172033;
+  font-weight: 750;
+}
+
+.review-content a,
+.news-content a,
+.page-content a,
+.article-content a,
+.rich-content a {
+  color: var(--support-primary-dark);
+  font-weight: 650;
+  text-decoration-thickness: 1.5px;
+}
+
+
+/* --------------------------------------------------------------------------
+   31.8 CASINO CARD TYPOGRAPHY
+   -------------------------------------------------------------------------- */
+
+.casino-card {
+  color: #263244;
+}
+
+/*
+  Keep the card itself readable even when its background is customized by
+  another component or theme.
+*/
+
+.casino-card :where(
+  h1,h2,h3,h4,h5,h6,
+  p,li,span,div,
+  strong,b,
+  small,
+  label
+) {
+  text-rendering: optimizeLegibility;
+}
+
+.casino-card :where(
+  h1,h2,h3,h4,h5,h6
+) {
+  color: #111827;
+  font-weight: 780;
+}
+
+.casino-card :where(
+  h3,
+  .casino-card__title,
+  .casino-name,
+  .card-title
+) {
+  color: #111827;
+  font-weight: 800;
+  letter-spacing: -.018em;
+  line-height: 1.28;
+}
+
+.casino-card :where(
+  p,
+  .casino-description,
+  .card-description,
+  .description
+) {
+  color: #3d4b5e;
+  font-weight: 500;
+  line-height: 1.58;
+}
+
+.casino-card :where(
+  .casino-card__rating,
+  .rating,
+  .rating-value,
+  .score
+) {
+  color: #172033;
+  font-weight: 800;
+}
+
+.casino-card :where(
+  .casino-card__meta,
+  .meta,
+  .casino-meta,
+  small
+) {
+  color: #526174;
+  font-weight: 600;
+}
+
+.casino-card :where(
+  .casino-card__bonus,
+  .bonus-box,
+  .bonus
+) {
+  color: #263244;
+}
+
+.casino-card :where(
+  .bonus-title,
+  .bonus-label
+) {
+  color: #526174;
+  font-weight: 750;
+}
+
+.casino-card :where(
+  .bonus-value,
+  .bonus-amount
+) {
+  color: #111827;
+  font-weight: 850;
+  letter-spacing: -.015em;
+}
+
+.casino-card :where(
+  .casino-card__body
+) {
+  color: #263244;
+}
+
+
+/* --------------------------------------------------------------------------
+   31.9 CASINO CARD — DARK / COLORED CARD VARIANTS
+   -------------------------------------------------------------------------- */
+
+/*
+  If a casino card intentionally has a dark background, the content switches
+  to a high-contrast light palette.
+*/
+
+.casino-card.dark,
+.casino-card.dark-card,
+.casino-card[data-theme="dark"],
+.casino-card[style*="background:#"],
+.casino-card[style*="background: #"] {
+  color: #ffffff;
+}
+
+.casino-card.dark :where(
+  h1,h2,h3,h4,h5,h6,
+  .casino-card__title,
+  .casino-name,
+  .card-title
+),
+.casino-card.dark-card :where(
+  h1,h2,h3,h4,h5,h6,
+  .casino-card__title,
+  .casino-name,
+  .card-title
+),
+.casino-card[data-theme="dark"] :where(
+  h1,h2,h3,h4,h5,h6,
+  .casino-card__title,
+  .casino-name,
+  .card-title
+) {
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0,0,0,.30);
+}
+
+.casino-card.dark :where(p,.description,.casino-description),
+.casino-card.dark-card :where(p,.description,.casino-description),
+.casino-card[data-theme="dark"] :where(p,.description,.casino-description) {
+  color: rgba(255,255,255,.88);
+}
+
+.casino-card.dark :where(.meta,.casino-meta,small),
+.casino-card.dark-card :where(.meta,.casino-meta,small),
+.casino-card[data-theme="dark"] :where(.meta,.casino-meta,small) {
+  color: rgba(255,255,255,.74);
+}
+
+.casino-card.dark :where(.bonus-title,.bonus-label),
+.casino-card.dark-card :where(.bonus-title,.bonus-label),
+.casino-card[data-theme="dark"] :where(.bonus-title,.bonus-label) {
+  color: rgba(255,255,255,.78);
+}
+
+.casino-card.dark :where(.bonus-value,.bonus-amount),
+.casino-card.dark-card :where(.bonus-value,.bonus-amount),
+.casino-card[data-theme="dark"] :where(.bonus-value,.bonus-amount) {
+  color: #ffffff;
+}
+
+
+/* --------------------------------------------------------------------------
+   31.10 NEWS / ARTICLE CARDS
+   -------------------------------------------------------------------------- */
+
+.news-card,
+.article-card {
+  color: #263244;
+}
+
+.news-card h2,
+.news-card h3,
+.news-card h4,
+.article-card h2,
+.article-card h3,
+.article-card h4 {
+  color: #111827;
+  font-weight: 800;
+}
+
+.news-card p,
+.article-card p {
+  color: #3d4b5e;
+  font-weight: 500;
+}
+
+.news-card .date,
+.news-card .author,
+.news-card .meta,
+.article-card .date,
+.article-card .author,
+.article-card .meta {
+  color: #526174;
+  font-weight: 650;
+}
+
+
+/* --------------------------------------------------------------------------
+   31.11 FEATURE CARDS
+   -------------------------------------------------------------------------- */
+
+.feature-card h2,
+.feature-card h3,
+.feature-card h4 {
+  color: #111827;
+  font-weight: 800;
+}
+
+.feature-card p {
+  color: #3d4b5e;
+  font-weight: 500;
+}
+
+.feature-card .feature-icon {
+  color: var(--support-primary-dark);
+}
+
+
+/* --------------------------------------------------------------------------
+   31.12 SIDEBAR CONTENT
+   -------------------------------------------------------------------------- */
+
+.sidebar-block {
+  color: #263244;
+}
+
+.sidebar-block h2,
+.sidebar-block h3,
+.sidebar-block h4 {
+  color: #111827;
+  font-weight: 800;
+}
+
+.sidebar-block p,
+.sidebar-block li {
+  color: #3d4b5e;
+}
+
+.sidebar-block .meta,
+.sidebar-block small {
+  color: #526174;
+  font-weight: 600;
+}
+
+.sidebar-casino :where(
+  h3,.casino-name,.title
+) {
+  color: #172033;
+  font-weight: 750;
+}
+
+.sidebar-casino :where(
+  p,.description,.meta,small
+) {
+  color: #526174;
+}
+
+
+/* --------------------------------------------------------------------------
+   31.13 CASINO HERO / DETAIL PAGE
+   -------------------------------------------------------------------------- */
+
+.casino-hero {
+  color: #263244;
+}
+
+.casino-hero h1,
+.casino-hero h2,
+.casino-hero h3 {
+  color: #111827;
+  font-weight: 820;
+}
+
+.casino-hero p {
+  color: #3d4b5e;
+}
+
+.casino-hero .casino-meta,
+.casino-hero .meta,
+.casino-hero .date,
+.casino-hero .author {
+  color: #526174;
+  font-weight: 650;
+}
+
+.casino-hero .bonus-amount,
+.casino-hero .bonus-value {
+  color: #111827;
+  font-weight: 850;
+}
+
+
+/* --------------------------------------------------------------------------
+   31.14 BADGES / TAGS / CHIPS
+   -------------------------------------------------------------------------- */
+
+.badge,
+.tag,
+.pill,
+.chip,
+.feature-tag,
+.status-badge {
+  font-weight: 750;
+  letter-spacing: .005em;
+  text-shadow: none;
+}
+
+.badge--light,
+.tag--light,
+.pill--light {
+  color: #1f2937;
+}
+
+.badge--dark,
+.tag--dark,
+.pill--dark {
+  color: #ffffff;
+}
+
+
+/* --------------------------------------------------------------------------
+   31.15 TABLE TEXT
+   -------------------------------------------------------------------------- */
+
+table th {
+  color: #263244;
+  font-weight: 800;
+}
+
+table td {
+  color: #344256;
+  font-weight: 500;
+}
+
+.admin-table th,
+.mini-table th {
+  color: #334155;
+  font-weight: 800;
+}
+
+.admin-table td,
+.mini-table td {
+  color: #344256;
+}
+
+.admin-table td strong,
+.mini-table td strong {
+  color: #111827;
+  font-weight: 750;
+}
+
+
+/* --------------------------------------------------------------------------
+   31.16 DASHBOARD / ADMIN TEXT
+   -------------------------------------------------------------------------- */
+
+.admin-content {
+  color: #263244;
+}
+
+.admin-content h1,
+.admin-content h2,
+.admin-content h3,
+.admin-content h4 {
+  color: #111827;
+  font-weight: 800;
+}
+
+.admin-content p {
+  color: #3d4b5e;
+}
+
+.admin-header h1 {
+  color: #111827;
+  font-weight: 820;
+}
+
+.admin-header p,
+.admin-header .subtitle {
+  color: #526174;
+  font-weight: 550;
+}
+
+.stat-value {
+  color: #111827;
+  font-weight: 850;
+}
+
+.stat-label {
+  color: #526174;
+  font-weight: 650;
+}
+
+.stat-card :where(
+  h2,h3,h4,p,span
+) {
+  text-shadow: none;
+}
+
+
+/* --------------------------------------------------------------------------
+   31.17 FORMS
+   -------------------------------------------------------------------------- */
+
+.form-group label,
+.admin-form label {
+  color: #263244;
+  font-weight: 750;
+}
+
+.form-group label small,
+.admin-form label small {
+  color: #64748b;
+  font-weight: 550;
+}
+
+.form-help,
+.field-help,
+.help-text {
+  color: #526174;
+  font-weight: 500;
+}
+
+
+/* --------------------------------------------------------------------------
+   31.18 FOOTER — MAXIMUM READABILITY
+   -------------------------------------------------------------------------- */
+
+.site-footer {
+  color: #ffffff;
+}
+
+.site-footer h1,
+.site-footer h2,
+.site-footer h3,
+.site-footer h4,
+.site-footer h5,
+.site-footer h6 {
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.site-footer p,
+.site-footer li,
+.site-footer dd,
+.site-footer dt {
+  color: rgba(255,255,255,.80);
+  font-weight: 450;
+}
+
+.site-footer .footer-col h4 {
+  color: #ffffff;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.site-footer .footer-col a {
+  color: rgba(255,255,255,.84);
+  font-weight: 550;
+}
+
+.site-footer .footer-col a:hover {
+  color: #ffffff;
+}
+
+.site-footer .rg-text {
+  color: rgba(255,255,255,.82);
+  font-weight: 500;
+}
+
+.site-footer .disclaimer-text {
+  color: rgba(255,255,255,.72);
+  font-weight: 450;
+  line-height: 1.65;
+}
+
+.site-footer .footer-bottom {
+  color: rgba(255,255,255,.76);
+  font-weight: 500;
+}
+
+
+/* --------------------------------------------------------------------------
+   31.19 MOBILE TEXT VISIBILITY
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 768px) {
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -.018em;
+  }
+
+  .section-subtitle,
+  .section-description,
+  .section-header p {
+    line-height: 1.65;
+  }
+
+  .casino-card :where(
+    h3,
+    .casino-card__title,
+    .casino-name,
+    .card-title
+  ) {
+    font-size: 17px;
+  }
+
+  .casino-card :where(
+    p,
+    .description,
+    .casino-description
+  ) {
+    color: #3b495b;
+  }
+
+  .casino-card :where(
+    .meta,
+    .casino-meta,
+    small
+  ) {
+    color: #526174;
+  }
+
+  .news-card h3,
+  .feature-card h3 {
+    font-size: 17px;
+  }
+
+  .news-card p,
+  .feature-card p {
+    color: #3b495b;
+  }
+
+  .site-footer p,
+  .site-footer li,
+  .site-footer .rg-text {
+    color: rgba(255,255,255,.84);
+  }
+
+  .site-footer .disclaimer-text {
+    color: rgba(255,255,255,.76);
+  }
+}
+
+
+/* --------------------------------------------------------------------------
+   31.20 HIGH-CONTRAST / LOW-LIGHT ENVIRONMENTS
+   -------------------------------------------------------------------------- */
+
+@media (prefers-contrast: more) {
+
+  body {
+    color: #111827;
+  }
+
+  .casino-card,
+  .news-card,
+  .feature-card,
+  .info-card,
+  .info-block,
+  .sidebar-block,
+  .admin-section,
+  .admin-form {
+    border-color: #b8c2d1;
+  }
+
+  .casino-card :where(h1,h2,h3,h4,h5,h6),
+  .news-card :where(h1,h2,h3,h4,h5,h6),
+  .feature-card :where(h1,h2,h3,h4,h5,h6) {
+    color: #0b1220;
+  }
+
+  .casino-card :where(p,.description),
+  .news-card :where(p,.description),
+  .feature-card :where(p,.description) {
+    color: #27364a;
+  }
+
+  .site-footer :where(p,li,a,span) {
+    color: #ffffff;
+  }
+
+  .hero :where(p,li,span) {
+    color: #ffffff;
+  }
+}
+
+
+/* --------------------------------------------------------------------------
+   31.21 TEXT OVER IMAGES / GRADIENTS / VISUAL MEDIA
+   -------------------------------------------------------------------------- */
+
+.text-over-image,
+.overlay-content,
+.image-overlay,
+.hero-overlay,
+.card-overlay {
+  color: #ffffff;
+}
+
+.text-over-image :where(
+  h1,h2,h3,h4,h5,h6
+),
+.overlay-content :where(
+  h1,h2,h3,h4,h5,h6
+),
+.image-overlay :where(
+  h1,h2,h3,h4,h5,h6
+),
+.hero-overlay :where(
+  h1,h2,h3,h4,h5,h6
+),
+.card-overlay :where(
+  h1,h2,h3,h4,h5,h6
+) {
+  color: #ffffff;
+  text-shadow:
+    0 2px 4px rgba(0,0,0,.55),
+    0 8px 22px rgba(0,0,0,.28);
+}
+
+.text-over-image :where(
+  p,span,small,.meta,.date,.author
+),
+.overlay-content :where(
+  p,span,small,.meta,.date,.author
+),
+.image-overlay :where(
+  p,span,small,.meta,.date,.author
+),
+.hero-overlay :where(
+  p,span,small,.meta,.date,.author
+),
+.card-overlay :where(
+  p,span,small,.meta,.date,.author
+) {
+  color: rgba(255,255,255,.92);
+  text-shadow:
+    0 1px 3px rgba(0,0,0,.58),
+    0 5px 16px rgba(0,0,0,.25);
+}
+
+
+/* --------------------------------------------------------------------------
+   31.22 PREVENT "FAINT TEXT" FROM BEING ACCIDENTALLY CREATED
+   -------------------------------------------------------------------------- */
+
+.main-content :where(
+  .text-light,
+  .text-white-50,
+  .opacity-50,
+  .opacity-60,
+  .opacity-70
+) {
+  /*
+    Keep existing utility classes functional but prevent critical content
+    from becoming unreadable.
+  */
+  color: #526174;
+}
+
+.hero :where(
+  .text-light,
+  .text-white-50,
+  .opacity-50,
+  .opacity-60,
+  .opacity-70
+),
+.site-footer :where(
+  .text-light,
+  .text-white-50,
+  .opacity-50,
+  .opacity-60,
+  .opacity-70
+) {
+  color: rgba(255,255,255,.82);
+}
+
+
+/* --------------------------------------------------------------------------
+   31.23 LINKS
+   -------------------------------------------------------------------------- */
+
+.main-content a,
+.page-content a,
+.review-content a,
+.news-content a {
+  color: var(--support-primary-dark);
+  font-weight: 600;
+}
+
+.main-content a:hover,
+.page-content a:hover,
+.review-content a:hover,
+.news-content a:hover {
+  color: var(--support-primary);
+}
+
+
+/* --------------------------------------------------------------------------
+   31.24 FINAL FONT RENDERING
+   -------------------------------------------------------------------------- */
+
+:where(
+  h1,h2,h3,h4,h5,h6,
+  .section-title,
+  .section-heading,
+  .hero-title,
+  .casino-name,
+  .card-title,
+  .stat-value,
+  .bonus-value,
+  .bonus-amount
+) {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+
+/* ==========================================================================
+   END OF FINAL TYPOGRAPHY + VISIBILITY PASS
+   ========================================================================== */
