@@ -319,3 +319,68 @@ pre,.code-block,.json-viewer,.schema-preview{overflow:auto;max-width:100%;paddin
 .surface-flat{background:var(--support-surface);border:1px solid var(--support-border);border-radius:var(--support-radius-md)}
 .stack{display:flex;flex-direction:column;gap:16px}.cluster{display:flex;flex-wrap:wrap;align-items:center;gap:10px}.center{display:grid;place-items:center}
 .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+
+/* ==========================================================================
+   30. FINAL VISUAL CONSISTENCY PASS
+   ========================================================================== */
+
+/* Equal-height casino cards: content may differ, card/action rows stay aligned. */
+.casino-grid{align-items:stretch}
+.casino-grid>.casino-card{height:100%;min-height:100%;display:flex;flex-direction:column;align-self:stretch;box-sizing:border-box}
+.casino-grid>.casino-card .casino-card__header{flex:0 0 auto}
+.casino-grid>.casino-card .casino-card__body{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+.casino-grid>.casino-card .casino-card__bonus{margin-top:auto}
+.casino-grid>.casino-card .casino-card__actions{flex:0 0 auto;margin-top:0}
+
+/* High-clarity typography on normal/light surfaces. */
+:where(.main-content,.page-content,.review-content,.news-content,.casino-page,.casino-detail,.admin-content,.admin-section,.admin-form,.auth-card,.info-block,.info-card,.sidebar-block,.feature-card,.news-card,.casino-card){color:var(--support-text)}
+:where(.main-content,.page-content,.review-content,.news-content,.casino-page,.casino-detail,.admin-content,.admin-section,.admin-form,.auth-card,.info-block,.info-card,.sidebar-block,.feature-card,.news-card,.casino-card) :where(.muted,.text-muted,small,.help-text,.form-help,.field-help){color:#526174}
+
+/* Sharp readable text on dark surfaces. */
+:where(.site-header,.site-footer,.hero,.admin-nav,.mobile-bottom-nav){color:rgba(255,255,255,.94)}
+.site-footer :where(p,li,dd,dt,span,small,.rg-text,.disclaimer-text,.footer-bottom){color:rgba(255,255,255,.78)}
+.site-footer :where(.footer-col h4,h1,h2,h3,h4,h5,h6){color:#fff}
+.site-footer :where(a){color:rgba(255,255,255,.84);text-shadow:0 1px 2px rgba(0,0,0,.2)}
+.site-footer :where(a:hover,a:focus-visible){color:#fff}
+
+/* Premium breadcrumbs: visible on light and dark backgrounds. */
+.breadcrumbs{position:relative;z-index:2;display:flex;flex-wrap:wrap;align-items:center;gap:6px;width:fit-content;max-width:100%;min-height:34px;margin:0 0 18px;padding:7px 12px;border:1px solid #d8dee8;border-radius:10px;background:rgba(255,255,255,.96);color:#334155;box-shadow:0 3px 12px rgba(15,23,42,.08);font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:12.5px;font-weight:650;line-height:1.35;letter-spacing:.005em;text-shadow:none;backdrop-filter:blur(10px) saturate(125%);-webkit-backdrop-filter:blur(10px) saturate(125%)}
+.breadcrumbs a{color:#475569;font-weight:650;text-decoration:none}
+.breadcrumbs a:hover,.breadcrumbs a:focus-visible{color:var(--support-primary-dark);text-decoration:none}
+.breadcrumbs>*+*::before{content:"›";display:inline-block;margin-right:6px;color:#64748b;font-size:16px;font-weight:750;line-height:.8;vertical-align:-1px}
+.breadcrumbs [aria-current="page"],.breadcrumbs .current,.breadcrumbs .active{color:#172033;font-weight:750}
+
+/* Breadcrumb glass mode on dark/hero surfaces. */
+.hero .breadcrumbs,.casino-hero .breadcrumbs,.dark .breadcrumbs,.bg-dark .breadcrumbs,[data-theme="dark"] .breadcrumbs{border-color:rgba(255,255,255,.17);background:rgba(15,23,42,.78);color:rgba(255,255,255,.94);box-shadow:0 7px 22px rgba(0,0,0,.2)}
+.hero .breadcrumbs a,.casino-hero .breadcrumbs a,.dark .breadcrumbs a,.bg-dark .breadcrumbs a,[data-theme="dark"] .breadcrumbs a{color:rgba(255,255,255,.82)}
+.hero .breadcrumbs a:hover,.hero .breadcrumbs a:focus-visible,.casino-hero .breadcrumbs a:hover,.casino-hero .breadcrumbs a:focus-visible,.dark .breadcrumbs a:hover,.dark .breadcrumbs a:focus-visible,.bg-dark .breadcrumbs a:hover,.bg-dark .breadcrumbs a:focus-visible,[data-theme="dark"] .breadcrumbs a:hover,[data-theme="dark"] .breadcrumbs a:focus-visible{color:#fff}
+.hero .breadcrumbs>*+*::before,.casino-hero .breadcrumbs>*+*::before,.dark .breadcrumbs>*+*::before,.bg-dark .breadcrumbs>*+*::before,[data-theme="dark"] .breadcrumbs>*+*::before{color:rgba(255,255,255,.55)}
+
+/* Modern navbar: refined desktop + responsive mobile treatment. */
+.site-header{position:sticky;top:0;z-index:1000;background:linear-gradient(180deg,rgba(20,22,42,.98),rgba(26,26,46,.95));border-bottom:1px solid rgba(255,255,255,.09);box-shadow:0 8px 30px rgba(5,8,20,.2),inset 0 -1px 0 rgba(255,255,255,.025)}
+.header-inner{position:relative;min-height:68px}
+.main-nav{gap:5px}
+.main-nav a{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:8px 11px;border-radius:9px;color:rgba(255,255,255,.78);font-size:13px;font-weight:650;letter-spacing:.005em;text-decoration:none;transition:color var(--support-fast) ease,background var(--support-fast) ease,transform var(--support-fast) ease}
+.main-nav a::after{display:none}
+.main-nav a:hover{color:#fff;background:rgba(255,255,255,.075);transform:translateY(-1px)}
+.main-nav a.active,.main-nav a[aria-current="page"]{color:#fff;background:linear-gradient(135deg,rgba(108,92,231,.28),rgba(108,92,231,.1));box-shadow:inset 0 0 0 1px rgba(167,139,250,.17),0 5px 15px rgba(0,0,0,.1)}
+.main-nav a.active::before,.main-nav a[aria-current="page"]::before{content:"";width:5px;height:5px;margin-right:7px;border-radius:50%;background:#a78bfa;box-shadow:0 0 10px rgba(167,139,250,.75)}
+.nav-toggle{border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.055);color:#fff;box-shadow:0 3px 12px rgba(0,0,0,.12)}
+.nav-toggle:hover,.nav-toggle:focus-visible{background:rgba(108,92,231,.18);border-color:rgba(167,139,250,.3)}
+.search-box input{border-color:rgba(255,255,255,.12);background:rgba(255,255,255,.065);color:#fff;border-radius:9px}
+.search-box input::placeholder{color:rgba(255,255,255,.52)}
+.search-box input:focus{border-color:rgba(167,139,250,.55);background:rgba(255,255,255,.095);box-shadow:0 0 0 3px rgba(108,92,231,.2),inset 0 1px 0 rgba(255,255,255,.05)}
+
+@media (max-width:1024px){.main-nav a{padding-left:9px;padding-right:9px;font-size:12.5px}.header-actions{gap:7px}}
+@media (max-width:768px){
+ .site-header{background:linear-gradient(180deg,rgba(20,22,42,.99),rgba(26,26,46,.97))}
+ .header-inner{min-height:62px}
+ .main-nav{border-top:1px solid rgba(255,255,255,.07);background:linear-gradient(180deg,rgba(18,20,38,.99),rgba(26,26,46,.99));box-shadow:0 16px 35px rgba(0,0,0,.2)}
+ .main-nav a{min-height:46px;justify-content:flex-start;padding:10px 14px;border-radius:8px}
+ .main-nav a:hover,.main-nav a.active,.main-nav a[aria-current="page"]{transform:none}
+ .main-nav a.active,.main-nav a[aria-current="page"]{background:linear-gradient(90deg,rgba(108,92,231,.23),rgba(108,92,231,.06))}
+ .main-nav a.active::before,.main-nav a[aria-current="page"]::before{width:6px;height:22px;margin-right:9px;border-radius:5px}
+ .breadcrumbs{width:100%;max-width:100%;overflow-x:auto;flex-wrap:nowrap;white-space:nowrap;scrollbar-width:none}
+ .breadcrumbs::-webkit-scrollbar{display:none}
+}
+@media (max-width:520px){.breadcrumbs{margin-bottom:14px;padding:7px 10px;font-size:12px}.site-footer{margin-top:48px}.site-footer :where(p,li,dd,dt,span,small,.rg-text,.disclaimer-text,.footer-bottom){color:rgba(255,255,255,.82)}}
