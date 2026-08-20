@@ -11,68 +11,7 @@ import {
 } from "./database/users.js";
 
 // ── Turnstile verification ──
-async function verifyTurnstile(token, request, env) {
-  if (!token) {
-    return {
-      success: false,
-      errorCodes: ["missing-input-response"]
-    };
-  }
-
-  const ip =
-    request.headers.get("CF-Connecting-IP") ||
-    "";
-
-  try {
-    const res = await fetch(
-      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded"
-        },
-        body: new URLSearchParams({
-          secret: env.TURNSTILE_SECRET || "",
-          response: token,
-          remoteip: ip
-        })
-      }
-    );
-
-    const data = await res.json();
-
-    console.log(
-      "Turnstile verification:",
-      JSON.stringify({
-        success: data.success,
-        hostname: data.hostname,
-        action: data.action,
-        errorCodes: data["error-codes"] || []
-      })
-    );
-
-    return {
-      success: data.success === true,
-      errorCodes: data["error-codes"] || [],
-      hostname: data.hostname || "",
-      action: data.action || ""
-    };
-
-  } catch (error) {
-
-    console.error(
-      "Turnstile verification request failed:",
-      error?.message || error
-    );
-
-    return {
-      success: false,
-      errorCodes: ["verification-request-failed"]
-    };
-  }
-}
-
-async function verifyTurnstilebackup(token, env) {
+async function verifyTurnstile(token, env) {
   if (!token) return false;
   try {
     const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
@@ -243,32 +182,11 @@ export async function login(request, env) {
   }
 
   // ── Turnstile check ──
- // const turnstileOk = await verifyTurnstile(turnstileToken, env);
- // if (!turnstileOk) {
-  //  return json({ success: false, error: "Security verification failed. Please try again." }, 403);
- // }
+  const turnstileOk = await verifyTurnstile(turnstileToken, env);
+  if (!turnstileOk) {
+    return json({ success: false, error: "Security verification failed. Please try again." }, 403);
+  }
 
-  const turnstileResult =
-  await verifyTurnstile(
-    turnstileToken,
-    request,
-    env
-  );
-
-if (!turnstileResult.success) {
-  console.error(
-    "Login Turnstile rejected:",
-    JSON.stringify(turnstileResult)
-  );
-
-  return json(
-    {
-      success: false,
-      error: "Security verification failed. Please try again."
-    },
-    403
-  );
-}
   // ── Brute-force check ──
   const ipHash = await hashIPForAuth(request.headers.get("CF-Connecting-IP"));
   const allowed = await checkRateLimit(env, ipHash, "login");
@@ -492,32 +410,11 @@ export async function register(request, env) {
   }
 
   // ── Turnstile check ──
- // const turnstileOk = await verifyTurnstile(turnstileToken, env);
- // if (!turnstileOk) {
-  //  return json({ success: false, error: "Security verification failed. Please try again." }, 403);
- // }
+  const turnstileOk = await verifyTurnstile(turnstileToken, env);
+  if (!turnstileOk) {
+    return json({ success: false, error: "Security verification failed. Please try again." }, 403);
+  }
 
-  const turnstileResult =
-  await verifyTurnstile(
-    turnstileToken,
-    request,
-    env
-  );
-
-if (!turnstileResult.success) {
-  console.error(
-    "Register Turnstile rejected:",
-    JSON.stringify(turnstileResult)
-  );
-
-  return json(
-    {
-      success: false,
-      error: "Security verification failed. Please try again."
-    },
-    403
-  );
-}
   // ── Brute-force check ──
   const ipHash = await hashIPForAuth(request.headers.get("CF-Connecting-IP"));
   const allowed = await checkRateLimit(env, ipHash, "register");
