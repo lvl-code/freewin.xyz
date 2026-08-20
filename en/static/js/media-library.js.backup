@@ -496,30 +496,6 @@
 
     // ── Rendering: Media grid ───────────────────────────
 
-
-
-    function buildMediaPreview(item) {
-    var src = item.thumbnail_url || item.url || '';
-    var fallback = item.url || '';
-
-    if (!src) {
-        return '<div class="ml-card-thumb-placeholder">' +
-            getTypeIcon(item.type, item.mime_type) +
-            '</div>';
-    }
-
-    return '<img' +
-        ' src="' + escapeHtml(src) + '"' +
-        ' data-fallback-src="' + escapeHtml(fallback) + '"' +
-        ' alt="' + escapeHtml(item.alt_text || item.filename || '') + '"' +
-        ' loading="lazy"' +
-        ' onerror="if(this.dataset.fallbackSrc && this.src !== this.dataset.fallbackSrc){this.src=this.dataset.fallbackSrc}else{this.style.display=\'none\';var e=this.nextElementSibling;if(e)e.style.display=\'flex\';}"' +
-        ' />' +
-        '<div class="ml-image-preview-error" style="display:none">' +
-        'Unable to preview image' +
-        '</div>';
-}
-
     function renderGrid() {
         var grid = document.getElementById('ml-grid');
         if (!grid) return;
@@ -554,18 +530,11 @@
                 '<div class="ml-card" data-media-id="' + item.id + '">' +
                     '<div class="ml-card-thumb">';
 
-//            if (isImage && thumb) {
-//                html += '<img src="' + escapeHtml(thumb) + '" alt="' + escapeHtml(altText) + '" loading="lazy" />';
-//            } else {
-//                html += '<div class="ml-card-thumb-placeholder">' + getTypeIcon(item.type, item.mime_type) + '</div>';
-//            }
-            if (isImage) {
-    html += buildMediaPreview(item);
-} else {
-    html += '<div class="ml-card-thumb-placeholder">' +
-        getTypeIcon(item.type, item.mime_type) +
-        '</div>';
-}
+            if (isImage && thumb) {
+                html += '<img src="' + escapeHtml(thumb) + '" alt="' + escapeHtml(altText) + '" loading="lazy" />';
+            } else {
+                html += '<div class="ml-card-thumb-placeholder">' + getTypeIcon(item.type, item.mime_type) + '</div>';
+            }
 
             html +=
                     '</div>' +
