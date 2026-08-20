@@ -90,75 +90,6 @@
 
 /* ---- Mobile Bottom Navigation ---- */
 
-
-.mobile-bottom-nav {
-    display: none;
-}
-
-@media (max-width: 768px) {
-    .mobile-bottom-nav {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-
-        /* Keep your current sizing/positioning */
-        width: 100%;
-
-        /* WHITE GLASS */
-        background: rgba(255, 255, 255, 0.68);
-
-        /* Let the current page background show through */
-        -webkit-backdrop-filter: blur(22px) saturate(170%);
-        backdrop-filter: blur(22px) saturate(170%);
-
-        /* Very subtle glass edge */
-        border-top: 1px solid rgba(255, 255, 255, 0.75);
-
-        /* Keep the glass visually separated */
-        box-shadow:
-            0 -4px 18px rgba(0, 0, 0, 0.10);
-
-        /* Keep your existing safe area */
-        padding-bottom: env(safe-area-inset-bottom, 0px);
-
-        z-index: 9999;
-    }
-
-    /* Maximum text/icon visibility */
-    .mobile-nav-item {
-        color: rgba(20, 20, 25, 0.95);
-
-        font-weight: 700;
-
-        text-shadow:
-            0 1px 2px rgba(255, 255, 255, 0.65);
-    }
-
-    .mobile-nav-icon {
-        color: rgba(10, 10, 15, 1);
-
-        font-weight: 900;
-
-        filter:
-            drop-shadow(0 1px 1px rgba(255, 255, 255, 0.8));
-    }
-
-    /* Active item */
-    .mobile-nav-item.active {
-        color: var(--primary);
-
-        background: rgba(255, 255, 255, 0.22);
-    }
-
-    .mobile-nav-item.active .mobile-nav-icon {
-        color: var(--primary);
-
-        filter:
-            drop-shadow(0 1px 1px rgba(255, 255, 255, 0.9));
-    }
-}
-/*
 .mobile-bottom-nav {
   display: none;
 }
@@ -204,7 +135,7 @@
 
   .mobile-nav-item.active {
     color: var(--primary);
-  }
+  } 
 
   .mobile-nav-icon {
     font-size: 20px;
@@ -219,7 +150,7 @@
     max-width: 100%;
   } 
 
- }*/
+ }
 
 /* ---- Swipeable Casino Cards ---- */
 @media (max-width: 768px) {
