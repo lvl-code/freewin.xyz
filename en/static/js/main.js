@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ---- Login ----
-function initLoginForm() {
+function initLoginFormbackup() {
   const form = document.getElementById("loginForm");
   if (!form) return;
 
@@ -102,7 +102,7 @@ function initLoginForm() {
 }
 
 
-function initLoginFormbackup() {
+function initLoginForm() {
   const form = document.getElementById("loginForm");
   if (!form) return;
 
@@ -153,7 +153,7 @@ function initLoginFormbackup() {
 
 // ---- Register ----
 
-function initRegisterForm() {
+function initRegisterFormbackup() {
   const form =
     document.getElementById("registerForm");
 
@@ -257,7 +257,7 @@ function initRegisterForm() {
   });
 }
 
-function initRegisterFormbackup() {
+function initRegisterForm() {
   const form = document.getElementById("registerForm");
   if (!form) return;
 
