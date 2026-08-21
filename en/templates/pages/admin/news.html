@@ -1,38 +1,498 @@
 <div class="admin-wrapper">
+
   {{admin_nav}}
+
   <div class="admin-content">
-    <div class="admin-header"><h1>News</h1></div>
+
+    <div class="admin-header">
+      <h1>News</h1>
+    </div>
+
+
+    <!-- =====================================================
+         NEWS TABLE
+         ===================================================== -->
+
     <table class="admin-table">
-      <thead><tr><th>Title</th><th>Author</th><th>Date</th><th>Actions</th></tr></thead>
-      <tbody id="newsTableBody"><tr><td colspan="4" class="muted">Loading...</td></tr></tbody>
+
+      <thead>
+
+        <tr>
+          <th>Article</th>
+          <th>Author</th>
+          <th>Status</th>
+          <th>Date</th>
+          <th>Actions</th>
+        </tr>
+
+      </thead>
+
+      <tbody id="newsTableBody">
+
+        <tr>
+          <td
+            colspan="5"
+            class="muted"
+          >
+            Loading...
+          </td>
+        </tr>
+
+      </tbody>
+
     </table>
 
-    <h2 style="margin-top:30px">Add News Article</h2>
-    <form id="newsForm"  class="admin-form" data-slug="">
-      <input type="hidden" name="id" id="newsId" value="">
+
+    <!-- =====================================================
+         NEWS FORM
+         ===================================================== -->
+
+    <h2
+      id="newsFormTitle"
+      style="margin-top:30px"
+    >
+      Add News Article
+    </h2>
+
+
+    <form
+      id="newsForm"
+      class="admin-form"
+      data-slug=""
+    >
+
+      <input
+        type="hidden"
+        name="id"
+        id="newsId"
+        value=""
+      >
+
+
+      <!-- =================================================
+           BASIC INFORMATION
+           ================================================= -->
+
       <div class="form-row">
-        <div class="form-group"><label>Slug *</label><input type="text" name="slug" required></div>
-        <div class="form-group"><label>Author</label><input type="text" name="author" value="Admin"></div>
+
         <div class="form-group">
-          <label>Linked Author</label>
-          <select name="author_id" id="newsAuthorSelect">
-            <option value="">No author assigned</option>
-          </select>
+
+          <label for="newsSlug">
+            Slug *
+          </label>
+
+          <input
+            type="text"
+            name="slug"
+            id="newsSlug"
+            required
+          >
+
         </div>
+
+
+        <div class="form-group">
+
+          <label for="newsAuthor">
+            Author
+          </label>
+
+          <input
+            type="text"
+            name="author"
+            id="newsAuthor"
+            value="Admin"
+          >
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label for="newsAuthorSelect">
+            Linked Author
+          </label>
+
+          <select
+            name="author_id"
+            id="newsAuthorSelect"
+          >
+
+            <option value="">
+              No author assigned
+            </option>
+
+          </select>
+
+        </div>
+
       </div>
-      <div class="form-group"><label>Title *</label><input type="text" name="title" required></div>
-      <div class="form-group"><label>Content *</label>                <textarea name="content" id="content" rows="15" placeholder="Enter article content..."
-                    data-rich-editor data-editor-id="news-content" data-editor-folder="news"></textarea>
+
+
+      <!-- =================================================
+           TITLE
+           ================================================= -->
+
+      <div class="form-group">
+
+        <label for="newsTitle">
+          Title *
+        </label>
+
+        <input
+          type="text"
+          name="title"
+          id="newsTitle"
+          maxlength="220"
+          required
+        >
+
       </div>
+
+
+      <!-- =================================================
+           EXCERPT
+           ================================================= -->
+
+      <div class="form-group">
+
+        <label for="newsExcerpt">
+          Excerpt
+        </label>
+
+        <textarea
+          name="excerpt"
+          id="newsExcerpt"
+          rows="4"
+          maxlength="320"
+          placeholder="Short summary of this article..."
+        ></textarea>
+
+        <small class="muted">
+          Recommended: approximately 120–180 characters.
+          This is used for article previews and SEO fallbacks.
+        </small>
+
+      </div>
+
+
+      <!-- =================================================
+           FEATURED IMAGE
+           ================================================= -->
+
+      <div class="form-group">
+
+        <label>
+          Featured Image
+        </label>
+
+
+        <input
+          type="hidden"
+          name="featured_image"
+          id="newsFeaturedImageId"
+          value=""
+        >
+
+
+        <div
+          id="newsFeaturedImagePreview"
+          class="news-featured-picker-preview"
+          hidden
+        >
+
+          <img
+            id="newsFeaturedImage"
+            src=""
+            alt=""
+            loading="lazy"
+            decoding="async"
+          >
+
+
+          <div class="news-featured-picker-actions">
+
+            <button
+              type="button"
+              class="btn btn--secondary"
+              id="newsChangeFeaturedImage"
+            >
+              Change Image
+            </button>
+
+
+            <button
+              type="button"
+              class="btn btn--danger"
+              id="newsRemoveFeaturedImage"
+            >
+              Remove
+            </button>
+
+          </div>
+
+        </div>
+
+
+        <button
+          type="button"
+          class="btn btn--secondary"
+          id="newsSelectFeaturedImage"
+        >
+          Select Featured Image
+        </button>
+
+
+        <small class="muted">
+          Use an image from the existing Media Library.
+          Recommended ratio: 16:9.
+        </small>
+
+      </div>
+
+
+      <!-- =================================================
+           CONTENT
+           ================================================= -->
+
+      <div class="form-group">
+
+        <label for="content">
+          Content *
+        </label>
+
+        <textarea
+          name="content"
+          id="content"
+          rows="15"
+          placeholder="Enter article content..."
+          data-rich-editor
+          data-editor-id="news-content"
+          data-editor-folder="news"
+        ></textarea>
+
+      </div>
+
+
+      <!-- =================================================
+           PUBLISHING
+           ================================================= -->
+
       <div class="form-row">
-        <div class="form-group"><label>SEO Title</label><input type="text" name="seo_title"></div>
-        <div class="form-group"><label>SEO Description</label><input type="text" name="seo_description"></div>
+
+        <div class="form-group">
+
+          <label for="newsPublished">
+            Status
+          </label>
+
+          <select
+            name="published"
+            id="newsPublished"
+          >
+
+            <option value="1">
+              Published
+            </option>
+
+            <option value="0">
+              Draft
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label for="newsPublishedAt">
+            Publication Date
+          </label>
+
+          <input
+            type="datetime-local"
+            name="published_at"
+            id="newsPublishedAt"
+          >
+
+          <small class="muted">
+            Leave empty to use the creation date.
+          </small>
+
+        </div>
+
       </div>
-      <div id="newsFormAlert" class="alert" style="display:none"></div>
-      <div style="display:flex;gap:12px">
-        <button type="submit" class="btn btn--primary btn--lg" id="newsSubmitBtn">Create Article</button>
-        <button type="button" class="btn btn--ghost btn--lg" id="newsCancelEdit" style="display:none" onclick="cancelNewsEdit()">Cancel Edit</button>
+
+
+      <!-- =================================================
+           SEO
+           ================================================= -->
+
+      <div class="form-row">
+
+        <div class="form-group">
+
+          <label for="newsSeoTitle">
+            SEO Title
+          </label>
+
+          <input
+            type="text"
+            name="seo_title"
+            id="newsSeoTitle"
+            maxlength="220"
+          >
+
+        </div>
+
+
+        <div class="form-group">
+
+          <label for="newsSeoDescription">
+            SEO Description
+          </label>
+
+          <textarea
+            name="seo_description"
+            id="newsSeoDescription"
+            rows="3"
+            maxlength="320"
+          ></textarea>
+
+        </div>
+
       </div>
+
+
+      <!-- =================================================
+           ALERT
+           ================================================= -->
+
+      <div
+        id="newsFormAlert"
+        class="alert"
+        style="display:none"
+      ></div>
+
+
+      <!-- =================================================
+           ACTIONS
+           ================================================= -->
+
+      <div
+        style="
+          display:flex;
+          gap:12px;
+          flex-wrap:wrap;
+        "
+      >
+
+        <button
+          type="submit"
+          class="btn btn--primary btn--lg"
+          id="newsSubmitBtn"
+        >
+          Create Article
+        </button>
+
+
+        <button
+          type="button"
+          class="btn btn--ghost btn--lg"
+          id="newsCancelEdit"
+          style="display:none"
+          onclick="cancelNewsEdit()"
+        >
+          Cancel Edit
+        </button>
+
+      </div>
+
     </form>
+
   </div>
+
+</div>
+
+
+<!-- =========================================================
+     NEWS FEATURED IMAGE PICKER
+     ========================================================= -->
+
+<div
+  id="newsMediaPicker"
+  class="news-media-picker"
+  hidden
+  aria-hidden="true"
+>
+
+  <div
+    class="news-media-picker__backdrop"
+    data-news-media-close
+  ></div>
+
+
+  <div
+    class="news-media-picker__dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="newsMediaPickerTitle"
+  >
+
+    <div class="news-media-picker__header">
+
+      <div>
+
+        <h2 id="newsMediaPickerTitle">
+          Select Featured Image
+        </h2>
+
+        <p class="muted">
+          Select an image from your existing Media Library.
+        </p>
+
+      </div>
+
+
+      <button
+        type="button"
+        class="btn btn--ghost btn--sm"
+        data-news-media-close
+        aria-label="Close"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <div class="news-media-picker__toolbar">
+
+      <input
+        type="search"
+        id="newsMediaSearch"
+        placeholder="Search images..."
+        autocomplete="off"
+      >
+
+    </div>
+
+
+    <div
+      id="newsMediaPickerStatus"
+      class="muted"
+      style="padding:15px"
+    >
+      Loading images...
+    </div>
+
+
+    <div
+      id="newsMediaGrid"
+      class="news-media-grid"
+    ></div>
+
+  </div>
+
 </div>

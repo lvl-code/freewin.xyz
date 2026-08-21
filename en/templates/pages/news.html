@@ -1,28 +1,198 @@
 <article class="news-detail">
+
   <div class="container">
+
     {{components_top}}
+
+
     <header class="news-header">
-      <h1>{{title}}</h1>
+
+      <div class="news-kicker">
+        NEWS
+      </div>
+
+
+      <h1 class="news-title">
+        {{title}}
+      </h1>
+
+
+      {{#if excerpt}}
+
+        <p class="news-excerpt">
+          {{excerpt}}
+        </p>
+
+      {{/if}}
+
+
       <div class="news-meta">
+
         {{#if author_name}}
-        <div style="display:flex;align-items:center;gap:8px">
-          {{#if author_avatar}}<img src="{{author_avatar}}" alt="{{author_name}}" style="width:32px;height:32px;border-radius:50%" onerror="this.src='/static/images/default.png'">{{/if}}
-          <span>By <a href="/en/author/{{author_slug}}">{{author_name}}</a></span>
-        </div>
+
+          <div class="news-author">
+
+            {{#if author_avatar}}
+
+              <img
+                src="{{author_avatar}}"
+                alt="{{author_name}}"
+                width="44"
+                height="44"
+                loading="lazy"
+                decoding="async"
+                onerror="this.style.display='none'"
+              >
+
+            {{/if}}
+
+
+            <div class="news-author-info">
+
+              <span class="news-author-label">
+                By
+              </span>
+
+
+              {{#if author_slug}}
+
+                <a
+                  href="/en/author/{{author_slug}}"
+                  class="news-author-name"
+                >
+                  {{author_name}}
+                </a>
+
+              {{else}}
+
+                <strong class="news-author-name">
+                  {{author_name}}
+                </strong>
+
+              {{/if}}
+
+
+              {{#if author_role}}
+
+                <span class="news-author-role">
+                  {{author_role}}
+                </span>
+
+              {{/if}}
+
+            </div>
+
+          </div>
+
         {{/if}}
 
-        <div class="news-dates" style="margin-top:10px">
-          <span><strong>Published:</strong> {{created_at}}</span>
-          &nbsp;•&nbsp;
-          <span><strong>Updated:</strong> {{updated_at}}</span>
+
+        <div class="news-dates">
+
+          {{#if published_at_display}}
+
+            <time
+              datetime="{{published_at}}"
+            >
+              <strong>
+                Published:
+              </strong>
+
+              {{published_at_display}}
+            </time>
+
+          {{/if}}
+
+
+          {{#if updated_at}}
+
+            <time
+              datetime="{{updated_at}}"
+            >
+              <strong>
+                Updated:
+              </strong>
+
+              {{updated_at}}
+            </time>
+
+          {{/if}}
+
         </div>
+
       </div>
+
     </header>
-    <div class="news-content">
-      {{content}}
-      {{components_content_top}}
-      {{components_content_bottom}}
+
+
+    <!-- =====================================================
+         FEATURED IMAGE
+         ===================================================== -->
+
+    {{#if featured_image_url}}
+
+      <figure class="news-featured-image">
+
+        <img
+          src="{{featured_image_url}}"
+          alt="{{featured_image_alt}}"
+
+          {{#if featured_image_width}}
+            width="{{featured_image_width}}"
+          {{/if}}
+
+          {{#if featured_image_height}}
+            height="{{featured_image_height}}"
+          {{/if}}
+
+          fetchpriority="high"
+          decoding="async"
+        >
+
+
+        {{#if featured_image_caption}}
+
+          <figcaption>
+            {{featured_image_caption}}
+          </figcaption>
+
+        {{/if}}
+
+      </figure>
+
+    {{/if}}
+
+
+    {{components_content_top}}
+
+
+    <div class="news-layout">
+
+      <main class="news-main">
+
+        <div class="news-content">
+
+          {{content}}
+
+        </div>
+
+
+        {{components_content_bottom}}
+
+      </main>
+
+
+      <aside class="news-sidebar">
+
+        {{components_sidebar}}
+
+      </aside>
+
     </div>
+
+
     {{components_bottom}}
+
   </div>
+
 </article>

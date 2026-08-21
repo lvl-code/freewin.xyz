@@ -644,7 +644,95 @@ if (path === "/api/v1/reviews/list") {
 }
 
 // List news
+// List news
 if (path === "/api/v1/news/list") {
+
+  const {
+    condition,
+    params
+  } = await itemAccess.getAccessibleWhereClause(
+    env.DB,
+    user,
+    "news",
+    "read",
+    "n"
+  );
+
+  const whereParts = [];
+
+  /*
+   * Public and ordinary users only receive
+   * published articles.
+   *
+   * Admin/editor dashboards may see drafts
+   * subject to item-level access.
+   */
+  const canSeeDrafts =
+    user &&
+    (
+      user.role === "admin" ||
+      user.role === "editor"
+    );
+
+  if (!canSeeDrafts) {
+    whereParts.push(
+      "n.published = 1"
+    );
+  }
+
+  if (condition) {
+    whereParts.push(condition);
+  }
+
+  const whereClause =
+    whereParts.length
+      ? `WHERE ${whereParts.join(" AND ")}`
+      : "";
+
+  const result =
+    await env.DB.prepare(`
+      SELECT
+        n.*,
+
+        m.url AS featured_image_url,
+        m.thumbnail_url AS featured_image_thumbnail,
+        m.alt_text AS featured_image_alt,
+        m.caption AS featured_image_caption,
+        m.width AS featured_image_width,
+        m.height AS featured_image_height,
+
+        a.name AS author_name,
+        a.slug AS author_slug,
+        a.avatar_url AS author_avatar,
+        a.role AS author_role
+
+      FROM news n
+
+      LEFT JOIN media_library m
+        ON m.id = n.featured_image
+
+      LEFT JOIN authors a
+        ON a.id = n.author_id
+
+      ${whereClause}
+
+      ORDER BY
+        COALESCE(
+          n.published_at,
+          n.created_at
+        ) DESC,
+
+        n.id DESC
+    `)
+      .bind(...params)
+      .all();
+
+  return json({
+    success: true,
+    news: result.results || []
+  });
+}
+if (path === "/api/v1/news/listbackup") {
   const { condition, params } = await itemAccess.getAccessibleWhereClause(
     env.DB, user, 'news', 'read', ''
   );
@@ -2105,6 +2193,53 @@ async function createNews(request, env, user) {
     "title",
     "content"
   ]);
+
+  const slug = String(body.slug || "").trim();
+
+  if (!slug) {
+    return failure(
+      "News article slug is required.",
+      400
+    );
+  }
+
+  const existing = await env.DB.prepare(`
+    SELECT id
+    FROM news
+    WHERE slug = ?
+    LIMIT 1
+  `)
+    .bind(slug)
+    .first();
+
+  if (existing) {
+    return failure(
+      "A News article with this slug already exists.",
+      409
+    );
+  }
+
+  body.slug = slug;
+  body.created_by = user.user_id;
+
+  await news.createNews(
+    env.DB,
+    body
+  );
+
+  await invalidateNews(env);
+
+  return success();
+}
+
+async function createNewsbackup(request, env, user) {
+  const body = await request.json();
+
+  validate(body, [
+    "slug",
+    "title",
+    "content"
+  ]);
   body.created_by = user.user_id;
   await news.createNews(env.DB, body);
   await invalidateNews(env);
@@ -2112,6 +2247,92 @@ async function createNews(request, env, user) {
 }
 
 async function updateNews(request, env, user) {
+  const body = await request.json();
+
+  validate(body, [
+    "old_slug",
+    "slug",
+    "title",
+    "content"
+  ]);
+
+  const oldSlug =
+    String(body.old_slug || "").trim();
+
+  const newSlug =
+    String(body.slug || "").trim();
+
+  if (!oldSlug || !newSlug) {
+    return failure(
+      "News article slug is required.",
+      400
+    );
+  }
+
+  const existing =
+    await itemAccess.getItemBySlug(
+      env.DB,
+      "news",
+      oldSlug
+    );
+
+  if (!existing) {
+    return failure(
+      "News article not found",
+      404
+    );
+  }
+
+  const canUpdate =
+    await itemAccess.canAccessItem(
+      env.DB,
+      user,
+      "news",
+      "update",
+      existing
+    );
+
+  if (!canUpdate) {
+    return failure(
+      "News article not found",
+      404
+    );
+  }
+
+  const duplicate =
+    await env.DB.prepare(`
+      SELECT id
+      FROM news
+      WHERE slug = ?
+        AND slug != ?
+      LIMIT 1
+    `)
+      .bind(
+        newSlug,
+        oldSlug
+      )
+      .first();
+
+  if (duplicate) {
+    return failure(
+      "Another News article already uses this slug.",
+      409
+    );
+  }
+
+  body.slug = newSlug;
+
+  await news.updateNews(
+    env.DB,
+    oldSlug,
+    body
+  );
+
+  await invalidateNews(env);
+
+  return success();
+}
+async function updateNewsbackup(request, env, user) {
   const body = await request.json();
 
   validate(body, [
