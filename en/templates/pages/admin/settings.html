@@ -1037,6 +1037,31 @@
         + Add Compliance Logo
       </button>
 
+      <!-- ================================================== -->
+      <!-- NEWS INLINE AD -->
+      <!-- ================================================== -->
+
+      <h2>News Inline Advertisement</h2>
+
+      <p class="muted">
+        Paste the HTML or component code for an advertisement that will be
+        injected into news article bodies. If left empty, no ad is shown.
+        You can also type <code>&lt;!--AD--&gt;</code> anywhere in a news
+        article's content to control exactly where the ad appears.
+        If no markers exist, the ad is auto-inserted after the 3rd paragraph.
+      </p>
+
+      <div class="form-group">
+        <label>Inline Ad HTML</label>
+        <textarea
+          name="news_inline_ad"
+          rows="6"
+          placeholder="<div class='ad-slot' style='margin:24px 0;text-align:center'><!-- Your ad code here --></div>"
+        ></textarea>
+        <small class="muted">
+          Supports raw HTML. Leave empty to disable inline ads in news articles.
+        </small>
+      </div>
 
       <!-- ================================================== -->
       <!-- ALERT -->
