@@ -648,6 +648,26 @@ if (path === "/api/v1/news/list") {
   const { condition, params } = await itemAccess.getAccessibleWhereClause(
     env.DB, user, 'news', 'read', ''
   );
+  const whereClause = condition ? `WHERE ${condition}` : '';
+
+  const result = await env.DB.prepare(
+    `SELECT n.*, m.url AS featured_image_url, m.thumbnail_url AS featured_image_thumbnail,
+            m.alt_text AS featured_image_alt, a.name AS author_name, a.slug AS author_slug,
+            a.avatar_url AS author_avatar, a.role AS author_role
+     FROM news n
+     LEFT JOIN media_library m ON m.id = n.featured_image
+     LEFT JOIN authors a ON a.id = n.author_id
+     ${whereClause}
+     ORDER BY COALESCE(n.published_at, n.created_at) DESC`
+  ).bind(...params).all();
+  return json({ news: result.results });
+}
+
+
+if (path === "/api/v1/newsbackup2/list") {
+  const { condition, params } = await itemAccess.getAccessibleWhereClause(
+    env.DB, user, 'news', 'read', ''
+  );
   const whereParts = ['1=1'];
 //  const whereParts = ['n.published = 1'];
   if (condition) whereParts.push(condition);

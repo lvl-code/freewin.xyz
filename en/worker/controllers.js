@@ -784,7 +784,21 @@ export async function renderNews(request, env, slug) {
   const article = await news.getNews(env.DB, slug);
   if (!article) return render404(request, env);
 
+  // Security: only render published, currently-live articles publicly
+  if (!article.published || Number(article.published) !== 1) {
+    return render404(request, env);
+  }
+
+  // Security: respect scheduled publishing — hide articles whose published_at is in the future
+  if (article.published_at) {
+    const pubDate = new Date(article.published_at);
+    if (!Number.isNaN(pubDate.getTime()) && pubDate > new Date()) {
+      return render404(request, env);
+    }
+  }
+
   const renderer = new Renderer(env, request);
+
   const site = await getSiteContext(request, env);
 
   let author = null;
@@ -1741,6 +1755,17 @@ export async function renderNewsList(request, env) {
 
   const hasResults = newsList.length > 0;
 
+  const emptyStateHtml = hasResults ? "" : `
+    <div style="text-align:center;padding:60px 20px;color:var(--gray)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48" style="margin-bottom:16px;opacity:0.4">
+        <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+      </svg>
+      <h2 style="margin:0 0 8px;font-size:22px;color:var(--dark)">No articles found</h2>
+      <p style="margin:0 0 20px">Try a different search term or browse all news.</p>
+      <a href="/en/news" class="btn btn--ghost">View All News</a>
+    </div>
+  `;
+
   const listSchema = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
@@ -1772,7 +1797,7 @@ export async function renderNewsList(request, env) {
     page_title: pageTitle,
     page_description: pageDescription,
     news_cards: newsCards,
-    has_results: hasResults,
+    empty_state_html: emptyStateHtml,
     search_query: escapeHtml(searchQuery),
     tag_filter: escapeHtml(tagFilter),
     seo_title: dynamicSeo.seo_title || `${pageTitle} | ${site.siteName}`,

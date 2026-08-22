@@ -25,18 +25,8 @@
       {{/if}}
     </div>
 
-    {{#if has_results}}
     <div class="news-grid">{{{news_cards}}}</div>
-    {{else}}
-    <div style="text-align:center;padding:60px 20px;color:var(--gray)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48" style="margin-bottom:16px;opacity:0.4">
-        <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-      </svg>
-      <h2 style="margin:0 0 8px;font-size:22px;color:var(--dark)">done</h2>
-   <!--   <p style="margin:0 0 20px">Try a different search term or browse all news.</p>
-      <a href="/en/news" class="btn btn--ghost">View All News</a> -->
-    </div>
-    {{/if}}
+    {{{empty_state_html}}}
 
     {{components_bottom}}
   </div>

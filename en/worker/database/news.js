@@ -46,6 +46,7 @@ export async function getAllNews(db) {
     LEFT JOIN media_library m ON m.id = n.featured_image
     LEFT JOIN authors a       ON a.id = n.author_id
     WHERE n.published = 1
+      AND (n.published_at IS NULL OR datetime(n.published_at) <= datetime('now'))
     ORDER BY COALESCE(n.published_at, n.created_at) DESC, n.id DESC
   `).all();
 
@@ -90,7 +91,9 @@ export async function searchNews(db, query, limit = 20) {
     FROM news n
     LEFT JOIN media_library m ON m.id = n.featured_image
     LEFT JOIN authors a       ON a.id = n.author_id
+
     WHERE n.published = 1
+      AND (n.published_at IS NULL OR datetime(n.published_at) <= datetime('now'))
       AND (
         n.title   LIKE ? OR
         n.excerpt LIKE ? OR
@@ -123,10 +126,12 @@ export async function getNewsByTag(db, tag, limit = 50) {
     FROM news n
     LEFT JOIN media_library m ON m.id = n.featured_image
     LEFT JOIN authors a       ON a.id = n.author_id
-    WHERE n.published = 1
+   WHERE n.published = 1
+      AND (n.published_at IS NULL OR datetime(n.published_at) <= datetime('now'))
       AND n.tags LIKE ?
     ORDER BY COALESCE(n.published_at, n.created_at) DESC
     LIMIT ?
+
   `)
   .bind(`%${t}%`, limit)
   .all();
@@ -162,7 +167,8 @@ export async function getRelatedNews(db, currentSlug, tags, limit = 3) {
     FROM news n
     LEFT JOIN media_library m ON m.id = n.featured_image
     LEFT JOIN authors a       ON a.id = n.author_id
-    WHERE n.published = 1
+   WHERE n.published = 1
+      AND (n.published_at IS NULL OR datetime(n.published_at) <= datetime('now'))
       AND n.slug != ?
       AND (${conditions})
     ORDER BY COALESCE(n.published_at, n.created_at) DESC
