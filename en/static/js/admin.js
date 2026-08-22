@@ -2890,6 +2890,60 @@ payload.site_hero_overlay =
   );
 }
 
+
+
+// ── Load ad components for display in settings ──────────
+async function loadAdComponents() {
+  const container = document.getElementById("adComponentsList");
+  const empty = document.getElementById("adComponentsEmpty");
+  if (!container) return;
+
+  try {
+    const res = await fetch("/api/v1/components?type=ad", {
+      credentials: "same-origin",
+    });
+    if (!res.ok) throw new Error("Failed to load");
+    const data = await res.json();
+    const components = data.components || [];
+
+    if (components.length === 0) {
+      if (empty) {
+        empty.textContent =
+          "No ad components found. Create one in the Components page with type 'ad'.";
+      }
+      return;
+    }
+
+    if (empty) empty.style.display = "none";
+
+    container.innerHTML = components
+      .map(
+        (comp) => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--surface)">
+        <div>
+          <strong style="font-size:14px">${escapeHtml(comp.name)}</strong>
+          <span style="margin-left:8px;font-size:12px;color:var(--text-muted)">/${escapeHtml(comp.slug)}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:12px;padding:3px 8px;border-radius:999px;background:${comp.status === "active" ? "rgba(34,197,94,0.15)" : "rgba(161,161,170,0.15)"};color:${comp.status === "active" ? "#22c55e" : "var(--text-muted)"}">${comp.status === "active" ? "Active" : "Inactive"}</span>
+          <a href="/en/admin/components" target="_blank" style="font-size:12px;text-decoration:none">Edit</a>
+        </div>
+      </div>
+    `
+      )
+      .join("");
+  } catch (e) {
+    if (empty) {
+      empty.textContent = "Could not load ad components.";
+    }
+  }
+}
+
+// Call on page load
+loadAdComponents();
+
+
+
 // ============================================
 // AI GENERATOR
 // ============================================

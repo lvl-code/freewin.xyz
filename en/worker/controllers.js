@@ -896,16 +896,16 @@ export async function renderNews(request, env, slug) {
   }
 
   // ── Inline advertisement injection ────────────────────
+  // Supports: raw HTML from settings, ad components from DB,
+  // explicit <!--AD--> / <!--AD1--> / <!--AD2--> markers,
+  // and auto-insertion at paragraph breaks.
   let displayContent = article.content || "";
   try {
-    const adSetting = await env.DB.prepare("SELECT value FROM settings WHERE key = 'news_inline_ad'").first();
-    const adHtml = adSetting?.value || "";
-    if (adHtml) {
-      displayContent = injectInlineAds(displayContent, adHtml);
-    }
-  } catch (_) {
-    // settings table or key may not exist — skip
+    displayContent = await injectInlineAds(displayContent, env);
+  } catch (e) {
+    console.error("Inline ad injection error:", e.message);
   }
+
 
   const wordCount = cleanContent ? cleanContent.split(/\s+/).filter(Boolean).length : 0;
 
@@ -1149,33 +1149,120 @@ export async function renderNewsbackup(request, env, slug) {
   );
 }
 
-function injectInlineAds(content, adHtml) {
-  if (!adHtml || !content) return content;
 
-  // 1. Replace explicit <!--AD--> markers
-  if (content.includes("<!--AD-->")) {
-    return content.split("<!--AD-->").join(adHtml);
+async function injectInlineAds(content, env) {
+  if (!content) return content;
+
+  // ── 1. Collect all ad sources ──────────────────────
+  const adSlots = [];
+
+  // 1a. Raw HTML from settings (single ad)
+  try {
+    const adSetting = await env.DB.prepare(
+      "SELECT value FROM settings WHERE key = 'news_inline_ad'"
+    ).first();
+    const rawHtml = adSetting?.value || "";
+
+    if (rawHtml && !rawHtml.startsWith("component:")) {
+      adSlots.push({ html: rawHtml.trim(), label: "settings-ad" });
+    }
+  } catch (_) {}
+
+  // 1b. Ad components from the components table (type = 'ad')
+  try {
+    const adComponents = await componentsDB.getAllComponents(env.DB, "ad");
+    for (const comp of adComponents) {
+      if (comp.status !== "active") continue;
+
+      let html = "";
+
+      // If content is raw HTML, use it directly
+      if (typeof comp.content === "string" && comp.content.trim()) {
+        html = comp.content;
+      }
+
+      // If settings_json has ad_html, use that
+      if (!html && comp.settings_json) {
+        try {
+          const settings = JSON.parse(comp.settings_json);
+          if (settings.ad_html) html = settings.ad_html;
+        } catch (_) {}
+      }
+
+      if (html) {
+        adSlots.push({ html: html.trim(), label: comp.slug });
+      }
+    }
+  } catch (_) {}
+
+  if (adSlots.length === 0) return content;
+
+  // ── 2. Replace explicit markers ────────────────────
+  // Supports: <!--AD-->, <!--AD1-->, <!--AD2-->, <!--AD3--> ...
+  let result = content;
+  let usedSlots = new Set();
+
+  for (let i = 0; i < adSlots.length; i++) {
+    const slot = adSlots[i];
+    const marker = i === 0 ? "<!--AD-->" : `<!--AD${i + 1}-->`;
+
+    if (result.includes(marker)) {
+      result = result.split(marker).join(slot.html);
+      usedSlots.add(i);
+    }
   }
 
-  // 2. Auto-insert after 3rd closing </p>
+  // ── 3. Auto-insert remaining ads at paragraph breaks ──
+  const unusedSlots = adSlots
+    .map((slot, i) => ({ slot, index: i }))
+    .filter(({ index }) => !usedSlots.has(index));
+
+  if (unusedSlots.length === 0) return result;
+
+  // Find all </p> positions
   const regex = /<\/p>/gi;
   let match;
-  let count = 0;
-  let insertAfter = -1;
+  const positions = [];
 
-  while ((match = regex.exec(content)) !== null) {
-    count++;
-    insertAfter = match.index + match[0].length;
-    if (count === 3) break;
+  while ((match = regex.exec(result)) !== null) {
+    positions.push(match.index + match[0].length);
   }
 
-  if (count >= 3 && insertAfter > 0) {
-    return content.slice(0, insertAfter) + adHtml + content.slice(insertAfter);
+  // Insert at evenly spaced positions (after 3rd, 6th, 9th paragraph, etc.)
+  const insertOffsets = [3, 6, 9, 12, 15];
+  let insertCount = 0;
+  let modified = result;
+
+  for (const { slot } of unusedSlots) {
+    const targetParagraph = insertOffsets[insertCount] || (insertOffsets[insertCount - 1] + 3);
+
+    if (positions.length >= targetParagraph) {
+      const insertAt = positions[targetParagraph - 1];
+      modified =
+        modified.slice(0, insertAt) +
+        `\n${slot.html}\n` +
+        modified.slice(insertAt);
+      insertCount++;
+
+      // Recalculate positions after insertion (they shifted)
+      const newRegex = /<\/p>/gi;
+      const newPositions = [];
+      let newMatch;
+      while ((newMatch = newRegex.exec(modified)) !== null) {
+        newPositions.push(newMatch.index + newMatch[0].length);
+      }
+      positions.length = 0;
+      positions.push(...newPositions);
+    } else {
+      // Not enough paragraphs — append at end
+      modified += `\n${slot.html}\n`;
+    }
   }
 
-  // 3. Fallback: append at end
-  return content + adHtml;
+  return modified;
 }
+
+
 
 async function hashIP(ip){
 

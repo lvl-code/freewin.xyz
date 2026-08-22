@@ -1037,29 +1037,61 @@
         + Add Compliance Logo
       </button>
 
-      <!-- ================================================== -->
-      <!-- NEWS INLINE AD -->
+            <!-- ================================================== -->
+      <!-- NEWS INLINE ADVERTISEMENTS -->
       <!-- ================================================== -->
 
-      <h2>News Inline Advertisement</h2>
+      <h2>News Inline Advertisements</h2>
 
       <p class="muted">
-        Paste the HTML or component code for an advertisement that will be
-        injected into news article bodies. If left empty, no ad is shown.
-        You can also type <code>&lt;!--AD--&gt;</code> anywhere in a news
-        article's content to control exactly where the ad appears.
-        If no markers exist, the ad is auto-inserted after the 3rd paragraph.
+        Manage advertisements injected into news article bodies.
+        Ads come from two sources:
+      </p>
+
+      <ul style="margin:0 0 16px 20px;padding:0;font-size:14px;color:var(--gray)">
+        <li><strong>Ad Components</strong> — Create components with type
+          <code>ad</code> in the
+          <a href="/en/admin/components" target="_blank">Components</a>
+          page. Each active ad component is automatically injected.
+          This is the recommended way to manage multiple ads.</li>
+        <li><strong>Fallback HTML</strong> — If you don't want to use
+          components, paste raw HTML below. This is injected as a single ad.</li>
+      </ul>
+
+      <p class="muted" style="margin-bottom:16px">
+        <strong>Placement control:</strong> Type
+        <code>&lt;!--AD--&gt;</code>,
+        <code>&lt;!--AD1--&gt;</code>,
+        <code>&lt;!--AD2--&gt;</code>, etc. anywhere in a news article's
+        content to control exactly where each ad appears.
+        If no markers exist, ads are auto-inserted after the 3rd, 6th, and 9th
+        paragraphs.
       </p>
 
       <div class="form-group">
-        <label>Inline Ad HTML</label>
+        <label>Fallback Ad HTML (optional)</label>
         <textarea
           name="news_inline_ad"
           rows="6"
           placeholder="<div class='ad-slot' style='margin:24px 0;text-align:center'><!-- Your ad code here --></div>"
         ></textarea>
         <small class="muted">
-          Supports raw HTML. Leave empty to disable inline ads in news articles.
+          Raw HTML used when no ad components exist. Leave empty to rely
+          entirely on ad components. If you type
+          <code>component:your-slug</code> here, that specific component
+          will be loaded as the fallback ad.
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label>Active Ad Components</label>
+        <div id="adComponentsList" style="display:flex;flex-direction:column;gap:8px">
+          <p class="muted" id="adComponentsEmpty">Loading ad components...</p>
+        </div>
+        <small class="muted">
+          These are components with type <code>ad</code>. Create or edit them
+          in the <a href="/en/admin/components" target="_blank">Components</a>
+          page. Only active components are injected.
         </small>
       </div>
 
