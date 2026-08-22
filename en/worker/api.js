@@ -648,7 +648,8 @@ if (path === "/api/v1/news/list") {
   const { condition, params } = await itemAccess.getAccessibleWhereClause(
     env.DB, user, 'news', 'read', ''
   );
-  const whereParts = ['n.published = 1'];
+  const whereParts = ['1=1'];
+//  const whereParts = ['n.published = 1'];
   if (condition) whereParts.push(condition);
   const whereClause = 'WHERE ' + whereParts.join(' AND ');
 
