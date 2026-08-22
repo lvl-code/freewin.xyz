@@ -2659,8 +2659,27 @@ padding:22px;
 
 @media (max-width: 700px) {
   .news-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 16px;
   }
+
+  .news-grid > article {
+    min-width: 0;
+  }
+
+  .news-related-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+}
+
+@media (max-width: 420px) {
+  .news-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
   .news-related-grid {
     grid-template-columns: 1fr;
   }
