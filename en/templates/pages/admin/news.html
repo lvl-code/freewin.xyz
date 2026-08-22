@@ -3,12 +3,12 @@
   <div class="admin-content">
     <div class="admin-header"><h1>News</h1></div>
     <table class="admin-table">
-      <thead><tr><th>Title</th><th>Author</th><th>Date</th><th>Actions</th></tr></thead>
-      <tbody id="newsTableBody"><tr><td colspan="4" class="muted">Loading...</td></tr></tbody>
+      <thead><tr><th>Article</th><th>Author</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+      <tbody id="newsTableBody"><tr><td colspan="5" class="muted">Loading...</td></tr></tbody>
     </table>
 
-    <h2 style="margin-top:30px">Add News Article</h2>
-    <form id="newsForm"  class="admin-form" data-slug="">
+    <h2 style="margin-top:30px" id="newsFormTitle">Add News Article</h2>
+    <form id="newsForm" class="admin-form" data-slug="" autocomplete="off">
       <input type="hidden" name="id" id="newsId" value="">
       <div class="form-row">
         <div class="form-group"><label>Slug *</label><input type="text" name="slug" required></div>
@@ -21,13 +21,69 @@
         </div>
       </div>
       <div class="form-group"><label>Title *</label><input type="text" name="title" required></div>
-      <div class="form-group"><label>Content *</label>                <textarea name="content" id="content" rows="15" placeholder="Enter article content..."
-                    data-rich-editor data-editor-id="news-content" data-editor-folder="news"></textarea>
+
+      <div class="form-group">
+        <label>Excerpt</label>
+        <textarea name="excerpt" rows="3" maxlength="300" placeholder="Short summary for news cards and previews..."></textarea>
+        <small class="muted">Recommended: 120–180 characters. Leave blank to auto-generate from content.</small>
       </div>
+
+      <div class="form-group">
+        <label>Tags</label>
+        <input type="text" name="tags" maxlength="500" placeholder="casino news, regulation, europe">
+        <small class="muted">Separate tags with commas. Tags generate clickable filters and related articles.</small>
+      </div>
+
+      <div class="form-group">
+        <label>Featured Image</label>
+        <input type="hidden" name="featured_image" id="newsFeaturedImageId" value="">
+        <div id="newsFeaturedImagePreview" style="display:none;margin-bottom:10px">
+          <img id="newsFeaturedImageImg" src="" alt="" style="width:100%;max-width:400px;aspect-ratio:16/9;object-fit:cover;border-radius:10px;border:1px solid var(--light-gray)">
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button type="button" id="newsChangeFeaturedImage" class="btn btn--secondary btn--sm">Change</button>
+            <button type="button" id="newsRemoveFeaturedImage" class="btn btn--danger btn--sm">Remove</button>
+          </div>
+        </div>
+        <button type="button" id="newsSelectFeaturedImage" class="btn btn--secondary btn--sm">Select Featured Image</button>
+        <small class="muted">Recommended aspect ratio: 16:9.</small>
+      </div>
+
+      <div class="form-group"><label>Content *</label>
+        <textarea name="content" id="content" rows="15" placeholder="Enter article content... Type &lt;!--AD--&gt; anywhere to inject an advertisement."
+                  data-rich-editor data-editor-id="news-content" data-editor-folder="news"></textarea>
+        <small class="muted">Tip: Type <code>&lt;!--AD--&gt;</code> anywhere in the content to inject an ad at that position. If no markers exist, an ad is auto-inserted after the 3rd paragraph.</small>
+      </div>
+
       <div class="form-row">
         <div class="form-group"><label>SEO Title</label><input type="text" name="seo_title"></div>
         <div class="form-group"><label>SEO Description</label><input type="text" name="seo_description"></div>
       </div>
+
+      <fieldset style="margin:20px 0;padding:16px 20px;border:1px solid var(--light-gray);border-radius:10px">
+        <legend style="font-weight:700;padding:0 8px">Publishing</legend>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Status</label>
+            <select name="published">
+              <option value="1">Published</option>
+              <option value="0">Draft</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Publication Date</label>
+            <input type="datetime-local" name="published_at">
+            <small class="muted">Leave blank to publish immediately.</small>
+          </div>
+          <div class="form-group">
+            <label>AI Generated</label>
+            <select name="ai_generated">
+              <option value="0">No</option>
+              <option value="1">Yes</option>
+            </select>
+          </div>
+        </div>
+      </fieldset>
+
       <div id="newsFormAlert" class="alert" style="display:none"></div>
       <div style="display:flex;gap:12px">
         <button type="submit" class="btn btn--primary btn--lg" id="newsSubmitBtn">Create Article</button>

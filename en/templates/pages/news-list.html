@@ -1,0 +1,43 @@
+<div class="news-list-page" style="padding:40px 0 80px">
+  <div class="container">
+    {{components_top}}
+
+    <header style="margin-bottom:24px">
+      <h1 style="font-size:clamp(32px,4vw,48px);margin:0 0 8px">{{page_title}}</h1>
+      <p style="color:var(--gray);font-size:18px;margin:0">{{page_description}}</p>
+    </header>
+
+    <div style="margin-bottom:16px">
+      <form method="GET" action="/en/news" style="display:flex;gap:10px;margin-bottom:16px">
+        <input type="search" name="q" value="{{search_query}}" placeholder="Search news articles..." style="flex:1;padding:12px 16px;border:1px solid var(--light-gray);border-radius:10px;font-size:15px;outline:none" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--light-gray)'">
+        <button type="submit" class="btn btn--primary">Search</button>
+        {{#if tag_filter}}<input type="hidden" name="tag" value="{{tag_filter}}">{{/if}}
+      </form>
+
+      {{#if tag_filter}}
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;font-size:14px">
+        <span class="muted">Filtered by tag:</span>
+        <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600;background:var(--primary);color:#fff">
+          {{tag_filter}}
+          <a href="/en/news" style="color:#fff;text-decoration:none;font-size:16px;line-height:1;opacity:0.8" title="Remove filter">&times;</a>
+        </span>
+      </div>
+      {{/if}}
+    </div>
+
+    {{#if has_results}}
+    <div class="news-grid">{{{news_cards}}}</div>
+    {{else}}
+    <div style="text-align:center;padding:60px 20px;color:var(--gray)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48" style="margin-bottom:16px;opacity:0.4">
+        <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+      </svg>
+      <h2 style="margin:0 0 8px;font-size:22px;color:var(--dark)">No articles found</h2>
+      <p style="margin:0 0 20px">Try a different search term or browse all news.</p>
+      <a href="/en/news" class="btn btn--ghost">View All News</a>
+    </div>
+    {{/if}}
+
+    {{components_bottom}}
+  </div>
+</div>

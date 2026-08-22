@@ -39,6 +39,16 @@ function formatDate(date) {
   });
 }
 
+
+function escapeHtml(text = "") {
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
 function stripHtml(text = "") {
   return String(text)
     .replace(/<[^>]*>/g, " ")
@@ -778,6 +788,154 @@ export async function renderNews(request, env, slug) {
   const site = await getSiteContext(request, env);
 
   let author = null;
+  if (article.author_id) {
+    author = await authors.getAuthorById(env.DB, article.author_id);
+  }
+
+  const allComponents = await renderer.renderAllComponents("news", slug);
+  const dynamicSeo = await renderer.loadDynamicSeo("news", slug);
+
+  const canonical = dynamicSeo.canonical || site.url(`/en/news/${article.slug}`);
+
+  const publishedDate = article.published_at || article.created_at;
+  const modifiedDate = article.updated_at || publishedDate;
+  const publishedIso = toIsoDate(publishedDate);
+  const modifiedIso = toIsoDate(modifiedDate);
+  const publishedDisplay = formatDate(publishedDate);
+  const modifiedDisplay = formatDate(modifiedDate);
+
+  const cleanContent = stripHtml(article.content || "");
+  const description = dynamicSeo.seo_description || article.seo_description || article.excerpt || truncateText(article.content, 160);
+
+  const articleAuthorName = author?.name || article.author || site.siteName;
+  const featuredImage = article.featured_image_url || article.featured_image_thumbnail || "";
+  const featuredImageAlt = article.featured_image_alt || article.title;
+
+  // ── Tags as clickable links ──────────────────────────
+  let tagsHtml = "";
+  if (article.tags) {
+    tagsHtml = String(article.tags)
+      .split(",")
+      .map(t => t.trim())
+      .filter(Boolean)
+      .map(tag => {
+        const escaped = escapeHtml(tag);
+        return `<a href="/en/news?tag=${encodeURIComponent(tag)}" class="news-tag" rel="tag" style="display:inline-block;padding:7px 14px;border-radius:999px;background:var(--bg);border:1px solid var(--light-gray);color:var(--dark);font-size:13px;font-weight:500;text-decoration:none;transition:all 0.2s">${escaped}</a>`;
+      })
+      .join("");
+  }
+
+  // ── Related news by shared tags ──────────────────────
+  let relatedNewsHtml = "";
+  if (article.tags) {
+    try {
+      const related = await news.getRelatedNews(env.DB, article.slug, article.tags, 3);
+      if (related.length > 0) {
+        relatedNewsHtml = related.map(item => {
+          const img = item.featured_image_url || item.featured_image_thumbnail || "";
+          const imgHtml = img
+            ? `<div style="aspect-ratio:16/9;overflow:hidden;border-radius:8px"><img src="${escapeHtml(img)}" alt="${escapeHtml(item.featured_image_alt || item.title)}" style="width:100%;height:100%;object-fit:cover" loading="lazy" decoding="async"></div>`
+            : "";
+          const date = item.published_at || item.created_at;
+          return `
+            <article style="overflow:hidden;border:1px solid var(--light-gray);border-radius:10px;background:var(--white);transition:transform 0.2s,box-shadow 0.2s">
+              <a href="/en/news/${encodeURIComponent(item.slug)}" style="display:block;color:inherit;text-decoration:none">
+                ${imgHtml}
+                <div style="padding:14px">
+                  ${date ? `<time style="display:block;margin-bottom:6px;color:var(--gray);font-size:12px">${escapeHtml(formatDate(date))}</time>` : ""}
+                  <h3 style="margin:0 0 6px;font-size:16px;line-height:1.3;color:var(--dark)">${escapeHtml(item.title)}</h3>
+                  ${item.excerpt ? `<p style="margin:0;color:var(--gray);font-size:13px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${escapeHtml(item.excerpt)}</p>` : ""}
+                </div>
+              </a>
+            </article>
+          `;
+        }).join("");
+      }
+    } catch (e) {
+      console.error("Related news error:", e.message);
+    }
+  }
+
+  // ── Inline advertisement injection ────────────────────
+  let displayContent = article.content || "";
+  try {
+    const adSetting = await env.DB.prepare("SELECT value FROM settings WHERE key = 'news_inline_ad'").first();
+    const adHtml = adSetting?.value || "";
+    if (adHtml) {
+      displayContent = injectInlineAds(displayContent, adHtml);
+    }
+  } catch (_) {
+    // settings table or key may not exist — skip
+  }
+
+  const wordCount = cleanContent ? cleanContent.split(/\s+/).filter(Boolean).length : 0;
+
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    "@id": `${canonical}#newsarticle`,
+    "url": canonical,
+    "mainEntityOfPage": { "@type": "WebPage", "@id": canonical },
+    "headline": article.title,
+    "description": description,
+    ...(featuredImage ? { "image": [featuredImage] } : {}),
+    "datePublished": publishedIso,
+    "dateModified": modifiedIso,
+    "author": {
+      "@type": "Person",
+      "name": articleAuthorName,
+      ...(author?.slug ? { "url": site.url(`/en/author/${author.slug}`) } : {}),
+      ...(author?.avatar_url ? { "image": author.avatar_url } : {})
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": site.siteName,
+      "url": site.origin,
+      ...(site.logoUrl ? { "logo": { "@type": "ImageObject", "url": site.logoUrl } } : {})
+    },
+    "articleBody": cleanContent,
+    "wordCount": wordCount,
+    "articleSection": "News",
+    "inLanguage": "en",
+    ...(article.tags ? { "keywords": article.tags } : {})
+  };
+
+  const html = await renderer.render("news.html", {
+    ...article,
+    canonical,
+    seo_title: dynamicSeo.seo_title || article.seo_title || article.title,
+    seo_description: description,
+    author_name: author?.name || article.author || "",
+    author_avatar: author?.avatar_url || "",
+    author_role: author?.role || "",
+    author_slug: author?.slug || "",
+    featured_image_url: featuredImage,
+    featured_image_alt: featuredImageAlt,
+    featured_image_caption: article.featured_image_caption || "",
+    published_at: publishedDisplay,
+    updated_at: modifiedDisplay,
+    tags_html: tagsHtml,
+    related_news_html: relatedNewsHtml,
+    content: displayContent,
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
+    components_sidebar: allComponents.sidebar
+  }, articleSchema, buildBreadcrumbs("news", { title: article.title }));
+
+  return new Response(html, { headers: cacheHeaders() });
+}
+
+
+export async function renderNewsbackup(request, env, slug) {
+  const article = await news.getNews(env.DB, slug);
+  if (!article) return render404(request, env);
+
+  const renderer = new Renderer(env, request);
+  const site = await getSiteContext(request, env);
+
+  let author = null;
 
   if (article.author_id) {
     author = await authors.getAuthorById(
@@ -951,45 +1109,32 @@ export async function renderNews(request, env, slug) {
   );
 }
 
-export async function renderNewsbackup(request, env, slug) {
-  const article = await news.getNews(env.DB, slug);
-  if (!article) return render404(request, env);
+function injectInlineAds(content, adHtml) {
+  if (!adHtml || !content) return content;
 
-  const renderer = new Renderer(env, request);
-  const site = await getSiteContext(request, env);
-  let author = null;
-  if (article.author_id) {
-    author = await authors.getAuthorById(env.DB, article.author_id);
+  // 1. Replace explicit <!--AD--> markers
+  if (content.includes("<!--AD-->")) {
+    return content.split("<!--AD-->").join(adHtml);
   }
-  const allComponents = await renderer.renderAllComponents("news", slug);
-  const reviewBlocksHtml = await renderer.renderReviewBlocks(slug);
-  const dynamicSeo = await renderer.loadDynamicSeo("news", slug);
 
-  const newsSchema = {
-    "@context": "https://schema.org",
-    "@type": "NewsArticle",
-    "headline": article.title,
-    "datePublished": article.created_at,
-    "description": article.content ? article.content.substring(0, 150) : "",
-    "author": { "@type": "Person", "name": article.author || "iGaming Analyst" }
-  };
-  const html = await renderer.render("news.html", {
-    ...article,
-    canonical: dynamicSeo.canonical || site.url(`/en/news/${slug}`),
-    author_name: author?.name || article.author || "",
-    author_avatar: author?.avatar_url || "",
-    author_role: author?.role || "",
-    author_slug: author?.slug || "",
-    components_top: allComponents.top,
-    components_content_top: allComponents.content_top,
-    components_content_bottom: allComponents.content_bottom,
-    components_bottom: allComponents.bottom,
-    components_sidebar: allComponents.sidebar,
-    seo_title: dynamicSeo.seo_title || article.title,
-    seo_description: dynamicSeo.seo_description || (article.content || "").substring(0, 155),
-  }, newsSchema, buildBreadcrumbs("news", { title: article.title }));
+  // 2. Auto-insert after 3rd closing </p>
+  const regex = /<\/p>/gi;
+  let match;
+  let count = 0;
+  let insertAfter = -1;
 
-  return new Response(html, { headers: cacheHeaders() });
+  while ((match = regex.exec(content)) !== null) {
+    count++;
+    insertAfter = match.index + match[0].length;
+    if (count === 3) break;
+  }
+
+  if (count >= 3 && insertAfter > 0) {
+    return content.slice(0, insertAfter) + adHtml + content.slice(insertAfter);
+  }
+
+  // 3. Fallback: append at end
+  return content + adHtml;
 }
 
 async function hashIP(ip){
@@ -1531,6 +1676,119 @@ export async function renderReviewList(request, env) {
 }
 
 export async function renderNewsList(request, env) {
+  const renderer = new Renderer(env, request);
+  const site = await getSiteContext(request, env);
+
+  const url = new URL(request.url);
+  const searchQuery = (url.searchParams.get("q") || "").trim();
+  const tagFilter = (url.searchParams.get("tag") || "").trim();
+
+  let newsList = [];
+  let pageTitle = "News";
+  let pageDescription = `Latest iGaming industry news and updates from ${site.siteName}.`;
+
+  if (searchQuery) {
+    newsList = await news.searchNews(env.DB, searchQuery, 50);
+    pageTitle = `Search: ${searchQuery}`;
+    pageDescription = `Search results for "${searchQuery}" — ${site.siteName} News.`;
+  } else if (tagFilter) {
+    newsList = await news.getNewsByTag(env.DB, tagFilter, 50);
+    pageTitle = `Tag: ${tagFilter}`;
+    pageDescription = `News articles tagged with "${tagFilter}" — ${site.siteName}.`;
+  } else {
+    newsList = await news.getAllNews(env.DB);
+  }
+
+  const allComponents = await renderer.renderAllComponents("news_list", "news_list");
+  const dynamicSeo = await renderer.loadDynamicSeo("news_list", "news_list");
+
+  const newsListUrl = dynamicSeo.canonical || site.url("/en/news");
+
+  // ── Render news cards with featured images, excerpts, tags ──
+  const newsCards = newsList.map(article => {
+    const image = article.featured_image_url || article.featured_image_thumbnail || "";
+    const excerpt = article.excerpt || truncateText(stripHtml(article.content || ""), 150);
+    const date = article.published_at || article.created_at;
+
+    const imageHtml = image
+      ? `<div style="aspect-ratio:16/9;overflow:hidden"><img src="${escapeHtml(image)}" alt="${escapeHtml(article.featured_image_alt || article.title)}" style="width:100%;height:100%;object-fit:cover;transition:transform 0.3s" loading="lazy" decoding="async"></div>`
+      : `<div style="aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--gray);font-size:13px">No image</div>`;
+
+    const authorHtml = article.author_name
+      ? `<div style="display:flex;align-items:center;gap:8px;color:var(--gray);font-size:13px;margin-top:12px">${article.author_avatar ? `<img src="${escapeHtml(article.author_avatar)}" alt="" style="width:28px;height:28px;border-radius:50%;object-fit:cover" loading="lazy">` : ""}<span>${escapeHtml(article.author_name)}</span></div>`
+      : "";
+
+    // Tags as small chips (max 3)
+    const tagsHtml = article.tags
+      ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">${String(article.tags).split(",").map(t => t.trim()).filter(Boolean).slice(0, 3).map(t => `<a href="/en/news?tag=${encodeURIComponent(t)}" style="display:inline-block;padding:3px 9px;border-radius:999px;background:var(--bg);color:var(--gray);font-size:12px;text-decoration:none">${escapeHtml(t)}</a>`).join("")}</div>`
+      : "";
+
+    return `
+      <article style="overflow:hidden;border:1px solid var(--light-gray);border-radius:12px;background:var(--white);transition:transform 0.2s,box-shadow 0.2s;display:flex;flex-direction:column">
+        <a href="/en/news/${encodeURIComponent(article.slug)}" style="display:block;color:inherit;text-decoration:none">
+          ${imageHtml}
+          <div style="padding:20px;flex:1;display:flex;flex-direction:column">
+            ${date ? `<time style="color:var(--gray);font-size:13px;margin-bottom:8px" datetime="${toIsoDate(date)}">${escapeHtml(formatDate(date))}</time>` : ""}
+            <h3 style="margin:0 0 10px;font-size:21px;line-height:1.25;color:var(--dark)">${escapeHtml(article.title)}</h3>
+            ${excerpt ? `<p style="margin:0 0 12px;color:var(--gray);font-size:15px;line-height:1.6;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${escapeHtml(excerpt)}</p>` : ""}
+            ${tagsHtml}
+            ${authorHtml}
+          </div>
+        </a>
+      </article>
+    `;
+  }).join("");
+
+  const hasResults = newsList.length > 0;
+
+  const listSchema = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "@id": `${newsListUrl}#webpage`,
+    "url": newsListUrl,
+    "name": pageTitle,
+    "description": pageDescription,
+    "isPartOf": {
+      "@type": "WebSite",
+      "@id": `${site.origin}#website`,
+      "name": site.siteName,
+      "url": site.origin
+    },
+    ...(hasResults ? {
+      "mainEntity": {
+        "@type": "ItemList",
+        "itemListElement": newsList.map((article, index) => ({
+          "@type": "ListItem",
+          "position": index + 1,
+          "url": site.url(`/en/news/${article.slug}`),
+          "name": article.title
+        }))
+      }
+    } : {})
+  };
+
+  const html = await renderer.render("news-list.html", {
+    canonical: newsListUrl,
+    page_title: pageTitle,
+    page_description: pageDescription,
+    news_cards: newsCards,
+    has_results: hasResults,
+    search_query: escapeHtml(searchQuery),
+    tag_filter: escapeHtml(tagFilter),
+    seo_title: dynamicSeo.seo_title || `${pageTitle} | ${site.siteName}`,
+    seo_description: dynamicSeo.seo_description || pageDescription,
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
+    components_sidebar: allComponents.sidebar
+  }, listSchema, buildBreadcrumbs("newsList"));
+
+  return new Response(html, { headers: cacheHeaders() });
+}
+
+
+export async function renderNewsListbackup(request, env) {
   const renderer =
     new Renderer(env, request);
 
@@ -1798,47 +2056,6 @@ export async function renderNewsList(request, env) {
       headers: cacheHeaders()
     }
   );
-}
-export async function renderNewsListbackup(request, env) {
-  const renderer = new Renderer(env, request);
-  const site = await getSiteContext(request, env);
-  const newsList = await news.getAllNews(env.DB);
-  const allComponents = await renderer.renderAllComponents("news_list", "news_list");
-  const dynamicSeo = await renderer.loadDynamicSeo("news_list", "news_list");
-
-  const newsCards = newsList.map(n => `
-    <a href="/en/news/${n.slug}" class="news-card">
-      <h3>${n.title}</h3>
-      <p>${(n.content || "").substring(0, 120)}...</p>
-      <span class="news-date">${new Date(n.created_at).toLocaleDateString()}</span>
-    </a>
-  `).join("");
-
-  const listSchema = {
-    "@context": "https://schema.org",
-    "@type": "ItemList",
-    "name": "iGaming Industry News Feed",
-    "itemListElement": newsList.map((n, idx) => ({
-      "@type": "ListItem", "position": idx + 1,
-      "url": site.url(`/en/news/${n.slug}`)
-    }))
-  };
-      // Public pages don't need a CSRF token, but set it to empty for the meta tag
-  const html = await renderer.render("category.html", {
-    canonical: dynamicSeo.canonical || site.url("/en/news"),
-    category: "Latest News",
-    description: "Latest iGaming industry news and updates.",
-    casino_cards: `<div class="news-grid">${newsCards}</div>`,
-    components_top: allComponents.top,
-    components_content_top: allComponents.content_top,
-    components_content_bottom: allComponents.content_bottom,
-    components_bottom: allComponents.bottom,
-    components_sidebar: allComponents.sidebar,
-    seo_title: dynamicSeo.seo_title || `Casino News — ${site.siteName}`,
-    seo_description: dynamicSeo.seo_description || `Latest iGaming and online casino industry news from ${site.siteName}.`
-  }, listSchema, buildBreadcrumbs("newsList"));
-
-  return new Response(html, { headers: cacheHeaders() });
 }
 
 export async function renderUpdatesList(request, env) {

@@ -3,26 +3,58 @@
     {{components_top}}
     <header class="news-header">
       <h1>{{title}}</h1>
+
+      {{#if excerpt}}
+      <p class="news-excerpt" style="font-size:20px;color:var(--gray);line-height:1.6;margin:16px 0 20px">{{excerpt}}</p>
+      {{/if}}
+
       <div class="news-meta">
         {{#if author_name}}
         <div style="display:flex;align-items:center;gap:8px">
-          {{#if author_avatar}}<img src="{{author_avatar}}" alt="{{author_name}}" style="width:32px;height:32px;border-radius:50%" onerror="this.src='/static/images/default.png'">{{/if}}
-          <span>By <a href="/en/author/{{author_slug}}">{{author_name}}</a></span>
+          {{#if author_avatar}}<img src="{{author_avatar}}" alt="{{author_name}}" style="width:44px;height:44px;border-radius:50%;object-fit:cover" onerror="this.style.display='none'">{{/if}}
+          <div>
+            <span style="color:var(--gray);font-size:12px">By</span><br>
+            {{#if author_slug}}<a href="/en/author/{{author_slug}}" style="font-weight:700">{{author_name}}</a>{{else}}<strong>{{author_name}}</strong>{{/if}}
+            {{#if author_role}}<span style="color:var(--gray);font-size:12px;display:block">{{author_role}}</span>{{/if}}
+          </div>
         </div>
         {{/if}}
 
         <div class="news-dates" style="margin-top:10px">
-          <span><strong>Published:</strong> {{created_at}}</span>
+          {{#if published_at}}<span><strong>Published:</strong> {{published_at}}</span>{{/if}}
           &nbsp;•&nbsp;
           <span><strong>Updated:</strong> {{updated_at}}</span>
         </div>
       </div>
     </header>
+
+    {{#if featured_image_url}}
+    <figure class="news-featured" style="margin:0 0 30px">
+      <img src="{{featured_image_url}}" alt="{{featured_image_alt}}" style="width:100%;max-height:600px;object-fit:cover;border-radius:12px" fetchpriority="high" decoding="async">
+      {{#if featured_image_caption}}<figcaption style="text-align:center;color:var(--gray);font-size:13px;margin-top:8px">{{featured_image_caption}}</figcaption>{{/if}}
+    </figure>
+    {{/if}}
+
     <div class="news-content">
-      {{content}}
+      {{{content}}}
       {{components_content_top}}
       {{components_content_bottom}}
     </div>
+
+    {{#if tags_html}}
+    <div class="news-tags-section" style="margin-top:35px;padding-top:25px;border-top:1px solid var(--light-gray)">
+      <strong style="display:block;margin-bottom:10px;font-size:14px">Tags</strong>
+      <div class="news-tags-list">{{{tags_html}}}</div>
+    </div>
+    {{/if}}
+
+    {{#if related_news_html}}
+    <section class="news-related" style="margin-top:40px;padding-top:30px;border-top:2px solid var(--light-gray)">
+      <h2 style="margin:0 0 20px;font-size:24px">Related Articles</h2>
+      <div class="news-related-grid">{{{related_news_html}}}</div>
+    </section>
+    {{/if}}
+
     {{components_bottom}}
   </div>
 </article>

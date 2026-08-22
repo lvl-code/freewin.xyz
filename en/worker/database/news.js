@@ -1,100 +1,287 @@
-export async function getNews(
-  db,
-  slug
-){
+// ============================================================
+// en/worker/database/news.js
+// Enhanced: featured image, excerpt, tags, published_at,
+//           ai_generated, search, tag filter, related news
+// ============================================================
 
-  return db.prepare(`
-    SELECT *
-    FROM news
-    WHERE slug=?
+export async function getNews(db, slug) {
+  if (!slug) return null;
+
+  return await db.prepare(`
+    SELECT
+      n.*,
+      m.url            AS featured_image_url,
+      m.thumbnail_url   AS featured_image_thumbnail,
+      m.alt_text        AS featured_image_alt,
+      m.caption         AS featured_image_caption,
+      m.width           AS featured_image_width,
+      m.height          AS featured_image_height,
+      a.name            AS author_name,
+      a.slug            AS author_slug,
+      a.bio             AS author_bio,
+      a.avatar_url      AS author_avatar,
+      a.role            AS author_role
+    FROM news n
+    LEFT JOIN media_library m ON m.id = n.featured_image
+    LEFT JOIN authors a       ON a.id = n.author_id
+    WHERE n.slug = ?
     LIMIT 1
   `)
   .bind(slug)
   .first();
-
 }
-
 
 export async function getAllNews(db) {
   const result = await db.prepare(`
-    SELECT *
-    FROM news
-    WHERE published = 1
-    ORDER BY created_at DESC
+    SELECT
+      n.*,
+      m.url            AS featured_image_url,
+      m.thumbnail_url   AS featured_image_thumbnail,
+      m.alt_text        AS featured_image_alt,
+      a.name            AS author_name,
+      a.slug            AS author_slug,
+      a.avatar_url      AS author_avatar,
+      a.role            AS author_role
+    FROM news n
+    LEFT JOIN media_library m ON m.id = n.featured_image
+    LEFT JOIN authors a       ON a.id = n.author_id
+    WHERE n.published = 1
+    ORDER BY COALESCE(n.published_at, n.created_at) DESC, n.id DESC
   `).all();
 
   return result.results || [];
 }
-export async function getAllNewsbackup(
-  db
-){
 
-  const result =
-    await db.prepare(`
-      SELECT *
-      FROM news
-      WHERE published=1
-      ORDER BY created_at DESC
-    `)
-    .all();
+export async function getAllNewsAdmin(db) {
+  const result = await db.prepare(`
+    SELECT
+      n.*,
+      m.url            AS featured_image_url,
+      m.thumbnail_url   AS featured_image_thumbnail,
+      m.alt_text        AS featured_image_alt,
+      a.name            AS author_name,
+      a.slug            AS author_slug,
+      a.avatar_url      AS author_avatar
+    FROM news n
+    LEFT JOIN media_library m ON m.id = n.featured_image
+    LEFT JOIN authors a       ON a.id = n.author_id
+    ORDER BY COALESCE(n.published_at, n.created_at) DESC, n.id DESC
+  `).all();
 
   return result.results || [];
-
 }
 
+export async function searchNews(db, query, limit = 20) {
+  const q = String(query || "").trim();
+  if (!q) return [];
+
+  const pattern = `%${q}%`;
+
+  const result = await db.prepare(`
+    SELECT
+      n.*,
+      m.url            AS featured_image_url,
+      m.thumbnail_url   AS featured_image_thumbnail,
+      m.alt_text        AS featured_image_alt,
+      a.name            AS author_name,
+      a.slug            AS author_slug,
+      a.avatar_url      AS author_avatar,
+      a.role            AS author_role
+    FROM news n
+    LEFT JOIN media_library m ON m.id = n.featured_image
+    LEFT JOIN authors a       ON a.id = n.author_id
+    WHERE n.published = 1
+      AND (
+        n.title   LIKE ? OR
+        n.excerpt LIKE ? OR
+        n.content LIKE ? OR
+        n.tags    LIKE ?
+      )
+    ORDER BY COALESCE(n.published_at, n.created_at) DESC
+    LIMIT ?
+  `)
+  .bind(pattern, pattern, pattern, pattern, limit)
+  .all();
+
+  return result.results || [];
+}
+
+export async function getNewsByTag(db, tag, limit = 50) {
+  const t = String(tag || "").trim();
+  if (!t) return [];
+
+  const result = await db.prepare(`
+    SELECT
+      n.*,
+      m.url            AS featured_image_url,
+      m.thumbnail_url   AS featured_image_thumbnail,
+      m.alt_text        AS featured_image_alt,
+      a.name            AS author_name,
+      a.slug            AS author_slug,
+      a.avatar_url      AS author_avatar,
+      a.role            AS author_role
+    FROM news n
+    LEFT JOIN media_library m ON m.id = n.featured_image
+    LEFT JOIN authors a       ON a.id = n.author_id
+    WHERE n.published = 1
+      AND n.tags LIKE ?
+    ORDER BY COALESCE(n.published_at, n.created_at) DESC
+    LIMIT ?
+  `)
+  .bind(`%${t}%`, limit)
+  .all();
+
+  return result.results || [];
+}
+
+export async function getRelatedNews(db, currentSlug, tags, limit = 3) {
+  if (!tags) return [];
+
+  const tagList = String(tags)
+    .split(",")
+    .map(t => t.trim())
+    .filter(Boolean);
+
+  if (tagList.length === 0) return [];
+
+  const conditions = tagList.map(() => "n.tags LIKE ?").join(" OR ");
+  const tagParams  = tagList.map(t => `%${t}%`);
+
+  const result = await db.prepare(`
+    SELECT
+      n.slug,
+      n.title,
+      n.excerpt,
+      n.published_at,
+      n.created_at,
+      m.url            AS featured_image_url,
+      m.thumbnail_url   AS featured_image_thumbnail,
+      m.alt_text        AS featured_image_alt,
+      a.name            AS author_name,
+      a.slug            AS author_slug
+    FROM news n
+    LEFT JOIN media_library m ON m.id = n.featured_image
+    LEFT JOIN authors a       ON a.id = n.author_id
+    WHERE n.published = 1
+      AND n.slug != ?
+      AND (${conditions})
+    ORDER BY COALESCE(n.published_at, n.created_at) DESC
+    LIMIT ?
+  `)
+  .bind(currentSlug, ...tagParams, limit)
+  .all();
+
+  return result.results || [];
+}
 
 export async function createNews(db, data) {
-  return db.prepare(`
-    INSERT INTO news(
-      slug, title, content, author, author_id, seo_title, seo_description, published, created_by
+  const slug   = String(data.slug || "").trim();
+  const title  = String(data.title || "").trim();
+  const content = String(data.content || "");
+
+  if (!slug)   throw new Error("Slug is required.");
+  if (!title)  throw new Error("Title is required.");
+  if (!content.trim()) throw new Error("Content is required.");
+
+  const published = data.published !== undefined ? (data.published ? 1 : 0) : 1;
+  const publishedAt = data.published_at || (published ? new Date().toISOString() : null);
+
+  return await db.prepare(`
+    INSERT INTO news (
+      slug, title, content, author, author_id,
+      ai_generated, seo_title, seo_description,
+      published, featured_image, excerpt, tags,
+      published_at, created_by
     )
-    VALUES(?,?,?,?,?,?,?,1,?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
   .bind(
-    data.slug,
-    data.title,
-    data.content,
-    data.author || "Admin",
-    data.author_id || null,
-    data.seo_title,
-    data.seo_description,
-    data.created_by || null
+    slug,
+    title,
+    content,
+    String(data.author || "Admin").trim(),
+    normalizeId(data.author_id),
+    data.ai_generated ? 1 : 0,
+    normalizeText(data.seo_title),
+    normalizeText(data.seo_description),
+    published,
+    normalizeId(data.featured_image),
+    normalizeText(data.excerpt),
+    normalizeText(data.tags),
+    publishedAt,
+    normalizeId(data.created_by)
   )
   .run();
 }
 
-export async function updateNews(db, oldslug, data) {
-  return db.prepare(`
+export async function updateNews(db, oldSlug, data) {
+  if (!oldSlug) throw new Error("Original slug is required.");
+
+  const slug   = String(data.slug || "").trim();
+  const title  = String(data.title || "").trim();
+  const content = String(data.content || "");
+
+  if (!slug)   throw new Error("Slug is required.");
+  if (!title)  throw new Error("Title is required.");
+  if (!content.trim()) throw new Error("Content is required.");
+
+  const published = data.published !== undefined ? (data.published ? 1 : 0) : 1;
+
+  return await db.prepare(`
     UPDATE news
     SET
-      slug=?,
-      title=?, content=?, seo_title=?, seo_description=?, author_id=?,
-      updated_at=CURRENT_TIMESTAMP
-    WHERE slug=?
+      slug          = ?,
+      title         = ?,
+      content       = ?,
+      author        = ?,
+      author_id     = ?,
+      ai_generated  = ?,
+      seo_title     = ?,
+      seo_description = ?,
+      published     = ?,
+      featured_image = ?,
+      excerpt       = ?,
+      tags          = ?,
+      published_at  = ?,
+      updated_at    = CURRENT_TIMESTAMP
+    WHERE slug = ?
   `)
   .bind(
-    data.slug,
-    data.title,
-    data.content,
-    data.seo_title,
-    data.seo_description,
-    data.author_id || null,
-    oldslug
+    slug,
+    title,
+    content,
+    String(data.author || "Admin").trim(),
+    normalizeId(data.author_id),
+    data.ai_generated ? 1 : 0,
+    normalizeText(data.seo_title),
+    normalizeText(data.seo_description),
+    published,
+    normalizeId(data.featured_image),
+    normalizeText(data.excerpt),
+    normalizeText(data.tags),
+    data.published_at || null,
+    oldSlug
   )
   .run();
 }
 
+export async function deleteNews(db, slug) {
+  return await db.prepare(`DELETE FROM news WHERE slug = ?`)
+    .bind(slug)
+    .run();
+}
 
-export async function deleteNews(
-  db,
-  slug
-){
+// ── Helpers ──────────────────────────────────────────────
 
-  return db.prepare(`
-    DELETE FROM news
-    WHERE slug=?
-  `)
-  .bind(slug)
-  .run();
+function normalizeText(value) {
+  if (value === undefined || value === null) return null;
+  const s = String(value).trim();
+  return s || null;
+}
 
+function normalizeId(value) {
+  if (value === undefined || value === null || value === "") return null;
+  const id = Number(value);
+  if (!Number.isInteger(id) || id <= 0) return null;
+  return id;
 }
