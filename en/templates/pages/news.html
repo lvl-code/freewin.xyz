@@ -7,18 +7,8 @@
       {{#if excerpt}}
       <p class="news-excerpt" style="font-size:20px;color:var(--gray);line-height:1.6;margin:16px 0 20px">{{excerpt}}</p>
       {{/if}}
-
       <div class="news-meta">
-        {{#if author_name}}
-        <div style="display:flex;align-items:center;gap:8px">
-          {{#if author_avatar}}<img src="{{author_avatar}}" alt="{{author_name}}" style="width:44px;height:44px;border-radius:50%;object-fit:cover" onerror="this.style.display='none'">{{/if}}
-          <div>
-            <span style="color:var(--gray);font-size:12px">By</span><br>
-            {{#if author_slug}}<a href="/en/author/{{author_slug}}" style="font-weight:700">{{author_name}}</a>{{else}}<strong>{{author_name}}</strong>{{/if}}
-            {{#if author_role}}<span style="color:var(--gray);font-size:12px;display:block">{{author_role}}</span>{{/if}}
-          </div>
-        </div>
-        {{/if}}
+        {{{author_html}}}
 
         <div class="news-dates" style="margin-top:10px">
           {{#if published_at}}<span><strong>Published:</strong> {{published_at}}</span>{{/if}}

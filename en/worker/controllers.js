@@ -825,6 +825,31 @@ export async function renderNews(request, env, slug) {
   const featuredImage = article.featured_image_url || article.featured_image_thumbnail || "";
   const featuredImageAlt = article.featured_image_alt || article.title;
 
+  // Build author HTML in the controller — avoids template {{else}} issues
+  let authorHtml = "";
+  if (articleAuthorName) {
+    const avatarHtml = (author?.avatar_url || article.author_avatar)
+      ? `<img src="${escapeHtml(author?.avatar_url || article.author_avatar)}" alt="${escapeHtml(articleAuthorName)}" style="width:44px;height:44px;border-radius:50%;object-fit:cover" onerror="this.style.display='none'">`
+      : "";
+    const nameHtml = (author?.slug || article.author_slug)
+      ? `<a href="/en/author/${escapeHtml(author?.slug || article.author_slug)}" style="font-weight:700;text-decoration:none">${escapeHtml(articleAuthorName)}</a>`
+      : `<strong>${escapeHtml(articleAuthorName)}</strong>`;
+    const roleHtml = (author?.role || article.author_role)
+      ? `<span style="color:var(--gray);font-size:12px;display:block">${escapeHtml(author?.role || article.author_role)}</span>`
+      : "";
+    authorHtml = `
+      <div style="display:flex;align-items:center;gap:10px">
+        ${avatarHtml}
+        <div>
+          <span style="color:var(--gray);font-size:12px">By</span><br>
+          ${nameHtml}
+          ${roleHtml}
+        </div>
+      </div>
+    `;
+  }
+
+
   // ── Tags as clickable links ──────────────────────────
   let tagsHtml = "";
   if (article.tags) {
@@ -923,6 +948,7 @@ export async function renderNews(request, env, slug) {
     author_avatar: author?.avatar_url || "",
     author_role: author?.role || "",
     author_slug: author?.slug || "",
+    author_html: authorHtml,
     featured_image_url: featuredImage,
     featured_image_alt: featuredImageAlt,
     featured_image_caption: article.featured_image_caption || "",
