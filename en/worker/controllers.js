@@ -798,22 +798,15 @@ export async function renderNews(request, env, slug) {
   const canonical =
     dynamicSeo.canonical ||
     site.url(`/en/news/${article.slug}`);
+
   const description =
-  dynamicSeo.seo_description ||
-  article.seo_description ||
-  article.excerpt ||
-  truncateText(
-    stripHtml(
-      article.content || ""
-    ),
-    160
-  );
+    dynamicSeo.seo_description ||
+    article.seo_description ||
+    truncateText(article.content, 160);
 
   const published =
-  toIsoDate(
-    article.published_at ||
-    article.created_at
-  );
+    toIsoDate(article.created_at);
+
   const modified =
     toIsoDate(
       article.updated_at ||
@@ -844,14 +837,6 @@ export async function renderNews(request, env, slug) {
     "headline": article.title,
 
     "description": description,
-    ...(article.featured_image_url
-  ? {
-      "image": [
-        article.featured_image_url
-      ]
-    }
-  : {}),
-
 
     "datePublished": published,
 
@@ -924,34 +909,6 @@ export async function renderNews(request, env, slug) {
       author_slug:
         author?.slug ||
         "",
-      featured_image_url:
-  article.featured_image_url ||
-  "",
-
-featured_image_thumbnail:
-  article.featured_image_thumbnail ||
-  "",
-
-featured_image_alt:
-  article.featured_image_alt ||
-  article.title ||
-  "",
-
-featured_image_caption:
-  article.featured_image_caption ||
-  "",
-
-featured_image_width:
-  article.featured_image_width ||
-  "",
-
-featured_image_height:
-  article.featured_image_height ||
-  "",
-
-published_at_display:
-  article.published_at ||
-  article.created_at,
 
       components_top:
         allComponents.top,
@@ -1603,36 +1560,16 @@ export async function renderNewsList(request, env) {
     newsList.map(article => {
 
       const description =
-  article.excerpt ||
-  truncateText(
-    stripHtml(
-      article.content || ""
-    ),
-    120
-  );
+        truncateText(
+          article.content,
+          120
+        );
+
       return `
         <a
           href="${site.url(`/en/news/${article.slug}`)}"
           class="news-card"
         >
-          ${
-  article.featured_image_thumbnail ||
-  article.featured_image_url
-    ? `
-      <div class="news-card__image">
-        <img
-          src="${
-            article.featured_image_thumbnail ||
-            article.featured_image_url
-          }"
-          alt="${article.featured_image_alt || article.title}"
-          loading="lazy"
-          decoding="async"
-        >
-      </div>
-    `
-    : ""
-}
           <h3>${article.title}</h3>
 
           <p>${description}...</p>
