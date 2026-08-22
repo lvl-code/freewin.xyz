@@ -2650,37 +2650,102 @@ padding:22px;
   box-shadow: 0 8px 16px rgba(0,0,0,0.06);
 }
 
-/* Responsive */
-@media (max-width: 1000px) {
-  .news-related-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+/* ============================================================
+   NEWS SYSTEM — RESPONSIVE CARD GRID
+   ============================================================ */
+
+.news-list-page .news-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+  width: 100%;
+  margin-top: 24px;
+  align-items: stretch;
+}
+
+.news-list-page .news-grid > article {
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.news-list-page .news-grid > article > a {
+  display: flex !important;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.news-list-page .news-grid > article img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+}
+
+.news-list-page .news-grid > article h3 {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.news-list-page .news-grid > article:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+}
+
+/* Large tablets / smaller desktops */
+@media (max-width: 1200px) {
+  .news-list-page .news-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
   }
 }
 
-@media (max-width: 700px) {
-  .news-grid {
+/* Tablets */
+@media (max-width: 900px) {
+  .news-list-page .news-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-    margin-top: 16px;
-  }
-
-  .news-grid > article {
-    min-width: 0;
-  }
-
-  .news-related-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    gap: 18px;
   }
 }
 
-@media (max-width: 420px) {
-  .news-grid {
+/* Phones */
+@media (max-width: 600px) {
+  .news-list-page .news-grid {
     grid-template-columns: 1fr;
     gap: 16px;
+    margin-top: 18px;
   }
 
-  .news-related-grid {
-    grid-template-columns: 1fr;
+  .news-list-page .news-grid > article {
+    width: 100%;
+  }
+
+  .news-list-page .news-grid > article > a {
+    width: 100%;
+  }
+}
+
+/* Very small phones */
+@media (max-width: 380px) {
+  .news-list-page .news-grid {
+    gap: 14px;
+  }
+
+  .news-list-page .news-grid > article > a > div {
+    padding: 15px !important;
+  }
+
+  .news-list-page .news-grid h3 {
+    font-size: 18px !important;
+  }
+
+  .news-list-page .news-grid p {
+    font-size: 14px !important;
   }
 }
