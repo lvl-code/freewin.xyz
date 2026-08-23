@@ -449,6 +449,8 @@ if (path === "/api/v1/public/countries/list") {
       "/api/v1/permissions/list": "permissions",
       // Platform Updates
       "/api/v1/platform-updates/list": "platform-updates",
+      // Ad Rules
+      "/api/v1/ad-rules/list": "ad-rules",
       // Banners
       "/api/v1/banners/list": "banners",
     };
@@ -491,6 +493,7 @@ if (path === "/api/v1/public/countries/list") {
       "/api/v1/media": "media",
       "/api/v1/nav": "nav",
       "/api/v1/platform-updates": "platform-updates",
+      "/api/v1/ad-rules": "ad-rules",
     };
 
     let resource = null;
@@ -1129,8 +1132,7 @@ async function requireAdAdmin(request, env) {
 }
 
 // ── Routes ───────────────────────────────────────────────
-
-  if (path === "/api/v1/ad-rules/list") {
+  if (path === "/api/v1/ad-rules/list" && request.method === "GET") {
     try {
       const user = await requireAdAdmin(request, env);
       const rules = await adRulesDB.getAllAdRules(env.DB);
