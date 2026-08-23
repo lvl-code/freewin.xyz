@@ -130,24 +130,16 @@ a:hover{text-decoration-thickness:1.5px}
 .hero-actions{flex-wrap:wrap}
 .hero-badge{border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.08);padding:7px 12px;border-radius:999px;backdrop-filter:blur(8px)}
 
-/* Public cards */
-.casino-grid,.news-grid,.features-grid{align-items:stretch}
-.casino-card,.news-card,.feature-card,.sidebar-block,.info-block,.info-card,.pros-cons-block,.auth-card,.review-summary{border:1px solid color-mix(in srgb,var(--support-border) 80%,transparent)}
-.casino-card,.news-card{position:relative;isolation:isolate}
-.casino-card{border-radius:var(--support-radius-lg);box-shadow:var(--support-shadow-sm);transition:transform .22s cubic-bezier(.2,.7,.2,1),box-shadow .22s,border-color .22s}
-.casino-card::after{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:linear-gradient(145deg,color-mix(in srgb,var(--support-primary) 7%,transparent),transparent 42%);opacity:0;transition:opacity .22s;pointer-events:none}
-.casino-card:hover{transform:translateY(-5px);border-color:color-mix(in srgb,var(--support-primary) 24%,var(--support-border));box-shadow:var(--support-shadow-lg)}
-.casino-card:hover::after{opacity:1}
-.casino-card__header{min-height:82px;padding:18px}
-.casino-card__logo{width:52px;height:52px;flex:0 0 52px;padding:5px;background:#fff;border:1px solid var(--support-border);box-shadow:var(--support-shadow-xs)}
-.casino-card__body{padding:0 18px 14px}
-.casino-card__body h3{font-size:18px;line-height:1.25}
-.casino-card__rating{font-weight:700;letter-spacing:.01em}
-.casino-card__bonus{margin-top:12px;border:1px solid color-mix(in srgb,var(--support-primary) 12%,var(--support-border));background:linear-gradient(135deg,color-mix(in srgb,var(--support-primary) 5%,var(--support-bg)),var(--support-bg))}
+/* Public cards */.news-grid,
+.features-grid {align-items:stretch}.news-card,
+.feature-card,
+.sidebar-block,
+.info-block,
+.info-card,
+.pros-cons-block,
+.auth-card,
+.review-summary {border:1px solid color-mix(in srgb,var(--support-border) 80%,transparent)}.news-card {position:relative;isolation:isolate}
 .bonus-title{letter-spacing:.07em;font-weight:700}.bonus-value{font-size:17px}
-.casino-card__actions{padding:0 18px 18px}
-.casino-card__actions .btn{min-width:0}
-.casino-card__bookmark{box-shadow:0 8px 20px rgba(0,0,0,.20);backdrop-filter:blur(10px)}
 .news-card{border-radius:var(--support-radius-lg);padding:22px;box-shadow:var(--support-shadow-sm);transition:transform .22s,box-shadow .22s,border-color .22s}
 .news-card:hover{transform:translateY(-4px);box-shadow:var(--support-shadow-md);border-color:color-mix(in srgb,var(--support-primary) 22%,var(--support-border))}
 .news-card h3{line-height:1.3}.news-card p{line-height:1.65}
@@ -287,13 +279,12 @@ pre,.code-block,.json-viewer,.schema-preview{overflow:auto;max-width:100%;paddin
 @media (max-width:968px){.layout-wrapper,.casino-body{gap:22px}.casino-hero__right{align-items:flex-start}.footer-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:768px){
   body{font-size:15px}.container{padding-left:16px;padding-right:16px}.header-inner{gap:10px}.logo-text{font-size:1rem}.search-box{display:none}
-  .hero{min-height:330px;padding:58px 0}.hero-actions{align-items:stretch}.hero-actions .btn{width:100%}.section{padding:38px 0}.section-header{align-items:flex-start}.section-header h2{font-size:23px}
-  .casino-grid,.news-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr))}.casino-hero{padding:20px}.casino-hero__left,.casino-hero__right{width:100%}.bonus-box{width:100%}.info-card dl{grid-template-columns:1fr}.info-card dd{text-align:left}.review-pros-cons{grid-template-columns:1fr}
+  .hero{min-height:330px;padding:58px 0}.hero-actions{align-items:stretch}.hero-actions .btn{width:100%}.section{padding:38px 0}.section-header{align-items:flex-start}.section-header h2{font-size:23px}.news-grid {grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr))}.casino-hero{padding:20px}.casino-hero__left,.casino-hero__right{width:100%}.bonus-box{width:100%}.info-card dl{grid-template-columns:1fr}.info-card dd{text-align:left}.review-pros-cons{grid-template-columns:1fr}
   .admin-wrapper{display:block;background:var(--support-bg)}.admin-nav{position:sticky;top:64px;z-index:90;height:auto;flex-direction:row;overflow-x:auto;padding:8px;border-right:0;border-bottom:1px solid rgba(255,255,255,.08);box-shadow:0 8px 22px rgba(15,23,42,.14);scrollbar-width:thin}.admin-nav a{flex:0 0 auto;white-space:nowrap;min-height:40px}.admin-logout{margin-top:0!important;padding-top:9px!important;border-top:0;border-left:1px solid rgba(255,255,255,.08)}
   .admin-content{padding:20px 16px}.admin-header{align-items:flex-start;flex-wrap:wrap}.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-grid,.admin-grid,.card-grid,.content-grid{grid-template-columns:1fr}.dashboard-card,.admin-card{grid-column:auto}.form-row,.form-row-3{grid-template-columns:1fr}.admin-form{max-width:none;padding:20px}.admin-table{min-width:720px}.footer-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.btn{min-height:44px}.btn--sm{min-height:36px}.table-actions .btn{min-height:36px}
 }
 @media (max-width:520px){
-  .stats-grid{grid-template-columns:1fr}.footer-grid{grid-template-columns:1fr;gap:26px}.auth-card{padding:24px 18px;border-radius:14px}.casino-card__header{padding:16px}.casino-card__body,.casino-card__actions{padding-left:16px;padding-right:16px}.casino-card__actions{flex-direction:column}.casino-card__actions .btn{width:100%}.review-header h1,.news-header h1{font-size:1.8rem}.review-content,.news-content{font-size:15.5px;line-height:1.78}.admin-content{padding:16px 12px}.admin-section{padding:18px 15px;border-radius:14px}.admin-form{padding:18px 15px}
+  .stats-grid{grid-template-columns:1fr}.footer-grid{grid-template-columns:1fr;gap:26px}.auth-card{padding:24px 18px;border-radius:14px}.review-header h1,.news-header h1{font-size:1.8rem}.review-content,.news-content{font-size:15.5px;line-height:1.78}.admin-content{padding:16px 12px}.admin-section{padding:18px 15px;border-radius:14px}.admin-form{padding:18px 15px}
 }
 @media (max-width:380px){.logo-text{display:none}.hero{padding:48px 0}.hero h1{font-size:1.8rem}}
 
@@ -304,10 +295,18 @@ pre,.code-block,.json-viewer,.schema-preview{overflow:auto;max-width:100%;paddin
 }
 
 /* Print */
-@media print{
-  .site-header,.admin-nav,.mobile-bottom-nav,.nav-toggle,.header-actions,.site-footer,.btn,.casino-card__bookmark{display:none!important}
-  body{background:#fff;color:#000}.layout-wrapper,.admin-wrapper,.casino-body{display:block;max-width:none;margin:0;padding:0}.admin-content{padding:0;background:#fff}
-  .casino-card,.news-card,.info-block,.info-card,.admin-section,.admin-table{box-shadow:none!important;break-inside:avoid}a{color:#000;text-decoration:underline}
+@media print{.site-header,
+.admin-nav,
+.mobile-bottom-nav,
+.nav-toggle,
+.header-actions,
+.site-footer,
+.btn {display:none!important}
+  body{background:#fff;color:#000}.layout-wrapper,.admin-wrapper,.casino-body{display:block;max-width:none;margin:0;padding:0}.admin-content{padding:0;background:#fff}.news-card,
+.info-block,
+.info-card,
+.admin-section,
+.admin-table {box-shadow:none!important;break-inside:avoid}a{color:#000;text-decoration:underline}
 }
 
 /* Reduced motion */
@@ -320,21 +319,40 @@ pre,.code-block,.json-viewer,.schema-preview{overflow:auto;max-width:100%;paddin
 .stack{display:flex;flex-direction:column;gap:16px}.cluster{display:flex;flex-wrap:wrap;align-items:center;gap:10px}.center{display:grid;place-items:center}
 .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
 
-/* ==========================================================================
-   30. FINAL VISUAL CONSISTENCY PASS
-   ========================================================================== */
-
-/* Equal-height casino cards: content may differ, card/action rows stay aligned. */
-.casino-grid{align-items:stretch}
-.casino-grid>.casino-card{height:100%;min-height:100%;display:flex;flex-direction:column;align-self:stretch;box-sizing:border-box}
-.casino-grid>.casino-card .casino-card__header{flex:0 0 auto}
-.casino-grid>.casino-card .casino-card__body{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
-.casino-grid>.casino-card .casino-card__bonus{margin-top:auto}
-.casino-grid>.casino-card .casino-card__actions{flex:0 0 auto;margin-top:0}
-
-/* High-clarity typography on normal/light surfaces. */
-:where(.main-content,.page-content,.review-content,.news-content,.casino-page,.casino-detail,.admin-content,.admin-section,.admin-form,.auth-card,.info-block,.info-card,.sidebar-block,.feature-card,.news-card,.casino-card){color:var(--support-text)}
-:where(.main-content,.page-content,.review-content,.news-content,.casino-page,.casino-detail,.admin-content,.admin-section,.admin-form,.auth-card,.info-block,.info-card,.sidebar-block,.feature-card,.news-card,.casino-card) :where(.muted,.text-muted,small,.help-text,.form-help,.field-help){color:#526174}
+/* High-clarity typography on normal/light surfaces. */:where(.main-content,
+.page-content,
+.review-content,
+.news-content,
+.casino-page,
+.casino-detail,
+.admin-content,
+.admin-section,
+.admin-form,
+.auth-card,
+.info-block,
+.info-card,
+.sidebar-block,
+.feature-card,
+.news-card {color:var(--support-text)}:where(.main-content,
+.page-content,
+.review-content,
+.news-content,
+.casino-page,
+.casino-detail,
+.admin-content,
+.admin-section,
+.admin-form,
+.auth-card,
+.info-block,
+.info-card,
+.sidebar-block,
+.feature-card,
+.news-card,
+.text-muted,
+small,
+.help-text,
+.form-help,
+.field-help) {color:#526174}
 
 /* Sharp readable text on dark surfaces. */
 :where(.site-header,.site-footer,.hero,.admin-nav,.mobile-bottom-nav){color:rgba(255,255,255,.94)}
@@ -384,23 +402,6 @@ pre,.code-block,.json-viewer,.schema-preview{overflow:auto;max-width:100%;paddin
  .breadcrumbs::-webkit-scrollbar{display:none}
 }
 @media (max-width:520px){.breadcrumbs{margin-bottom:14px;padding:7px 10px;font-size:12px}.site-footer{margin-top:48px}.site-footer :where(p,li,dd,dt,span,small,.rg-text,.disclaimer-text,.footer-bottom){color:rgba(255,255,255,.82)}}
-
-
-
-
-
-
-
-
-/* ==========================================================================
-   31. FINAL TYPOGRAPHY + CONTENT VISIBILITY / CONTRAST PASS
-   ==========================================================================
-   Purpose:
-   - Make every important title, subtitle, author, date and card text clearly
-     readable across light, dark, gradient and image-backed surfaces.
-   - Preserve existing layout, sizing and functionality.
-   - Avoid relying on shadows alone for readability.
-   ========================================================================== */
 
 
 /* --------------------------------------------------------------------------
@@ -694,172 +695,118 @@ h6 {
   text-decoration-thickness: 1.5px;
 }
 
-
-/* --------------------------------------------------------------------------
-   31.8 CASINO CARD TYPOGRAPHY
-   -------------------------------------------------------------------------- */
-
-.casino-card {
-  color: #263244;
-}
-
 /*
   Keep the card itself readable even when its background is customized by
   another component or theme.
-*/
-
-.casino-card :where(
-  h1,h2,h3,h4,h5,h6,
-  p,li,span,div,
-  strong,b,
-  small,
-  label
+*/h2,
+h3,
+h4,
+h5,
+h6,
+p,
+li,
+span,
+div,
+strong,
+b,
+small,
+label
 ) {
   text-rendering: optimizeLegibility;
-}
-
-.casino-card :where(
-  h1,h2,h3,h4,h5,h6
+}h2,
+h3,
+h4,
+h5,
+h6
 ) {
   color: #111827;
   font-weight: 780;
-}
-
-.casino-card :where(
-  h3,
-  .casino-card__title,
-  .casino-name,
-  .card-title
+}.casino-name,
+.card-title
 ) {
   color: #111827;
   font-weight: 800;
   letter-spacing: -.018em;
   line-height: 1.28;
-}
-
-.casino-card :where(
-  p,
-  .casino-description,
-  .card-description,
-  .description
+}.casino-description,
+.card-description,
+.description
 ) {
   color: #3d4b5e;
   font-weight: 500;
   line-height: 1.58;
-}
-
-.casino-card :where(
-  .casino-card__rating,
-  .rating,
-  .rating-value,
-  .score
+}.rating,
+.rating-value,
+.score
 ) {
   color: #172033;
   font-weight: 800;
-}
-
-.casino-card :where(
-  .casino-card__meta,
-  .meta,
-  .casino-meta,
-  small
+}.meta,
+.casino-meta,
+small
 ) {
   color: #526174;
   font-weight: 600;
-}
-
-.casino-card :where(
-  .casino-card__bonus,
-  .bonus-box,
-  .bonus
+}.bonus-box,
+.bonus
 ) {
   color: #263244;
-}
-
-.casino-card :where(
-  .bonus-title,
-  .bonus-label
+}.bonus-label
 ) {
   color: #526174;
   font-weight: 750;
-}
-
-.casino-card :where(
-  .bonus-value,
-  .bonus-amount
+}.bonus-amount
 ) {
   color: #111827;
   font-weight: 850;
   letter-spacing: -.015em;
-}
-
-.casino-card :where(
-  .casino-card__body
-) {
-  color: #263244;
-}
-
-
-/* --------------------------------------------------------------------------
-   31.9 CASINO CARD — DARK / COLORED CARD VARIANTS
-   -------------------------------------------------------------------------- */
-
-/*
-  If a casino card intentionally has a dark background, the content switches
-  to a high-contrast light palette.
-*/
-
-.casino-card.dark,
-.casino-card.dark-card,
-.casino-card[data-theme="dark"],
-.casino-card[style*="background:#"],
-.casino-card[style*="background: #"] {
-  color: #ffffff;
-}
-
-.casino-card.dark :where(
-  h1,h2,h3,h4,h5,h6,
-  .casino-card__title,
-  .casino-name,
-  .card-title
+}h2,
+h3,
+h4,
+h5,
+h6,
+.casino-name,
+.card-title
 ),
-.casino-card.dark-card :where(
-  h1,h2,h3,h4,h5,h6,
-  .casino-card__title,
-  .casino-name,
-  .card-title
+h2,
+h3,
+h4,
+h5,
+h6,
+.casino-name,
+.card-title
 ),
-.casino-card[data-theme="dark"] :where(
-  h1,h2,h3,h4,h5,h6,
-  .casino-card__title,
-  .casino-name,
-  .card-title
+h2,
+h3,
+h4,
+h5,
+h6,
+.casino-name,
+.card-title
 ) {
   color: #ffffff;
   text-shadow: 0 2px 4px rgba(0,0,0,.30);
-}
-
-.casino-card.dark :where(p,.description,.casino-description),
-.casino-card.dark-card :where(p,.description,.casino-description),
-.casino-card[data-theme="dark"] :where(p,.description,.casino-description) {
+}.description,
+.casino-description),
+.description,
+.casino-description),
+.description,
+.casino-description) {
   color: rgba(255,255,255,.88);
-}
-
-.casino-card.dark :where(.meta,.casino-meta,small),
-.casino-card.dark-card :where(.meta,.casino-meta,small),
-.casino-card[data-theme="dark"] :where(.meta,.casino-meta,small) {
+}.casino-meta,
+small),
+.casino-meta,
+small),
+.casino-meta,
+small) {
   color: rgba(255,255,255,.74);
-}
-
-.casino-card.dark :where(.bonus-title,.bonus-label),
-.casino-card.dark-card :where(.bonus-title,.bonus-label),
-.casino-card[data-theme="dark"] :where(.bonus-title,.bonus-label) {
+}.bonus-label),
+.bonus-label),
+.bonus-label) {
   color: rgba(255,255,255,.78);
-}
-
-.casino-card.dark :where(.bonus-value,.bonus-amount),
-.casino-card.dark-card :where(.bonus-value,.bonus-amount),
-.casino-card[data-theme="dark"] :where(.bonus-value,.bonus-amount) {
+}.bonus-amount),
+.bonus-amount),
+.bonus-amount) {
   color: #ffffff;
 }
 
@@ -1202,29 +1149,16 @@ table td {
   .section-description,
   .section-header p {
     line-height: 1.65;
-  }
-
-  .casino-card :where(
-    h3,
-    .casino-card__title,
-    .casino-name,
-    .card-title
+  }.casino-name,
+.card-title
   ) {
     font-size: 17px;
-  }
-
-  .casino-card :where(
-    p,
-    .description,
-    .casino-description
+  }.description,
+.casino-description
   ) {
     color: #3b495b;
-  }
-
-  .casino-card :where(
-    .meta,
-    .casino-meta,
-    small
+  }.casino-meta,
+small
   ) {
     color: #526174;
   }
@@ -1259,28 +1193,37 @@ table td {
 
   body {
     color: #111827;
-  }
-
-  .casino-card,
-  .news-card,
-  .feature-card,
-  .info-card,
-  .info-block,
-  .sidebar-block,
-  .admin-section,
-  .admin-form {
+  }.news-card,
+.feature-card,
+.info-card,
+.info-block,
+.sidebar-block,
+.admin-section,
+.admin-form {
     border-color: #b8c2d1;
-  }
-
-  .casino-card :where(h1,h2,h3,h4,h5,h6),
-  .news-card :where(h1,h2,h3,h4,h5,h6),
-  .feature-card :where(h1,h2,h3,h4,h5,h6) {
+  }h2,
+h3,
+h4,
+h5,
+h6),
+.news-card :where(h1,
+h2,
+h3,
+h4,
+h5,
+h6),
+.feature-card :where(h1,
+h2,
+h3,
+h4,
+h5,
+h6) {
     color: #0b1220;
-  }
-
-  .casino-card :where(p,.description),
-  .news-card :where(p,.description),
-  .feature-card :where(p,.description) {
+  }.description),
+.news-card :where(p,
+.description),
+.feature-card :where(p,
+.description) {
     color: #27364a;
   }
 
@@ -1426,34 +1369,6 @@ table td {
 }
 
 
-/* ==========================================================================
-   END OF FINAL TYPOGRAPHY + VISIBILITY PASS
-   ========================================================================== */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* ==========================================================================
-   32. FINAL SECTION RHYTHM / VERTICAL SPACING SYSTEM
-   ==========================================================================
-   Goal:
-   - Prevent excessive gaps between sections.
-   - Keep related sections visually connected.
-   - Preserve breathing room without making the page feel fragmented.
-   - Prevent nested elements from creating compounded vertical margins.
-   ========================================================================== */
-
-
 /* --------------------------------------------------------------------------
    32.1 GLOBAL SECTION RHYTHM
    -------------------------------------------------------------------------- */
@@ -1480,11 +1395,6 @@ main > section:first-child,
 .section:first-child {
   margin-top: 0;
 }
-
-
-/* --------------------------------------------------------------------------
-   32.2 ADJACENT SECTIONS — REDUCE THE DOUBLE GAP
-   -------------------------------------------------------------------------- */
 
 /*
   When two sections sit directly together, don't let both margins stack
@@ -1545,25 +1455,14 @@ section > h4 + p {
   margin-top: 0;
 }
 
-
-/* --------------------------------------------------------------------------
-   32.5 CARDS → NEXT SECTION
-   -------------------------------------------------------------------------- */
-
 /*
   Avoid a large blank region after card grids.
-*/
-
-.casino-grid,
-.news-grid,
+*/.news-grid,
 .feature-grid,
 .cards-grid,
 .card-grid {
   margin-bottom: 0;
-}
-
-.casino-grid + *,
-.news-grid + *,
+}.news-grid + *,
 .feature-grid + *,
 .cards-grid + *,
 .card-grid + * {
@@ -1764,32 +1663,6 @@ section > h4 + p {
 
 
 /* --------------------------------------------------------------------------
-   32.15 CARD INTERNAL SPACING
-   -------------------------------------------------------------------------- */
-
-.casino-card__header {
-  margin-bottom: 10px;
-}
-
-.casino-card__body {
-  padding-top: 0;
-}
-
-.casino-card__title,
-.casino-card .card-title,
-.casino-card .casino-name {
-  margin-top: 0;
-  margin-bottom: 7px;
-}
-
-.casino-card .description,
-.casino-card .casino-description {
-  margin-top: 0;
-  margin-bottom: 10px;
-}
-
-
-/* --------------------------------------------------------------------------
    32.16 SIDEBAR RHYTHM
    -------------------------------------------------------------------------- */
 
@@ -1863,11 +1736,6 @@ table {
   margin-bottom: 14px;
 }
 
-
-/* --------------------------------------------------------------------------
-   32.20 FOOTER SEPARATION
-   -------------------------------------------------------------------------- */
-
 /*
   Keep the footer visually separated from content, but avoid an excessive
   empty zone before it.
@@ -1881,14 +1749,11 @@ main + .site-footer,
 
 /* --------------------------------------------------------------------------
    32.21 REMOVE ACCIDENTAL EMPTY SPACE FROM EMPTY CONTAINERS
-   -------------------------------------------------------------------------- */
-
-.section:empty,
+   -------------------------------------------------------------------------- */.section:empty,
 .content-section:empty,
 .page-section:empty,
 .info-block:empty,
-.card-grid:empty,
-.casino-grid:empty {
+.card-grid:empty {
   display: none;
 }
 

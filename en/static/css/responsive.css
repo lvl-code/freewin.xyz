@@ -29,7 +29,6 @@
 
 @media (max-width: 480px) {
   .footer-grid { grid-template-columns: 1fr; }
-  .casino-grid { grid-template-columns: 1fr; }
   .features-grid { grid-template-columns: 1fr; }
   .news-grid { grid-template-columns: 1fr; }
   .auth-card { padding: 24px; }
@@ -37,11 +36,6 @@
   .info-card dl { grid-template-columns: 1fr; }
   .info-card dd { text-align: left; }
 }
-
-
-/* =====================================================
-   PHASE H: MOBILE OPTIMIZATION
-   ===================================================== */
 
 /* ---- Global Mobile Tweaks ---- */
 @media (max-width: 768px) {
@@ -153,67 +147,6 @@
  }
 
 /* ---- Swipeable Casino Cards ---- */
-@media (max-width: 768px) {
-  .casino-grid {
-    display: flex;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    gap: 14px;
-    padding-bottom: 16px;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-
-  .casino-grid::-webkit-scrollbar {
-    display: none;
-  }
-
-  .casino-grid > .casino-card {
-    flex: 0 0 280px;
-    scroll-snap-align: start;
-    min-width: 280px;
-  }
-
-  /* Edge fade indicators */
-  .casino-grid-wrapper {
-    position: relative;
-  }
-
-  .casino-grid-wrapper::after {
-    content: "";
-    position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 16px;
-    width: 40px;
-    background: linear-gradient(to right, transparent, var(--bg));
-    pointer-events: none;
-    z-index: 1;
-  }
-
-  .casino-grid-wrapper::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 16px;
-    width: 40px;
-    background: linear-gradient(to left, transparent, var(--bg));
-    pointer-events: none;
-    z-index: 1;
-  }
-
-  /* Swipe hint pulse on first card */
-  .casino-grid > .casino-card:first-child {
-    animation: swipeHint 2s ease-out 1s 1;
-  }
-
-  @keyframes swipeHint {
-    0%, 100% { transform: translateX(0); }
-    50% { transform: translateX(-8px); }
-  }
-}
 
 /* ---- Sticky Mobile CTA ---- */
 .mobile-sticky-cta {
@@ -349,10 +282,6 @@
 
   .section-header h2 {
     font-size: 22px;
-  }
-
-  .casino-card__body h3 {
-    font-size: 16px;
   }
 
   .review-header h1 {
@@ -694,32 +623,6 @@
 
 /* ---- Mobile Casino Card Refinements ---- */
 @media (max-width: 768px) {
-  .casino-card {
-    border-radius: 14px;
-  }
-
-  .casino-card__header {
-    padding: 12px;
-  }
-
-  .casino-card__logo {
-    width: 40px;
-    height: 40px;
-  }
-
-  .casino-card__body {
-    padding: 0 12px 12px;
-  }
-
-  .casino-card__actions {
-    padding: 0 12px 12px;
-    gap: 6px;
-  }
-
-  .casino-card__actions .btn {
-    font-size: 13px;
-    padding: 8px 12px;
-  }
 
   .geo-badge {
     width: 32px;
@@ -756,8 +659,5 @@ pre,
 code {
   max-width: 100%;
 }
-
-
-
 
 

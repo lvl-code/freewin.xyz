@@ -29,6 +29,7 @@
 
       const geoBadge = `<div class="geo-badge ${geoClass}" title="${geoLabel}"><span class="geo-badge__flag">${flag}</span><span class="geo-badge__icon">${geoIcon}</span></div>`;
       const geoStatusText = `<div class="casino-card__geo-status geo-${geoStatus}">${flag} ${geoLabel} for players from ${country}</div>`;
+      const stars = `${'★'.repeat(Math.round(c.rating||0))}${'☆'.repeat(5-Math.round(c.rating||0))}`;
 
       return `
       <div class="casino-card">
@@ -44,11 +45,15 @@
           <span class="bookmark-icon" aria-hidden="true">♡</span>
         </button>
         <div class="casino-card__header">
-          <img src="${c.logo || '/static/images/default.png'}" alt="${c.name}" class="casino-card__logo" onerror="this.src='/static/images/default.png'" loading="lazy">
-          <div class="casino-card__rating">${'★'.repeat(Math.round(c.rating||0))}${'☆'.repeat(5-Math.round(c.rating||0))}</div>
+          <div class="casino-card__logo-wrap">
+            <img src="${c.logo || '/static/images/default.png'}" alt="${c.name}" class="casino-card__logo" onerror="this.src='/static/images/default.png'" loading="lazy">
+          </div>
+          <div class="casino-card__title-group">
+            <h3 class="casino-card__name">${c.name}</h3>
+            <div class="casino-card__rating" aria-label="Rating ${c.rating || 0} out of 5">${stars}</div>
+          </div>
         </div>
         <div class="casino-card__body">
-          <h3>${c.name}</h3>
           <div class="casino-card__bonus">
             <span class="bonus-title">${c.bonus_title || 'Welcome Bonus'}</span>
             <span class="bonus-value">${c.bonus_value || ''}</span>

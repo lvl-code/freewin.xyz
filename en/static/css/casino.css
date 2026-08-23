@@ -1,4 +1,4 @@
-/* Casino-specific styles that extend main.css */
+
 
 /* Casino listing page */
 .casino-list-toolbar {
@@ -16,20 +16,6 @@
   font-size: 14px;
   background: var(--white);
 }
-
-/* Casino card hover effects */
-.casino-card .casino-card__badge {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  background: var(--primary);
-  color: var(--white);
-  font-size: 11px;
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-weight: 600;
-}
-.casino-card { position: relative; }
 
 /* Rating stars display */
 .stars {
@@ -73,3 +59,89 @@
 .review-item h4 { margin-bottom: 6px; }
 .review-item .review-rating { color: var(--warning); font-size: 14px; }
 .review-item .review-excerpt { color: var(--gray); font-size: 14px; margin-top: 6px; }
+
+/* ============================================================
+   CASINO GRID + CASINO CARD
+   Single source of truth for the casino listing component.
+   Namespace: .casino-grid / .casino-card / .casino-card__*
+   Consumed by: en/templates/components/casino_grid.html
+   Do NOT duplicate these selectors in any other stylesheet.
+   ============================================================ */
+
+/* ---------- Header: logo + name + rating ---------- */
+
+/* ---------- Body: bonus + geo status ---------- */
+
+.bonus-title {
+  color: #596579;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bonus-value {
+  min-width: 0;
+  color: #4f3cc9;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -.01em;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* ---------- Actions ---------- */
+
+/* ---------- Badges: bookmark / promo / geo ---------- */
+
+.geo-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.geo-badge__flag {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.geo-badge__icon {
+  position: absolute;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 0 0 4px #fff, 0 0 4px #fff, 0 0 4px #fff;
+}
+
+.geo-badge--allowed .geo-badge__icon { color: var(--success, #00b894); }
+.geo-badge--blocked .geo-badge__icon { color: var(--danger, #e74c3c); }
+.geo-badge--unknown .geo-badge__icon { color: var(--gray, #64748b); }
+
+/* ---------- Content safety net (long names/bonuses never overflow) ---------- */span,
+div,
+a,
+strong,
+small,
+label) {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* ---------- Small mobile refinement ---------- */
+
+/* ---------- Accessibility ---------- */
