@@ -40,7 +40,8 @@ import {
 import {
   login,
   logout,
-  register
+  register,
+  getCurrentUser
 }
 from "./auth.js";
 import { dashboardStatsAPI } from "./controllers.js";
