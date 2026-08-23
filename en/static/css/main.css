@@ -2825,3 +2825,62 @@ padding:22px;
     font-size: 14px !important;
   }
 }
+
+
+
+
+
+
+
+
+/* =====================================================
+   Homepage News Cards
+   ===================================================== */
+
+#homeNews .news-card {
+  overflow: hidden;
+  padding: 0;
+}
+
+#homeNews .news-card__link {
+  display: block;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+
+#homeNews .news-card__image {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--light-gray);
+}
+
+#homeNews .news-card__image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.25s ease;
+}
+
+#homeNews .news-card:hover .news-card__image img {
+  transform: scale(1.03);
+}
+
+#homeNews .news-card__body {
+  padding: 18px 20px 20px;
+}
+
+#homeNews .news-card__body h3 {
+  margin: 0 0 8px;
+}
+
+#homeNews .news-card__body p {
+  margin: 0;
+}
+
+#homeNews .news-card__body .news-date {
+  display: block;
+  margin-top: 12px;
+}

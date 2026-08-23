@@ -201,7 +201,98 @@ async function initSidebarCountries() {
 }
 
 // ---- Homepage: load latest news ----
+// ---- Homepage: load latest news ----
 async function initHomeNews() {
+  const container = document.getElementById("homeNews");
+  if (!container) return;
+
+  try {
+    const res = await fetch("/en/api/v1/public/news/list", {
+      headers: {
+        "Accept": "application/json"
+      }
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to load news");
+    }
+
+    const data = await res.json();
+
+    if (!data.news || data.news.length === 0) {
+      container.innerHTML =
+        '<p class="muted">No news articles yet.</p>';
+      return;
+    }
+
+    const top3 = data.news.slice(0, 3);
+
+    container.innerHTML = top3.map(n => {
+      const image =
+        n.featured_image_url ||
+        n.featured_image_thumbnail ||
+        "";
+
+      const imageAlt =
+        n.featured_image_alt ||
+        n.title ||
+        "News article";
+
+      const excerpt =
+        n.excerpt ||
+        "";
+
+      const publishedDate =
+        n.published_at ||
+        n.created_at;
+
+      return `
+        <article class="news-card">
+          <a
+            href="/en/news/${n.slug}"
+            class="news-card__link"
+          >
+            ${
+              image
+                ? `
+                  <div class="news-card__image">
+                    <img
+                      src="${image}"
+                      alt="${imageAlt}"
+                      loading="lazy"
+                      decoding="async"
+                    >
+                  </div>
+                `
+                : ""
+            }
+
+            <div class="news-card__body">
+              <h3>${n.title}</h3>
+
+              ${
+                excerpt
+                  ? `<p>${excerpt}</p>`
+                  : ""
+              }
+
+              <span class="news-date">
+                ${new Date(publishedDate).toLocaleDateString()}
+              </span>
+            </div>
+          </a>
+        </article>
+      `;
+    }).join("");
+
+  } catch (error) {
+    console.error("Homepage news error:", error);
+
+    container.innerHTML =
+      '<p class="muted">Failed to load news.</p>';
+  }
+}
+async function initHomeNewsbackip() {
   const container = document.getElementById("homeNews");
   if (!container) return;
 
