@@ -10,6 +10,8 @@ import * as news from "./database/news.js";
 import * as platformUpdates from "./database/platform-updates.js";
 import { logClick }
 from "./database/clicks.js";
+import { getEnabledAdRules } from "./database/ad-rules.js";
+
 import {
   getCurrentUser
 } from "./auth.js";
