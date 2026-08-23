@@ -1142,7 +1142,7 @@ async function requireAdAdmin(request, env) {
     }
   }
 
-  if (path === "/api/v1/ad-rules/create" && method === "POST") {
+  if (path === "/api/v1/ad-rules/create" && request.method === "POST") {
     try {
       await requireAdAdmin(request, env);
       const body = await request.json();
@@ -1153,7 +1153,7 @@ async function requireAdAdmin(request, env) {
     }
   }
 
-  if (path === "/api/v1/ad-rules/update" && method === "POST") {
+  if (path === "/api/v1/ad-rules/update" && request.method === "POST") {
     try {
       await requireAdAdmin(request, env);
       const body = await request.json();
@@ -1164,7 +1164,7 @@ async function requireAdAdmin(request, env) {
     }
   }
 
-  if (path === "/api/v1/ad-rules/delete" && method === "POST") {
+  if (path === "/api/v1/ad-rules/delete" && request.method === "POST") {
     try {
       await requireAdAdmin(request, env);
       const body = await request.json();
@@ -1175,7 +1175,7 @@ async function requireAdAdmin(request, env) {
     }
   }
 
-  if (path === "/api/v1/ad-rules/validate" && method === "POST") {
+  if (path === "/api/v1/ad-rules/validate" && request.method === "POST") {
     try {
       await requireAdAdmin(request, env);
       const body = await request.json();
