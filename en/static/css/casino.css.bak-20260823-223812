@@ -1,0 +1,75 @@
+/* Casino-specific styles that extend main.css */
+
+/* Casino listing page */
+.casino-list-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.casino-list-toolbar select {
+  padding: 8px 14px;
+  border: 1px solid var(--light-gray);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--white);
+}
+
+/* Casino card hover effects */
+.casino-card .casino-card__badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: var(--primary);
+  color: var(--white);
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+.casino-card { position: relative; }
+
+/* Rating stars display */
+.stars {
+  display: inline-flex;
+  gap: 2px;
+  color: var(--warning);
+  font-size: 16px;
+}
+.stars .star-empty { color: var(--light-gray); }
+
+/* Casino description */
+.casino-description {
+  color: var(--gray);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+/* Geo card states */
+.geo-allowed { color: var(--success); font-weight: 600; }
+.geo-blocked { color: var(--danger); font-weight: 600; }
+.geo-restricted { color: var(--warning); font-weight: 600; }
+
+/* Bonus override badge */
+.bonus-override {
+  background: var(--success);
+  color: var(--white);
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  margin-top: 8px;
+  display: inline-block;
+}
+
+/* Reviews list on casino page */
+.review-item {
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.review-item h4 { margin-bottom: 6px; }
+.review-item .review-rating { color: var(--warning); font-size: 14px; }
+.review-item .review-excerpt { color: var(--gray); font-size: 14px; margin-top: 6px; }

@@ -1,0 +1,71 @@
+<section class="section component-casino-grid">
+  <div class="container">
+    {{#if title}}<div class="section-header"><h2>{{title}}</h2></div>{{/if}}
+    <div class="casino-grid" id="componentCasinoGrid-{{position}}">
+      <p class="muted">Loading casinos...</p>
+    </div>
+  </div>
+</section>
+<script>
+(async () => {
+  const grid = document.getElementById("componentCasinoGrid-{{position}}");
+  if (!grid) return;
+  try {
+    const res = await fetch("/en/api/v1/public/casinos/geo");
+    const data = await res.json();
+    const casinos = (data.casinos || []).slice(0, {{limit}});
+    const country = data.country || "RW";
+
+    if (casinos.length === 0) { grid.innerHTML = '<p class="muted">No casinos yet.</p>'; return; }
+
+    const flag = country.replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt()));
+
+    grid.innerHTML = casinos.map(c => {
+      const geoStatus = c.geo_status || "unknown";
+      let geoIcon, geoClass, geoLabel;
+      if (geoStatus === "allowed") { geoIcon = "✓"; geoClass = "geo-badge--allowed"; geoLabel = "Available"; }
+      else if (geoStatus === "blocked") { geoIcon = "✕"; geoClass = "geo-badge--blocked"; geoLabel = "Not Available"; }
+      else { geoIcon = "?"; geoClass = "geo-badge--unknown"; geoLabel = "Unknown"; }
+
+      const geoBadge = `<div class="geo-badge ${geoClass}" title="${geoLabel}"><span class="geo-badge__flag">${flag}</span><span class="geo-badge__icon">${geoIcon}</span></div>`;
+      const geoStatusText = `<div class="casino-card__geo-status geo-${geoStatus}">${flag} ${geoLabel} for players from ${country}</div>`;
+      const stars = `${'★'.repeat(Math.round(c.rating||0))}${'☆'.repeat(5-Math.round(c.rating||0))}`;
+
+      return `
+      <div class="casino-card">
+        ${geoBadge}
+        <button
+          type="button"
+          class="casino-card__bookmark"
+          data-bookmark-slug="${c.slug}"
+          aria-label="Save ${c.name} to bookmarks"
+          aria-pressed="false"
+          title="Save ${c.name}"
+        >
+          <span class="bookmark-icon" aria-hidden="true">♡</span>
+        </button>
+        <div class="casino-card__header">
+          <div class="casino-card__logo-wrap">
+            <img src="${c.logo || '/static/images/default.png'}" alt="${c.name}" class="casino-card__logo" onerror="this.src='/static/images/default.png'" loading="lazy">
+          </div>
+          <div class="casino-card__title-group">
+            <h3 class="casino-card__name">${c.name}</h3>
+            <div class="casino-card__rating" aria-label="Rating ${c.rating || 0} out of 5">${stars}</div>
+          </div>
+        </div>
+        <div class="casino-card__body">
+          <div class="casino-card__bonus">
+            <span class="bonus-title">${c.bonus_title || 'Welcome Bonus'}</span>
+            <span class="bonus-value">${c.bonus_value || ''}</span>
+          </div>
+          ${geoStatusText}
+        </div>
+        <div class="casino-card__actions">
+          <a href="/en/casino/${c.slug}" class="btn btn--secondary">Review</a>
+          <a href="/en/go/${c.slug}" class="btn btn--primary" rel="nofollow sponsored">Visit</a>
+        </div>
+      </div>`;
+    }).join("");
+  } catch { grid.innerHTML = '<p class="muted">Failed to load.</p>'; }
+})();
+</script>
