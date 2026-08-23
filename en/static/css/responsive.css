@@ -763,11 +763,20 @@ code {
 
 
 
+
+
+
+
+
+
 /* ==========================================================
-   CASINO CARD GRID — 1 MOBILE / 2 TABLET / 3 DESKTOP
+   CASINO CARDS
+   1 MOBILE / 2 TABLET / 3 DESKTOP
+   Preserve existing casino-card design
    ========================================================== */
 
-/* Base: desktop */
+/* ---------- DESKTOP ---------- */
+
 .casino-grid {
   display: grid !important;
   grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
@@ -775,7 +784,13 @@ code {
   align-items: stretch;
 }
 
-/* Consistent casino card */
+/*
+ * IMPORTANT:
+ * Do not redefine the entire casino card.
+ * Preserve the existing colors, gradients,
+ * typography, badges, bonus styling and buttons.
+ */
+
 .casino-grid > .casino-card {
   width: 100% !important;
   min-width: 0 !important;
@@ -784,111 +799,106 @@ code {
 
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 470px;
 
-  border-radius: 18px;
-  overflow: hidden;
+  height: 100%;
+  box-sizing: border-box;
 }
 
-/* Large, consistent image area */
+/* Large consistent logo area,
+   without destroying the existing header background */
 .casino-grid > .casino-card .casino-card__header {
   min-height: 180px;
-  padding: 24px 20px 16px;
 
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-  gap: 14px;
+  justify-content: center;
 
-  background: var(--bg);
+  gap: 12px;
 }
 
-/* Large casino logo */
+/* Large logo, but preserve existing header styling */
 .casino-grid > .casino-card .casino-card__logo {
-  width: 100%;
-  max-width: 220px;
+  width: min(100%, 230px);
   height: 120px;
 
   object-fit: contain !important;
   object-position: center;
 
-  border-radius: 12px;
-  padding: 10px;
+  flex-shrink: 0;
 }
 
-/* Rating stays consistently below image */
-.casino-grid > .casino-card .casino-card__rating {
-  font-size: 16px;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-/* Consistent body spacing */
+/* Keep all existing body content visible */
 .casino-grid > .casino-card .casino-card__body {
-  padding: 18px 20px 14px;
   flex: 1 1 auto;
 }
 
+/* Make sure title remains visible */
 .casino-grid > .casino-card .casino-card__body h3 {
-  font-size: 20px;
-  line-height: 1.25;
-  margin-bottom: 12px;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
-/* Keep bonus boxes visually consistent */
-.casino-grid > .casino-card .casino-card__bonus {
-  min-height: 64px;
-  justify-content: center;
+/* Keep geo information visible */
+.casino-grid > .casino-card .casino-card__geo-status {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
-/* Actions always sit at bottom */
+/* Keep compliance information visible */
+.casino-grid > .casino-card .casino-card__compliance {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Buttons stay at the bottom */
 .casino-grid > .casino-card .casino-card__actions {
-  padding: 0 20px 20px;
   margin-top: auto;
-  gap: 10px;
-}
-
-.casino-grid > .casino-card .casino-card__actions .btn {
-  min-height: 46px;
 }
 
 /* ==========================================================
-   TABLET — EXACTLY 2 COLUMNS
+   TABLET — 2 COLUMNS
    ========================================================== */
 
 @media (min-width: 769px) and (max-width: 1023px) {
+
   .casino-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 20px !important;
   }
 
   .casino-grid > .casino-card {
-    min-height: 460px;
+    width: 100% !important;
   }
 
   .casino-grid > .casino-card .casino-card__header {
-    min-height: 170px;
+    min-height: 175px;
   }
 
   .casino-grid > .casino-card .casino-card__logo {
-    max-width: 200px;
-    height: 110px;
+    width: min(100%, 210px);
+    height: 115px;
   }
 }
 
 /* ==========================================================
-   MOBILE — EXACTLY 1 COLUMN
+   MOBILE — 1 COLUMN
    ========================================================== */
 
 @media (max-width: 768px) {
+
   .casino-grid {
     display: grid !important;
     grid-template-columns: 1fr !important;
 
     gap: 18px !important;
 
+    /*
+     * Remove old horizontal carousel behavior
+     */
     overflow-x: visible !important;
     overflow-y: visible !important;
 
@@ -896,48 +906,57 @@ code {
     padding-bottom: 0 !important;
   }
 
-  .casino-grid::-webkit-scrollbar {
-    display: none;
-  }
-
   .casino-grid > .casino-card {
     width: 100% !important;
     min-width: 0 !important;
+    max-width: none !important;
+
     flex: none !important;
 
-    min-height: 0;
-    border-radius: 16px;
+    height: auto !important;
   }
 
+  /*
+   * Large mobile casino image
+   */
   .casino-grid > .casino-card .casino-card__header {
     min-height: 190px;
-    padding: 22px 18px 16px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    gap: 12px;
   }
 
   .casino-grid > .casino-card .casino-card__logo {
-    max-width: 240px;
+    width: min(100%, 240px);
     height: 125px;
-    padding: 10px;
+
+    object-fit: contain !important;
   }
 
-  .casino-grid > .casino-card .casino-card__body {
-    padding: 16px 18px 14px;
-  }
-
-  .casino-grid > .casino-card .casino-card__body h3 {
-    font-size: 20px;
-  }
-
+  /*
+   * DO NOT hide any card information
+   */
+  .casino-grid > .casino-card .casino-card__body,
+  .casino-grid > .casino-card .casino-card__body h3,
+  .casino-grid > .casino-card .casino-card__bonus,
+  .casino-grid > .casino-card .casino-card__geo-status,
+  .casino-grid > .casino-card .casino-card__compliance,
   .casino-grid > .casino-card .casino-card__actions {
-    padding: 0 18px 18px;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
 
-  /* Disable the old swipe animation */
+  /*
+   * Disable only the old carousel behavior
+   */
   .casino-grid > .casino-card:first-child {
     animation: none !important;
   }
 
-  /* Disable the old edge fade */
   .casino-grid-wrapper::before,
   .casino-grid-wrapper::after {
     display: none !important;
@@ -949,6 +968,7 @@ code {
    ========================================================== */
 
 @media (max-width: 480px) {
+
   .casino-grid {
     gap: 16px !important;
   }
@@ -958,7 +978,7 @@ code {
   }
 
   .casino-grid > .casino-card .casino-card__logo {
-    max-width: 210px;
+    width: min(100%, 215px);
     height: 110px;
   }
 }
