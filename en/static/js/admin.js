@@ -4559,7 +4559,7 @@ var adComponentsCache = [];
 
 async function loadAdComponentsForRules() {
   try {
-    var res = await fetch('/api/v1/components/list?type=ad', { credentials: 'same-origin' });
+    var res = await fetch('/en/api/v1/components/list?type=ad', { credentials: 'same-origin' });
     if (!res.ok) return [];
     var data = await res.json();
     adComponentsCache = data.components || [];
@@ -4575,7 +4575,7 @@ async function loadAdRules() {
 
   try {
     var [rulesRes, components] = await Promise.all([
-      fetch('/api/v1/ad-rules/list', { credentials: 'same-origin' }),
+      fetch('/en/api/v1/ad-rules/list', { credentials: 'same-origin' }),
       loadAdComponentsForRules()
     ]);
 
@@ -4660,7 +4660,7 @@ function openAdRuleModal(ruleId) {
   if (ruleId) {
     title.textContent = 'Edit Ad Rule';
     // Load rule data — fetch from the rules list
-    fetch('/api/v1/ad-rules/list', { credentials: 'same-origin' })
+    fetch('/en/api/v1/ad-rules/list', { credentials: 'same-origin' })
       .then(function(r) { return r.json(); })
       .then(function(data) {
         var rule = (data.rules || []).find(function(r) { return r.id == ruleId; });
@@ -4729,7 +4729,7 @@ async function saveAdRule() {
     return;
   }
 
-  var url = id ? '/api/v1/ad-rules/update' : '/api/v1/ad-rules/create';
+  var url = id ? '/en/api/v1/ad-rules/update' : '/en/api/v1/ad-rules/create';
   if (id) data.id = parseInt(id, 10);
 
   try {
@@ -4754,7 +4754,7 @@ async function saveAdRule() {
 async function deleteAdRule(id, btn) {
   if (!confirm('Delete this ad rule?')) return;
   try {
-    var res = await fetch('/api/v1/ad-rules/delete', {
+    var res = await fetch('/en/api/v1/ad-rules/delete', {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
