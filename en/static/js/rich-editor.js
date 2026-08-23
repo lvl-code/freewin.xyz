@@ -323,6 +323,42 @@
             '|',
             'image media link anchor',
             '|',
+            'code blockquote hr calloutbox addinserter',
+            '|',
+            'sup subscript superscript',
+            '|',
+            'emoticons charmap',
+            '|',
+            'removeformat',
+            '|',
+            'fullscreen preview',
+            '|',
+            'wordcount',
+            '|',
+            'customsourcecode'
+        ].join(' ');
+    }
+
+    function getToolbarConfigbackup() {
+        return [
+            'undo redo',
+            '|',
+            'bold italic underline strikethrough',
+            '|',
+            'forecolor backcolor',
+            '|',
+            'fontsize select',
+            '|',
+            'blocks',
+            '|',
+            'alignleft aligncenter alignright alignjustify',
+            '|',
+            'bullist numlist outdent indent',
+            '|',
+            'table tabledelete tableprops tablecellprops tablerowprops tablemergecells tablesplitcells',
+            '|',
+            'image media link anchor',
+            '|',
             'code blockquote hr',
             '|',
             'sup subscript superscript',
@@ -703,6 +739,412 @@
      * news, reviews, and casinos to link to.
      * @param {Object} editor - The TinyMCE editor instance.
      */
+    
+        // ── Ad Inserter plugin ─────────────────────────────
+
+    /**
+     * Registers the "Add Advert" button.
+     * Opens a dialog showing all available ads (from settings + components)
+     * and lets the editor insert <!--AD-->, <!--AD1-->, <!--AD2--> markers
+     * at the cursor position.
+     * @param {Object} editor - The TinyMCE editor instance.
+     */
+    function configureAdInserter(editor) {
+        editor.ui.registry.addButton('addinserter', {
+            text: 'Ad',
+            tooltip: 'Insert advertisement marker',
+            onAction: function () {
+                openAdInserterDialog(editor);
+            }
+        });
+    }
+
+    /**
+     * Opens the ad inserter dialog.
+     * Fetches available ads from the API and displays them.
+     * @param {Object} editor - The TinyMCE editor instance.
+     */
+    function openAdInserterDialog(editor) {
+        // Show loading dialog first
+        editor.windowManager.open({
+            title: 'Insert Advertisement',
+            size: 'normal',
+            body: {
+                type: 'panel',
+                items: [
+                    {
+                        type: 'htmlpanel',
+                        html: '<div style="padding:20px;text-align:center;color:#999">Loading available ads...</div>'
+                    },
+                    {
+                        type: 'listbox',
+                        name: 'admarker',
+                        label: 'Ad marker to insert',
+                        items: [
+                            { text: '— Select an ad slot —', value: '' },
+                            { text: '<!--AD-->  (first ad)', value: '<!--AD-->' },
+                            { text: '<!--AD1--> (first ad, explicit)', value: '<!--AD1-->' },
+                            { text: '<!--AD2--> (second ad)', value: '<!--AD2-->' },
+                            { text: '<!--AD3--> (third ad)', value: '<!--AD3-->' },
+                            { text: '<!--AD4--> (fourth ad)', value: '<!--AD4-->' },
+                            { text: '<!--AD5--> (fifth ad)', value: '<!--AD5-->' }
+                        ]
+                    }
+                ]
+            },
+            buttons: [
+                { type: 'cancel', text: 'Cancel' },
+                { type: 'submit', text: 'Insert Marker', primary: true }
+            ],
+            initialData: { admarker: '' },
+            onSubmit: function (api) {
+                var data = api.getData();
+                if (!data.admarker) {
+                    showToast('Please select an ad marker', 'error');
+                    return;
+                }
+                editor.insertContent('\n' + data.admarker + '\n');
+                showToast('Ad marker inserted: ' + data.admarker, 'success');
+                api.close();
+            }
+        });
+
+        // Fetch available ads and rebuild the dialog
+        fetchAvailableAds().then(function (ads) {
+            var adListHtml = buildAdListHtml(ads);
+
+            editor.windowManager.open({
+                title: 'Insert Advertisement',
+                size: 'normal',
+                body: {
+                    type: 'panel',
+                    items: [
+                        {
+                            type: 'htmlpanel',
+                            html: adListHtml
+                        },
+                        {
+                            type: 'listbox',
+                            name: 'admarker',
+                            label: 'Ad marker to insert at cursor',
+                            items: [
+                                { text: '— Select an ad slot —', value: '' },
+                                { text: '<!--AD-->  (first ad)', value: '<!--AD-->' },
+                                { text: '<!--AD1--> (first ad, explicit)', value: '<!--AD1-->' },
+                                { text: '<!--AD2--> (second ad)', value: '<!--AD2-->' },
+                                { text: '<!--AD3--> (third ad)', value: '<!--AD3-->' },
+                                { text: '<!--AD4--> (fourth ad)', value: '<!--AD4-->' },
+                                { text: '<!--AD5--> (fifth ad)', value: '<!--AD5-->' }
+                            ]
+                        }
+                    ]
+                },
+                buttons: [
+                    { type: 'cancel', text: 'Cancel' },
+                    { type: 'submit', text: 'Insert Marker', primary: true }
+                ],
+                initialData: { admarker: '' },
+                onSubmit: function (api) {
+                    var data = api.getData();
+                    if (!data.admarker) {
+                        showToast('Please select an ad marker', 'error');
+                        return;
+                    }
+                    editor.insertContent('\n' + data.admarker + '\n');
+                    showToast('Ad marker inserted: ' + data.admarker, 'success');
+                    api.close();
+                }
+            });
+        }).catch(function () {
+            showToast('Could not load ad list', 'error');
+        });
+    }
+
+    /**
+     * Fetches available ads from the API.
+     * Returns ad components (type=ad) and the settings fallback ad.
+     * @returns {Promise<Array>} Array of ad objects.
+     */
+    async function fetchAvailableAds() {
+        var ads = [];
+
+        // 1. Fetch ad components
+        try {
+            var res = await fetch('/api/v1/components?type=ad', { credentials: 'same-origin' });
+            if (res.ok) {
+                var data = await res.json();
+                var components = data.components || [];
+                for (var i = 0; i < components.length; i++) {
+                    ads.push({
+                        name: components[i].name,
+                        slug: components[i].slug,
+                        status: components[i].status,
+                        source: 'component',
+                        preview: (components[i].content || '').substring(0, 200)
+                    });
+                }
+            }
+        } catch (e) {
+            // Ignore — components endpoint may not be available
+        }
+
+        // 2. Fetch settings fallback ad
+        try {
+            var settingsRes = await fetch('/api/v1/settings', { credentials: 'same-origin' });
+            if (settingsRes.ok) {
+                var settingsData = await settingsRes.json();
+                var settings = settingsData.settings || {};
+                if (settings.news_inline_ad) {
+                    var isComponent = settings.news_inline_ad.startsWith('component:');
+                    ads.push({
+                        name: isComponent
+                            ? 'Fallback: ' + settings.news_inline_ad
+                            : 'Fallback Ad (raw HTML)',
+                        slug: isComponent ? settings.news_inline_ad.slice(10) : 'settings',
+                        status: 'active',
+                        source: 'settings',
+                        preview: isComponent
+                            ? 'Loads component: ' + settings.news_inline_ad.slice(10)
+                            : settings.news_inline_ad.substring(0, 200)
+                    });
+                }
+            }
+        } catch (e) {
+            // Ignore
+        }
+
+        return ads;
+    }
+
+    /**
+     * Builds the HTML for the ad list display in the dialog.
+     * @param {Array} ads - Array of ad objects.
+     * @returns {string} HTML string.
+     */
+    function buildAdListHtml(ads) {
+        if (!ads || ads.length === 0) {
+            return '<div style="padding:20px;text-align:center;color:#999">' +
+                'No ads found. Create ad components (type = "ad") in the ' +
+                '<a href="/en/admin/components" target="_blank">Components</a> page, ' +
+                'or set fallback HTML in <a href="/en/admin/settings" target="_blank">Settings</a>.' +
+                '</div>';
+        }
+
+        var html = '<div style="padding:12px;max-height:300px;overflow-y:auto">';
+
+        html += '<div style="margin-bottom:10px;font-size:12px;color:#888">' +
+            ads.length + ' ad' + (ads.length > 1 ? 's' : '') + ' available. ' +
+            'Ads are auto-inserted if no markers are placed. ' +
+            'Use markers below to control exact placement.' +
+            '</div>';
+
+        for (var i = 0; i < ads.length; i++) {
+            var ad = ads[i];
+            var isActive = ad.status === 'active';
+            var badgeColor = isActive ? '#22c55e' : '#a1a1aa';
+            var badgeBg = isActive ? 'rgba(34,197,94,0.12)' : 'rgba(161,161,170,0.12)';
+            var sourceIcon = ad.source === 'component' ? '🧩' : '⚙️';
+
+            html += '<div style="padding:10px 12px;margin-bottom:8px;border:1px solid #e5e7eb;border-radius:8px;background:#fafafa">';
+            html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">';
+            html += '<strong style="font-size:13px">' + sourceIcon + ' ' + escapeEditorHtml(ad.name) + '</strong>';
+            html += '<span style="font-size:11px;padding:2px 8px;border-radius:999px;background:' + badgeBg + ';color:' + badgeColor + '">' + (isActive ? 'Active' : 'Inactive') + '</span>';
+            html += '</div>';
+            html += '<div style="font-size:11px;color:#888;margin-bottom:4px">Slug: <code>' + escapeEditorHtml(ad.slug) + '</code> · Source: ' + ad.source + '</div>';
+            if (ad.preview) {
+                html += '<div style="font-size:11px;color:#aaa;max-height:40px;overflow:hidden;text-overflow:ellipsis">' + escapeEditorHtml(ad.preview) + '</div>';
+            }
+            html += '</div>';
+        }
+
+        html += '</div>';
+        return html;
+    }
+
+    // ── Callout Box plugin ──────────────────────────────
+
+    /**
+     * Registers the "Add Callout" button.
+     * Opens a form to create a styled callout/info box with
+     * title, text, background color, text color, and optional icon.
+     * @param {Object} editor - The TinyMCE editor instance.
+     */
+    function configureCalloutBox(editor) {
+        editor.ui.registry.addButton('calloutbox', {
+            text: 'Callout',
+            tooltip: 'Insert callout / info box',
+            onAction: function () {
+                openCalloutDialog(editor);
+            }
+        });
+    }
+
+    /**
+     * Opens the callout box dialog.
+     * @param {Object} editor - The TinyMCE editor instance.
+     */
+    function openCalloutDialog(editor) {
+        var selectedText = editor.selection.getContent({ format: 'text' });
+
+        var presetColors = [
+            { text: 'Blue (Info)', value: '#dbeafe' },
+            { text: 'Green (Success)', value: '#d1fae5' },
+            { text: 'Yellow (Warning)', value: '#fef3c7' },
+            { text: 'Red (Error)', value: '#fee2e2' },
+            { text: 'Purple (Tip)', value: '#ede9fe' },
+            { text: 'Gray (Neutral)', value: '#f3f4f6' },
+            { text: 'Dark', value: '#1f2937' },
+            { text: 'Custom...', value: 'custom' }
+        ];
+
+        editor.windowManager.open({
+            title: 'Insert Callout Box',
+            size: 'normal',
+            body: {
+                type: 'panel',
+                items: [
+                    {
+                        type: 'input',
+                        name: 'callouttitle',
+                        label: 'Title (optional)',
+                        placeholder: 'e.g., Important Notice'
+                    },
+                    {
+                        type: 'textarea',
+                        name: 'callouttext',
+                        label: 'Content',
+                        rows: 4,
+                        placeholder: 'Enter the callout text...'
+                    },
+                    {
+                        type: 'listbox',
+                        name: 'bgcolor',
+                        label: 'Background color',
+                        items: presetColors
+                    },
+                    {
+                        type: 'colorpicker',
+                        name: 'custombg',
+                        label: 'Custom background color'
+                    },
+                    {
+                        type: 'listbox',
+                        name: 'textcolor',
+                        label: 'Text color',
+                        items: [
+                            { text: 'Dark', value: '#1f2937' },
+                            { text: 'White', value: '#ffffff' },
+                            { text: 'Blue', value: '#1e40af' },
+                            { text: 'Green', value: '#065f46' },
+                            { text: 'Red', value: '#991b1b' },
+                            { text: 'Purple', value: '#5b21b6' },
+                            { text: 'Gray', value: '#4b5563' }
+                        ]
+                    },
+                    {
+                        type: 'listbox',
+                        name: 'icon',
+                        label: 'Icon (optional)',
+                        items: [
+                            { text: 'No icon', value: '' },
+                            { text: 'ℹ️ Info', value: 'ℹ️' },
+                            { text: '✅ Success', value: '✅' },
+                            { text: '⚠️ Warning', value: '⚠️' },
+                            { text: '❌ Error', value: '❌' },
+                            { text: '💡 Tip', value: '💡' },
+                            { text: '🔥 Hot', value: '🔥' },
+                            { text: '⭐ Featured', value: '⭐' },
+                            { text: '🔒 Security', value: '🔒' },
+                            { text: '💰 Bonus', value: '💰' }
+                        ]
+                    },
+                    {
+                        type: 'listbox',
+                        name: 'borderradius',
+                        label: 'Corner radius',
+                        items: [
+                            { text: 'Rounded (12px)', value: '12px' },
+                            { text: 'Slightly rounded (8px)', value: '8px' },
+                            { text: 'Sharp (0px)', value: '0px' },
+                            { text: 'Pill (999px)', value: '999px' }
+                        ]
+                    }
+                ]
+            },
+            buttons: [
+                { type: 'cancel', text: 'Cancel' },
+                { type: 'submit', text: 'Insert', primary: true }
+            ],
+            initialData: {
+                callouttitle: '',
+                callouttext: selectedText || '',
+                bgcolor: '#dbeafe',
+                custombg: '#dbeafe',
+                textcolor: '#1f2937',
+                icon: 'ℹ️',
+                borderradius: '12px'
+            },
+            onSubmit: function (api) {
+                var data = api.getData();
+
+                if (!data.callouttext.trim() && !data.callouttitle.trim()) {
+                    showToast('Please enter a title or content', 'error');
+                    return;
+                }
+
+                var bgColor = data.bgcolor === 'custom' ? data.custombg : data.bgcolor;
+                var textColor = data.textcolor;
+                var radius = data.borderradius || '12px';
+
+                var iconHtml = data.icon
+                    ? '<span style="font-size:20px;margin-right:10px;flex-shrink:0">' + data.icon + '</span>'
+                    : '';
+
+                var titleHtml = data.callouttitle
+                    ? '<strong style="display:block;margin-bottom:6px;font-size:15px">' + escapeEditorHtml(data.callouttitle) + '</strong>'
+                    : '';
+
+                var html =
+                    '<div style="' +
+                    'display:flex;' +
+                    'align-items:flex-start;' +
+                    'padding:16px 20px;' +
+                    'margin:20px 0;' +
+                    'background:' + bgColor + ';' +
+                    'color:' + textColor + ';' +
+                    'border-radius:' + radius + ';' +
+                    'border:1px solid rgba(0,0,0,0.06);' +
+                    '">' +
+                    iconHtml +
+                    '<div style="flex:1">' +
+                    titleHtml +
+                    '<div style="font-size:14px;line-height:1.6">' + escapeEditorHtml(data.callouttext) + '</div>' +
+                    '</div>' +
+                    '</div>';
+
+                editor.insertContent(html);
+                showToast('Callout box inserted', 'success');
+                api.close();
+            }
+        });
+    }
+
+    /**
+     * Escapes HTML for safe display in editor dialogs.
+     * @param {string} text - The text to escape.
+     * @returns {string} Escaped HTML.
+     */
+    function escapeEditorHtml(text) {
+        if (!text) return '';
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+
     function configureInternalLink(editor) {
         // The default TinyMCE link dialog already supports URL entry.
         // We add a custom button for internal link search.
@@ -945,7 +1387,8 @@
             browser_spellcheck: true,
             contextmenu: 'link image table tablecell tablemergecells tablesplitcells',
             quickbars_selection_toolbar: 'bold italic underline | blockquote quicklink quickimage',
-            quickbars_insert_toolbar: 'quickimage quicktable | hr pageembed',
+        //    quickbars_insert_toolbar: 'quickimage quicktable | hr pageembed',
+            quickbars_insert_toolbar: 'quickimage quicktable | hr pageembed | calloutbox addinserter',
             image_advtab: true,
             image_caption: true,
             image_title: true,
@@ -986,6 +1429,8 @@
                 configureImageUpload(editor, editorId, folder);
                 configureVideoEmbed(editor, editorId, folder);
                 configureInternalLink(editor);
+                configureAdInserter(editor);
+                configureCalloutBox(editor);
 
                 // Sync content back to textarea on input
                 editor.on('input', function () {
