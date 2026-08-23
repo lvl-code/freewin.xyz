@@ -895,16 +895,14 @@ export async function renderNews(request, env, slug) {
     }
   }
 
-  // ── Inline advertisement injection ────────────────────
-  // Supports: raw HTML from settings, ad components from DB,
-  // explicit <!--AD--> / <!--AD1--> / <!--AD2--> markers,
-  // and auto-insertion at paragraph breaks.
+    // ── Inline advertisement injection ────────────────────
   let displayContent = article.content || "";
   try {
-    displayContent = await injectInlineAds(displayContent, env);
+    displayContent = await injectInlineAds(displayContent, env, request, "news");
   } catch (e) {
     console.error("Inline ad injection error:", e.message);
   }
+
 
 
   const wordCount = cleanContent ? cleanContent.split(/\s+/).filter(Boolean).length : 0;
@@ -1150,38 +1148,401 @@ export async function renderNewsbackup(request, env, slug) {
 }
 
 
-async function injectInlineAds(content, env) {
+// ============================================================
+// AD INJECTION ENGINE — Hybrid Mode
+// Pipeline: 1. Disable check → 2. Resolve manual markers
+//           → 3. Apply automatic rules (respecting manual placements)
+//           → 4. Device/GEO/schedule filtering
+// ============================================================
+
+async function injectInlineAds(content, env, request, pageType = 'news') {
   if (!content) return content;
 
-  // ── 1. Collect all ad sources ──────────────────────
-  const adSlots = [];
+  // 1. Check if ads are disabled for this article
+  if (/<!--\s*ADS:DISABLE\s*-->/i.test(content)) {
+    return content.replace(/<!--\s*ADS:DISABLE\s*-->/gi, "");
+  }
 
-  // 1a. Raw HTML from settings (single ad)
+  // 2. Load Ad Library
+  const adComponents = await loadAdComponents(env);
+  const adById = new Map();
+  const adBySlug = new Map();
+
+  for (const ad of adComponents) {
+    adById.set(ad.id, ad);
+    adBySlug.set(ad.slug, ad);
+  }
+
+  // 3. Load settings fallback ad
+  let settingsAd = null;
   try {
     const adSetting = await env.DB.prepare(
       "SELECT value FROM settings WHERE key = 'news_inline_ad'"
     ).first();
-    const rawHtml = adSetting?.value || "";
-
-    if (rawHtml && !rawHtml.startsWith("component:")) {
-      adSlots.push({ html: rawHtml.trim(), label: "settings-ad" });
+    const rawValue = adSetting?.value || "";
+    if (rawValue) {
+      if (rawValue.startsWith("component:")) {
+        const slug = rawValue.slice("component:".length).trim();
+        settingsAd = adBySlug.get(slug) || null;
+      } else {
+        settingsAd = {
+          id: 0,
+          slug: "settings-fallback",
+          html: rawValue,
+          status: "active"
+        };
+      }
     }
   } catch (_) {}
 
-  // 1b. Ad components from the components table (type = 'ad')
+  // 4. Resolve explicit manual markers
+  const markerRegex = /<!--\s*AD:([^>]+?)\s*-->/gi;
+  const manuallyUsedComponentIds = new Set();
+  let hasManualMarkers = false;
+
+  let result = content.replace(markerRegex, (match, identifier) => {
+    const id = identifier.trim();
+    hasManualMarkers = true;
+
+    // AUTO markers — resolve later
+    if (id.toUpperCase() === "AUTO") return match;
+
+    // Resolve by component:ID
+    if (id.startsWith("component:")) {
+      const compId = parseInt(id.slice("component:".length), 10);
+      const ad = adById.get(compId);
+      if (ad && ad.html) {
+        manuallyUsedComponentIds.add(compId);
+        return `\n${ad.html}\n`;
+      }
+      return `\n<!-- AD NOT FOUND: ${id} -->\n`;
+    }
+
+    // Resolve by slug
+    const ad = adBySlug.get(id);
+    if (ad && ad.html) {
+      manuallyUsedComponentIds.add(ad.id);
+      return `\n${ad.html}\n`;
+    }
+
+    // Resolve settings fallback
+    if (settingsAd && settingsAd.slug === id && settingsAd.html) {
+      return `\n${settingsAd.html}\n`;
+    }
+
+    return `\n<!-- AD NOT FOUND: ${id} -->\n`;
+  });
+
+  // 5. Handle AUTO markers
+  let autoIndex = 0;
+  const autoAds = adComponents.filter(a => !manuallyUsedComponentIds.has(a.id));
+  if (settingsAd && settingsAd.html && !manuallyUsedComponentIds.has(0)) {
+    autoAds.unshift(settingsAd);
+  }
+
+  result = result.replace(/<!--\s*AD:AUTO\s*-->/gi, () => {
+    if (autoIndex < autoAds.length) {
+      const ad = autoAds[autoIndex++];
+      manuallyUsedComponentIds.add(ad.id);
+      return `\n${ad.html}\n`;
+    }
+    return "";
+  });
+
+  // 6. Apply automatic rules (HYBRID MODE — does NOT disable when manual ads exist)
   try {
-    const adComponents = await componentsDB.getAllComponents(env.DB, "ad");
-    for (const comp of adComponents) {
+    const rules = await getEnabledAdRules(env.DB, pageType);
+    const requestInfo = extractRequestInfo(request);
+
+    result = applyAutoRules(
+      result,
+      rules,
+      manuallyUsedComponentIds,
+      requestInfo,
+      pageType
+    );
+  } catch (e) {
+    console.error("Auto ad rules error:", e.message);
+  }
+
+  return result;
+}
+
+// ── Extract device + GEO info from request ──────────────
+
+function extractRequestInfo(request) {
+  const cf = request.cf || {};
+  const ua = request.headers.get("user-agent") || "";
+
+  let device = "desktop";
+  if (/mobile|android|iphone|ipad|ipod/i.test(ua)) {
+    device = /ipad|tablet/i.test(ua) ? "tablet" : "mobile";
+  }
+
+  return {
+    device,
+    country: cf.country || null,
+    hostname: new URL(request.url).hostname
+  };
+}
+
+// ── Apply automatic rules with all targeting ────────────
+
+function applyAutoRules(content, rules, usedComponentIds, requestInfo, pageType) {
+  if (!rules || rules.length === 0) return content;
+
+  let modified = content;
+  const insertionCount = new Map();
+
+  for (const rule of rules) {
+    // Skip if component already used manually and max_appearances is 1
+    if (usedComponentIds.has(rule.component_id) && rule.max_appearances <= 1) {
+      continue;
+    }
+
+    // Check scheduling
+    if (!isRuleActiveNow(rule)) continue;
+
+    // Check device targeting
+    if (!ruleMatchesDevice(rule, requestInfo.device)) continue;
+
+    // Check GEO targeting
+    if (!ruleMatchesCountry(rule, requestInfo.country)) continue;
+
+    // Check page type targeting
+    if (!ruleMatchesPageType(rule, pageType)) continue;
+
+    // Get ad HTML
+    let htmlToInject = rule.component_html || "";
+    if (!htmlToInject) continue;
+
+    // Track appearances
+    const currentCount = insertionCount.get(rule.component_id) || 0;
+    if (currentCount >= rule.max_appearances) continue;
+
+    // Apply placement
+    if (rule.repeat_interval > 0 && rule.placement === 'after_paragraph') {
+      // Repeat mode: insert after every N paragraphs
+      modified = insertRepeating(
+        modified,
+        htmlToInject,
+        rule.position_value,
+        rule.repeat_interval,
+        rule.max_appearances,
+        usedComponentIds,
+        rule.component_id,
+        insertionCount
+      );
+    } else {
+      // Single placement
+      modified = applySinglePlacement(modified, htmlToInject, rule);
+      insertionCount.set(rule.component_id, currentCount + 1);
+      usedComponentIds.add(rule.component_id);
+    }
+  }
+
+  return modified;
+}
+
+// ── Scheduling check ────────────────────────────────────
+
+function isRuleActiveNow(rule) {
+  const now = new Date();
+
+  if (rule.start_date) {
+    const start = new Date(rule.start_date);
+    if (now < start) return false;
+  }
+
+  if (rule.end_date) {
+    const end = new Date(rule.end_date);
+    if (now > end) return false;
+  }
+
+  return true;
+}
+
+// ── Device targeting ─────────────────────────────────────
+
+function ruleMatchesDevice(rule, requestDevice) {
+  if (!rule.devices || rule.devices === 'all') return true;
+  if (rule.devices === requestDevice) return true;
+  // Allow comma-separated device lists
+  const devices = rule.devices.split(',').map(d => d.trim().toLowerCase());
+  return devices.includes(requestDevice) || devices.includes('all');
+}
+
+// ── GEO targeting ───────────────────────────────────────
+
+function ruleMatchesCountry(rule, requestCountry) {
+  if (!rule.countries || rule.countries === 'all') return true;
+  if (!requestCountry) return true; // Can't determine country — allow
+
+  const countries = rule.countries
+    .split(',')
+    .map(c => c.trim().toUpperCase())
+    .filter(Boolean);
+
+  return countries.includes(requestCountry) || countries.includes('ALL');
+}
+
+// ── Page type targeting ─────────────────────────────────
+
+function ruleMatchesPageType(rule, pageType) {
+  if (!rule.page_type || rule.page_type === 'all') return true;
+  return rule.page_type === pageType;
+}
+
+// ── Single placement ────────────────────────────────────
+
+function applySinglePlacement(content, html, rule) {
+  switch (rule.placement) {
+    case 'after_paragraph':
+      return insertAfterParagraph(content, html, rule.position_value || 3);
+    case 'before_paragraph':
+      return insertBeforeParagraph(content, html, rule.position_value || 1);
+    case 'end_of_article':
+      return content + `\n${html}\n`;
+    case 'before_article':
+      return `${html}\n${content}`;
+    case 'after_heading':
+      return insertAfterFirst(content, html, /<\/h[1-6]>/i);
+    case 'before_heading':
+      return insertBeforeFirst(content, html, /<h[1-6]/i);
+    case 'after_first_image':
+      return insertAfterFirst(content, html, /<\/img>|<img[^>]*\/>/i);
+    case 'middle_of_article':
+      return insertAtMiddle(content, html);
+    default:
+      return content;
+  }
+}
+
+// ── Repeating placement ─────────────────────────────────
+
+function insertRepeating(content, html, startParagraph, interval, maxAppearances, usedIds, componentId, countMap) {
+  const regex = /<\/p>/gi;
+  let match;
+  const positions = [];
+
+  while ((match = regex.exec(content)) !== null) {
+    positions.push(match.index + match[0].length);
+  }
+
+  let inserted = 0;
+  let modified = content;
+  const insertions = [];
+
+  for (let p = startParagraph; p <= positions.length && inserted < maxAppearances; p += interval) {
+    insertions.push({ index: positions[p - 1], html: `\n${html}\n` });
+    inserted++;
+  }
+
+  // Insert from end to beginning
+  insertions.sort((a, b) => b.index - a.index);
+  for (const ins of insertions) {
+    modified = modified.slice(0, ins.index) + ins.html + modified.slice(ins.index);
+  }
+
+  countMap.set(componentId, inserted);
+  usedIds.add(componentId);
+
+  return modified;
+}
+
+// ── Insertion helpers ───────────────────────────────────
+
+function insertAfterParagraph(content, html, paragraphNum) {
+  const regex = /<\/p>/gi;
+  let match;
+  let count = 0;
+  let insertAt = -1;
+
+  while ((match = regex.exec(content)) !== null) {
+    count++;
+    if (count === paragraphNum) {
+      insertAt = match.index + match[0].length;
+      break;
+    }
+  }
+
+  if (insertAt > 0) {
+    return content.slice(0, insertAt) + `\n${html}\n` + content.slice(insertAt);
+  }
+  return content;
+}
+
+function insertBeforeParagraph(content, html, paragraphNum) {
+  const regex = /<p[^>]*>/gi;
+  let match;
+  let count = 0;
+  let insertAt = -1;
+
+  while ((match = regex.exec(content)) !== null) {
+    count++;
+    if (count === paragraphNum) {
+      insertAt = match.index;
+      break;
+    }
+  }
+
+  if (insertAt > 0) {
+    return content.slice(0, insertAt) + `\n${html}\n` + content.slice(insertAt);
+  }
+  return content;
+}
+
+function insertAfterFirst(content, html, regex) {
+  const match = content.match(regex);
+  if (match) {
+    const idx = match.index + match[0].length;
+    return content.slice(0, idx) + `\n${html}\n` + content.slice(idx);
+  }
+  return content;
+}
+
+function insertBeforeFirst(content, html, regex) {
+  const match = content.match(regex);
+  if (match) {
+    const idx = match.index;
+    return content.slice(0, idx) + `\n${html}\n` + content.slice(idx);
+  }
+  return content;
+}
+
+function insertAtMiddle(content, html) {
+  const regex = /<\/p>/gi;
+  let match;
+  const positions = [];
+
+  while ((match = regex.exec(content)) !== null) {
+    positions.push(match.index + match[0].length);
+  }
+
+  if (positions.length === 0) return content + `\n${html}\n`;
+
+  const mid = Math.floor(positions.length / 2);
+  const insertAt = positions[mid];
+
+  return content.slice(0, insertAt) + `\n${html}\n` + content.slice(insertAt);
+}
+
+// ── Load ad components ───────────────────────────────────
+
+async function loadAdComponents(env) {
+  try {
+    const components = await componentsDB.getAllComponents(env.DB, "ad");
+    const ads = [];
+
+    for (const comp of components) {
       if (comp.status !== "active") continue;
 
       let html = "";
 
-      // If content is raw HTML, use it directly
       if (typeof comp.content === "string" && comp.content.trim()) {
         html = comp.content;
       }
 
-      // If settings_json has ad_html, use that
       if (!html && comp.settings_json) {
         try {
           const settings = JSON.parse(comp.settings_json);
@@ -1190,77 +1551,23 @@ async function injectInlineAds(content, env) {
       }
 
       if (html) {
-        adSlots.push({ html: html.trim(), label: comp.slug });
+        ads.push({
+          id: comp.id,
+          slug: comp.slug,
+          name: comp.name,
+          html: html.trim(),
+          status: comp.status
+        });
       }
     }
-  } catch (_) {}
 
-  if (adSlots.length === 0) return content;
-
-  // ── 2. Replace explicit markers ────────────────────
-  // Supports: <!--AD-->, <!--AD1-->, <!--AD2-->, <!--AD3--> ...
-  let result = content;
-  let usedSlots = new Set();
-
-  for (let i = 0; i < adSlots.length; i++) {
-    const slot = adSlots[i];
-    const marker = i === 0 ? "<!--AD-->" : `<!--AD${i + 1}-->`;
-
-    if (result.includes(marker)) {
-      result = result.split(marker).join(slot.html);
-      usedSlots.add(i);
-    }
+    return ads;
+  } catch (e) {
+    console.error("loadAdComponents error:", e.message);
+    return [];
   }
-
-  // ── 3. Auto-insert remaining ads at paragraph breaks ──
-  const unusedSlots = adSlots
-    .map((slot, i) => ({ slot, index: i }))
-    .filter(({ index }) => !usedSlots.has(index));
-
-  if (unusedSlots.length === 0) return result;
-
-  // Find all </p> positions
-  const regex = /<\/p>/gi;
-  let match;
-  const positions = [];
-
-  while ((match = regex.exec(result)) !== null) {
-    positions.push(match.index + match[0].length);
-  }
-
-  // Insert at evenly spaced positions (after 3rd, 6th, 9th paragraph, etc.)
-  const insertOffsets = [3, 6, 9, 12, 15];
-  let insertCount = 0;
-  let modified = result;
-
-  for (const { slot } of unusedSlots) {
-    const targetParagraph = insertOffsets[insertCount] || (insertOffsets[insertCount - 1] + 3);
-
-    if (positions.length >= targetParagraph) {
-      const insertAt = positions[targetParagraph - 1];
-      modified =
-        modified.slice(0, insertAt) +
-        `\n${slot.html}\n` +
-        modified.slice(insertAt);
-      insertCount++;
-
-      // Recalculate positions after insertion (they shifted)
-      const newRegex = /<\/p>/gi;
-      const newPositions = [];
-      let newMatch;
-      while ((newMatch = newRegex.exec(modified)) !== null) {
-        newPositions.push(newMatch.index + newMatch[0].length);
-      }
-      positions.length = 0;
-      positions.push(...newPositions);
-    } else {
-      // Not enough paragraphs — append at end
-      modified += `\n${slot.html}\n`;
-    }
-  }
-
-  return modified;
 }
+
 
 
 

@@ -59,6 +59,28 @@
         <div class="form-group"><label>SEO Description</label><input type="text" name="seo_description"></div>
       </div>
 
+            <!-- ================================================== -->
+      <!-- ARTICLE AD SETTINGS -->
+      <!-- ================================================== -->
+
+      <fieldset style="margin-top:20px;padding:16px;border:1px solid var(--border);border-radius:8px">
+        <legend style="font-weight:700;padding:0 8px">Advertisement Settings</legend>
+
+        <div class="form-group">
+          <label>Automatic ads for this article</label>
+          <select name="ad_mode" id="newsAdMode">
+            <option value="auto">Use site defaults (recommended)</option>
+            <option value="disable">Disable automatic ads for this article</option>
+          </select>
+          <small class="muted">
+            "Use site defaults" applies your automatic ad rules.
+            "Disable" prevents automatic insertion (same as <!--ADS:DISABLE-->).
+            Manual ad markers are always respected regardless of this setting.
+          </small>
+        </div>
+      </fieldset>
+
+
       <fieldset style="margin:20px 0;padding:16px 20px;border:1px solid var(--light-gray);border-radius:10px">
         <legend style="font-weight:700;padding:0 8px">Publishing</legend>
         <div class="form-row">

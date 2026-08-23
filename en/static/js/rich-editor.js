@@ -742,133 +742,248 @@
     
         // ── Ad Inserter plugin ─────────────────────────────
 
-    /**
-     * Registers the "Add Advert" button.
-     * Opens a dialog showing all available ads (from settings + components)
-     * and lets the editor insert <!--AD-->, <!--AD1-->, <!--AD2--> markers
-     * at the cursor position.
-     * @param {Object} editor - The TinyMCE editor instance.
-     */
     function configureAdInserter(editor) {
         editor.ui.registry.addButton('addinserter', {
             text: 'Ad',
-            tooltip: 'Insert advertisement marker',
+            tooltip: 'Insert advertisement',
             onAction: function () {
                 openAdInserterDialog(editor);
             }
         });
+
+        // Convert markers → visual placeholders on load
+        editor.on('BeforeSetContent', function (e) {
+            if (e.content && typeof e.content === 'string') {
+                e.content = markersToPlaceholders(e.content);
+            }
+        });
+
+        // Convert visual placeholders → markers on save
+        editor.on('GetContent', function (e) {
+            if (e.content && typeof e.content === 'string') {
+                e.content = placeholdersToMarkers(e.content);
+            }
+        });
+
+        // Handle backspace/delete on selected placeholder
+        editor.on('KeyDown', function (e) {
+            var selected = editor.selection.getNode();
+            if (selected && selected.classList && selected.classList.contains('ad-placeholder')) {
+                if (e.keyCode === 8 || e.keyCode === 46) {
+                    e.preventDefault();
+                    selected.remove();
+                }
+            }
+        });
     }
 
-    /**
-     * Opens the ad inserter dialog.
-     * Fetches available ads from the API and displays them.
-     * @param {Object} editor - The TinyMCE editor instance.
-     */
+    function markersToPlaceholders(content) {
+        return content.replace(
+            /<!--\s*AD:([^>]+?)\s*-->/gi,
+            function (match, identifier) {
+                var id = identifier.trim();
+                var label = id;
+
+                if (id.toUpperCase() === 'AUTO') {
+                    label = 'Auto (system picks ad)';
+                } else if (id.startsWith('component:')) {
+                    label = 'Component #' + id.slice('component:'.length);
+                }
+
+                return '<div ' +
+                    'data-ad-marker="' + escapeEditorAttr(id) + '" ' +
+                    'contenteditable="false" ' +
+                    'class="ad-placeholder" ' +
+                    'style="display:flex;align-items:center;gap:12px;' +
+                    'padding:14px 18px;margin:16px 0;' +
+                    'background:linear-gradient(135deg,#f0f4ff,#e0e7ff);' +
+                    'border:2px dashed #6366f1;border-radius:10px;' +
+                    'cursor:pointer;user-select:none;">' +
+                    '<span style="font-size:24px">📢</span>' +
+                    '<div style="flex:1">' +
+                    '<strong style="display:block;font-size:13px;color:#4338ca">Advertisement</strong>' +
+                    '<span style="font-size:12px;color:#6b7280">' + escapeEditorHtml(label) + '</span>' +
+                    '</div>' +
+                    '<span style="font-size:11px;color:#9ca3af">Click to select · Delete to remove</span>' +
+                    '</div>';
+            }
+        );
+    }
+
+    function placeholdersToMarkers(content) {
+        var temp = document.createElement('div');
+        temp.innerHTML = content;
+        var placeholders = temp.querySelectorAll('.ad-placeholder[data-ad-marker]');
+        for (var i = 0; i < placeholders.length; i++) {
+            var marker = placeholders[i].getAttribute('data-ad-marker');
+            var comment = document.createComment('AD:' + marker);
+            placeholders[i].parentNode.replaceChild(comment, placeholders[i]);
+        }
+        return temp.innerHTML;
+    }
+
+    function escapeEditorAttr(text) {
+        if (!text) return '';
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
     function openAdInserterDialog(editor) {
-        // Show loading dialog first
-        editor.windowManager.open({
+        var dialog = editor.windowManager.open({
             title: 'Insert Advertisement',
-            size: 'normal',
+            size: 'large',
             body: {
                 type: 'panel',
                 items: [
                     {
-                        type: 'htmlpanel',
-                        html: '<div style="padding:20px;text-align:center;color:#999">Loading available ads...</div>'
+                        type: 'input',
+                        name: 'search',
+                        label: 'Search advertisements',
+                        placeholder: 'Type to filter by name or slug...'
                     },
                     {
-                        type: 'listbox',
-                        name: 'admarker',
-                        label: 'Ad marker to insert',
-                        items: [
-                            { text: '— Select an ad slot —', value: '' },
-                            { text: '<!--AD-->  (first ad)', value: '<!--AD-->' },
-                            { text: '<!--AD1--> (first ad, explicit)', value: '<!--AD1-->' },
-                            { text: '<!--AD2--> (second ad)', value: '<!--AD2-->' },
-                            { text: '<!--AD3--> (third ad)', value: '<!--AD3-->' },
-                            { text: '<!--AD4--> (fourth ad)', value: '<!--AD4-->' },
-                            { text: '<!--AD5--> (fifth ad)', value: '<!--AD5-->' }
-                        ]
+                        type: 'htmlpanel',
+                        html: '<div id="ad-dialog-list" style="padding:12px;max-height:400px;overflow-y:auto">' +
+                              '<div style="padding:20px;text-align:center;color:#999">Loading available ads...</div>' +
+                              '</div>'
+                    },
+                    {
+                        type: 'htmlpanel',
+                        html: '<div style="padding:8px 12px;border-top:1px solid #e5e7eb;margin-top:8px">' +
+                              '<strong style="font-size:12px;color:#374151">Quick insert:</strong><br>' +
+                              '<button type="button" id="ad-insert-auto" style="margin-top:6px;padding:6px 14px;' +
+                              'border:1px solid #d1d5db;border-radius:6px;background:#f9fafb;cursor:pointer;font-size:13px">' +
+                              'Insert Auto Marker</button>' +
+                              '<span style="margin-left:8px;font-size:11px;color:#9ca3af">System picks the ad automatically</span>' +
+                              '</div>'
                     }
                 ]
             },
             buttons: [
-                { type: 'cancel', text: 'Cancel' },
-                { type: 'submit', text: 'Insert Marker', primary: true }
+                { type: 'cancel', text: 'Close' }
             ],
-            initialData: { admarker: '' },
-            onSubmit: function (api) {
-                var data = api.getData();
-                if (!data.admarker) {
-                    showToast('Please select an ad marker', 'error');
-                    return;
-                }
-                editor.insertContent('\n' + data.admarker + '\n');
-                showToast('Ad marker inserted: ' + data.admarker, 'success');
-                api.close();
-            }
+            initialData: { search: '' }
         });
 
-        // Fetch available ads and rebuild the dialog
         fetchAvailableAds().then(function (ads) {
-            var adListHtml = buildAdListHtml(ads);
+            renderAdDialogList(editor, ads, '', dialog);
 
-            editor.windowManager.open({
-                title: 'Insert Advertisement',
-                size: 'normal',
-                body: {
-                    type: 'panel',
-                    items: [
-                        {
-                            type: 'htmlpanel',
-                            html: adListHtml
-                        },
-                        {
-                            type: 'listbox',
-                            name: 'admarker',
-                            label: 'Ad marker to insert at cursor',
-                            items: [
-                                { text: '— Select an ad slot —', value: '' },
-                                { text: '<!--AD-->  (first ad)', value: '<!--AD-->' },
-                                { text: '<!--AD1--> (first ad, explicit)', value: '<!--AD1-->' },
-                                { text: '<!--AD2--> (second ad)', value: '<!--AD2-->' },
-                                { text: '<!--AD3--> (third ad)', value: '<!--AD3-->' },
-                                { text: '<!--AD4--> (fourth ad)', value: '<!--AD4-->' },
-                                { text: '<!--AD5--> (fifth ad)', value: '<!--AD5-->' }
-                            ]
-                        }
-                    ]
-                },
-                buttons: [
-                    { type: 'cancel', text: 'Cancel' },
-                    { type: 'submit', text: 'Insert Marker', primary: true }
-                ],
-                initialData: { admarker: '' },
-                onSubmit: function (api) {
-                    var data = api.getData();
-                    if (!data.admarker) {
-                        showToast('Please select an ad marker', 'error');
-                        return;
-                    }
-                    editor.insertContent('\n' + data.admarker + '\n');
-                    showToast('Ad marker inserted: ' + data.admarker, 'success');
-                    api.close();
-                }
-            });
+            var searchInput = document.querySelector('.tox-textfield[name="search"]');
+            if (searchInput) {
+                searchInput.addEventListener('input', function () {
+                    renderAdDialogList(editor, ads, this.value, dialog);
+                });
+            }
+
+            var autoBtn = document.getElementById('ad-insert-auto');
+            if (autoBtn) {
+                autoBtn.addEventListener('click', function () {
+                    editor.insertContent('\n<!--AD:AUTO-->\n');
+                    showToast('Auto ad marker inserted', 'success');
+                    dialog.close();
+                });
+            }
         }).catch(function () {
-            showToast('Could not load ad list', 'error');
+            var list = document.getElementById('ad-dialog-list');
+            if (list) {
+                list.innerHTML = '<div style="padding:20px;text-align:center;color:#e74c3c">' +
+                    'Could not load ads. Make sure ad components exist.' +
+                    '</div>';
+            }
         });
     }
 
-    /**
-     * Fetches available ads from the API.
-     * Returns ad components (type=ad) and the settings fallback ad.
-     * @returns {Promise<Array>} Array of ad objects.
-     */
+    function renderAdDialogList(editor, ads, searchQuery, dialog) {
+        var container = document.getElementById('ad-dialog-list');
+        if (!container) return;
+
+        var filtered = ads;
+        if (searchQuery && searchQuery.trim()) {
+            var q = searchQuery.toLowerCase().trim();
+            filtered = ads.filter(function (ad) {
+                return (ad.name && ad.name.toLowerCase().indexOf(q) !== -1) ||
+                       (ad.slug && ad.slug.toLowerCase().indexOf(q) !== -1);
+            });
+        }
+
+        if (filtered.length === 0) {
+            container.innerHTML = '<div style="padding:20px;text-align:center;color:#999">' +
+                (ads.length === 0
+                    ? 'No ads found. Create ad components (type = "ad") in the ' +
+                      '<a href="/en/admin/components" target="_blank">Components</a> page.'
+                    : 'No ads match your search.') +
+                '</div>';
+            return;
+        }
+
+        var html = '';
+        for (var i = 0; i < filtered.length; i++) {
+            var ad = filtered[i];
+            var isActive = ad.status === 'active';
+            var badgeColor = isActive ? '#22c55e' : '#a1a1aa';
+            var badgeBg = isActive ? 'rgba(34,197,94,0.12)' : 'rgba(161,161,170,0.12)';
+            var sourceIcon = ad.source === 'component' ? '🧩' : '⚙️';
+            var marker = 'component:' + ad.id;
+
+            html += '<div style="padding:14px;margin-bottom:10px;' +
+                'border:1px solid #e5e7eb;border-radius:10px;background:#fff;">';
+
+            html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
+            html += '<div style="display:flex;align-items:center;gap:8px">';
+            html += '<span style="font-size:20px">' + sourceIcon + '</span>';
+            html += '<div>';
+            html += '<strong style="font-size:14px;color:#111827;display:block">' +
+                escapeEditorHtml(ad.name) + '</strong>';
+            html += '<span style="font-size:12px;color:#6b7280">/' +
+                escapeEditorHtml(ad.slug) + '</span>';
+            html += '</div>';
+            html += '</div>';
+            html += '<span style="font-size:11px;padding:3px 10px;border-radius:999px;' +
+                'background:' + badgeBg + ';color:' + badgeColor + '">' +
+                (isActive ? 'Active' : 'Inactive') + '</span>';
+            html += '</div>';
+
+            if (ad.preview) {
+                html += '<div style="padding:8px 10px;margin-bottom:10px;' +
+                    'background:#f9fafb;border-radius:6px;' +
+                    'font-size:11px;color:#9ca3af;max-height:60px;overflow:hidden;' +
+                    'border:1px solid #f3f4f6">' +
+                    escapeEditorHtml(ad.preview) +
+                    '</div>';
+            }
+
+            html += '<button type="button" ' +
+                'data-ad-marker="' + escapeEditorAttr(marker) + '" ' +
+                'data-ad-name="' + escapeEditorAttr(ad.name) + '" ' +
+                'class="ad-insert-btn" ' +
+                'style="width:100%;padding:8px;border:1px solid #6366f1;border-radius:6px;' +
+                'background:#6366f1;color:#fff;cursor:pointer;font-size:13px;font-weight:600">' +
+                'Insert at cursor</button>';
+
+            html += '</div>';
+        }
+
+        container.innerHTML = html;
+
+        var insertBtns = container.querySelectorAll('.ad-insert-btn');
+        for (var j = 0; j < insertBtns.length; j++) {
+            insertBtns[j].addEventListener('click', function () {
+                var marker = this.getAttribute('data-ad-marker');
+                var name = this.getAttribute('data-ad-name');
+                editor.insertContent('\n<!--AD:' + marker + '-->\n');
+                showToast('Ad inserted: ' + name, 'success');
+                dialog.close();
+            });
+        }
+    }
+
     async function fetchAvailableAds() {
         var ads = [];
 
-        // 1. Fetch ad components
         try {
             var res = await fetch('/api/v1/components/list?type=ad', { credentials: 'same-origin' });
             if (res.ok) {
@@ -876,6 +991,7 @@
                 var components = data.components || [];
                 for (var i = 0; i < components.length; i++) {
                     ads.push({
+                        id: components[i].id,
                         name: components[i].name,
                         slug: components[i].slug,
                         status: components[i].status,
@@ -884,23 +1000,21 @@
                     });
                 }
             }
-        } catch (e) {
-            // Ignore — components endpoint may not be available
-        }
+        } catch (e) {}
 
-        // 2. Fetch settings fallback ad
         try {
-            var settingsRes = await fetch('/api/v1/settings/get', { credentials: 'same-origin' });
+            var settingsRes = await fetch('/api/v1/settings', { credentials: 'same-origin' });
             if (settingsRes.ok) {
                 var settingsData = await settingsRes.json();
                 var settings = settingsData.settings || {};
                 if (settings.news_inline_ad) {
                     var isComponent = settings.news_inline_ad.startsWith('component:');
                     ads.push({
+                        id: 0,
                         name: isComponent
                             ? 'Fallback: ' + settings.news_inline_ad
                             : 'Fallback Ad (raw HTML)',
-                        slug: isComponent ? settings.news_inline_ad.slice(10) : 'settings',
+                        slug: isComponent ? settings.news_inline_ad.slice(10) : 'settings-fallback',
                         status: 'active',
                         source: 'settings',
                         preview: isComponent
@@ -909,56 +1023,9 @@
                     });
                 }
             }
-        } catch (e) {
-            // Ignore
-        }
+        } catch (e) {}
 
         return ads;
-    }
-
-    /**
-     * Builds the HTML for the ad list display in the dialog.
-     * @param {Array} ads - Array of ad objects.
-     * @returns {string} HTML string.
-     */
-    function buildAdListHtml(ads) {
-        if (!ads || ads.length === 0) {
-            return '<div style="padding:20px;text-align:center;color:#999">' +
-                'No ads found. Create ad components (type = "ad") in the ' +
-                '<a href="/en/admin/components" target="_blank">Components</a> page, ' +
-                'or set fallback HTML in <a href="/en/admin/settings" target="_blank">Settings</a>.' +
-                '</div>';
-        }
-
-        var html = '<div style="padding:12px;max-height:300px;overflow-y:auto">';
-
-        html += '<div style="margin-bottom:10px;font-size:12px;color:#888">' +
-            ads.length + ' ad' + (ads.length > 1 ? 's' : '') + ' available. ' +
-            'Ads are auto-inserted if no markers are placed. ' +
-            'Use markers below to control exact placement.' +
-            '</div>';
-
-        for (var i = 0; i < ads.length; i++) {
-            var ad = ads[i];
-            var isActive = ad.status === 'active';
-            var badgeColor = isActive ? '#22c55e' : '#a1a1aa';
-            var badgeBg = isActive ? 'rgba(34,197,94,0.12)' : 'rgba(161,161,170,0.12)';
-            var sourceIcon = ad.source === 'component' ? '🧩' : '⚙️';
-
-            html += '<div style="padding:10px 12px;margin-bottom:8px;border:1px solid #e5e7eb;border-radius:8px;background:#fafafa">';
-            html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">';
-            html += '<strong style="font-size:13px">' + sourceIcon + ' ' + escapeEditorHtml(ad.name) + '</strong>';
-            html += '<span style="font-size:11px;padding:2px 8px;border-radius:999px;background:' + badgeBg + ';color:' + badgeColor + '">' + (isActive ? 'Active' : 'Inactive') + '</span>';
-            html += '</div>';
-            html += '<div style="font-size:11px;color:#888;margin-bottom:4px">Slug: <code>' + escapeEditorHtml(ad.slug) + '</code> · Source: ' + ad.source + '</div>';
-            if (ad.preview) {
-                html += '<div style="font-size:11px;color:#aaa;max-height:40px;overflow:hidden;text-overflow:ellipsis">' + escapeEditorHtml(ad.preview) + '</div>';
-            }
-            html += '</div>';
-        }
-
-        html += '</div>';
-        return html;
     }
 
     // ── Callout Box plugin ──────────────────────────────

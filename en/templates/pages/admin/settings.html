@@ -1095,6 +1095,128 @@
         </small>
       </div>
 
+            <!-- ================================================== -->
+      <!-- AUTOMATIC AD RULES -->
+      <!-- ================================================== -->
+
+      <h2>Advertisement Automation</h2>
+      <p class="muted">
+        Define where ads are automatically inserted when editors don't manually place them.
+        Manual markers in the editor always take priority. Automatic rules fill remaining space.
+      </p>
+
+      <div id="adRulesContainer" style="display:flex;flex-direction:column;gap:16px;margin-top:16px">
+        <p class="muted">Loading ad rules...</p>
+      </div>
+
+      <button type="button" id="addAdRuleBtn" class="btn btn--secondary" style="margin-top:16px">
+        + Add Automatic Ad Rule
+      </button>
+
+      <!-- Rule modal (hidden by default) -->
+      <div id="adRuleModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center">
+        <div style="background:var(--surface);border-radius:12px;padding:24px;max-width:500px;width:90%;max-height:90vh;overflow-y:auto">
+          <h3 id="adRuleModalTitle" style="margin:0 0 20px">Create Ad Rule</h3>
+
+          <input type="hidden" id="adRuleId" value="">
+
+          <div class="form-group">
+            <label>Advertisement *</label>
+            <select id="adRuleComponent" required></select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Placement</label>
+              <select id="adRulePlacement">
+                <option value="after_paragraph">After paragraph</option>
+                <option value="before_paragraph">Before paragraph</option>
+                <option value="end_of_article">End of article</option>
+                <option value="before_article">Before article</option>
+                <option value="after_heading">After first heading</option>
+                <option value="before_heading">Before first heading</option>
+                <option value="after_first_image">After first image</option>
+                <option value="middle_of_article">Middle of article</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Paragraph / Position</label>
+              <input type="number" id="adRulePosition" value="3" min="1">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Repeat interval (0 = single)</label>
+              <input type="number" id="adRuleRepeatInterval" value="0" min="0">
+              <small class="muted">e.g. 4 = repeat every 4 paragraphs</small>
+            </div>
+            <div class="form-group">
+              <label>Max appearances</label>
+              <input type="number" id="adRuleMaxAppearances" value="1" min="1">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Devices</label>
+              <select id="adRuleDevices">
+                <option value="all">All devices</option>
+                <option value="desktop">Desktop only</option>
+                <option value="mobile">Mobile only</option>
+                <option value="tablet">Tablet only</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Countries (comma-separated or "all")</label>
+              <input type="text" id="adRuleCountries" value="all" placeholder="all, or: US, CA, GB">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Page type</label>
+              <select id="adRulePageType">
+                <option value="all">All pages</option>
+                <option value="news">News articles</option>
+                <option value="review">Casino reviews</option>
+                <option value="casino">Casino pages</option>
+                <option value="category">Category pages</option>
+                <option value="page">Static pages</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Priority (lower = first)</label>
+              <input type="number" id="adRulePriority" value="100" min="1">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Start date (optional)</label>
+              <input type="date" id="adRuleStartDate">
+            </div>
+            <div class="form-group">
+              <label>End date (optional)</label>
+              <input type="date" id="adRuleEndDate">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="adRuleEnabled" checked>
+              Enable this rule
+            </label>
+          </div>
+
+          <div style="display:flex;gap:12px;margin-top:20px">
+            <button type="button" id="adRuleSaveBtn" class="btn btn--primary">Save Rule</button>
+            <button type="button" id="adRuleCancelBtn" class="btn btn--ghost">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+
       <!-- ================================================== -->
       <!-- ALERT -->
       <!-- ================================================== -->
