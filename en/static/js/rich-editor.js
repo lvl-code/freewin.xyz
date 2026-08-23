@@ -870,7 +870,7 @@
 
         // 1. Fetch ad components
         try {
-            var res = await fetch('/api/v1/components?type=ad', { credentials: 'same-origin' });
+            var res = await fetch('/api/v1/components/list?type=ad', { credentials: 'same-origin' });
             if (res.ok) {
                 var data = await res.json();
                 var components = data.components || [];
@@ -890,7 +890,7 @@
 
         // 2. Fetch settings fallback ad
         try {
-            var settingsRes = await fetch('/api/v1/settings', { credentials: 'same-origin' });
+            var settingsRes = await fetch('/api/v1/settings/get', { credentials: 'same-origin' });
             if (settingsRes.ok) {
                 var settingsData = await settingsRes.json();
                 var settings = settingsData.settings || {};
