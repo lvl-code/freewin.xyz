@@ -1,5 +1,3 @@
-
-
 /* Casino listing page */
 .casino-list-toolbar {
   display: flex;
@@ -33,10 +31,13 @@
   line-height: 1.7;
 }
 
-/* Geo card states */
+/* Geo card states — consolidated here as the single definition.
+   Two conflicting duplicates previously existed in main.css; removed
+   (see removal log). Matches the only states controllers.js and
+   casino_grid.html actually generate: allowed / blocked / unknown. */
 .geo-allowed { color: var(--success); font-weight: 600; }
 .geo-blocked { color: var(--danger); font-weight: 600; }
-.geo-restricted { color: var(--warning); font-weight: 600; }
+.geo-unknown { color: var(--gray); font-weight: 600; }
 
 /* Bonus override badge */
 .bonus-override {
@@ -64,13 +65,157 @@
    CASINO GRID + CASINO CARD
    Single source of truth for the casino listing component.
    Namespace: .casino-grid / .casino-card / .casino-card__*
-   Consumed by: en/templates/components/casino_grid.html
+   Consumed by: en/templates/components/casino_grid.html,
+                en/templates/pages/category.html, country.html, home.html,
+                en/worker/controllers.js (buildCasinoCards,
+                buildReviewCasinoCards, and the compact review-card
+                variant used on the all-reviews and author pages).
    Do NOT duplicate these selectors in any other stylesheet.
+
+   NOTE: two card shapes share this namespace —
+     Full card:    geo-badge + bookmark + __header (logo, rating)
+                    + __body (bonus box, geo status) + __actions
+     Compact card: __body only (h3 title link, rating, excerpt)
+                    + __actions with a single action
+   Nothing below assumes __header/__logo exist, so both render
+   correctly from the same rules.
    ============================================================ */
+
+/* ---------- Grid ---------- */
+
+.casino-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(16px, 2.5vw, 24px);
+  align-items: stretch;
+}
+
+@media (min-width: 768px) {
+  .casino-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 1024px) {
+  .casino-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ---------- Card shell ---------- */
+
+.casino-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--white);
+  border: 1px solid var(--light-gray);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+.casino-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .casino-card { transition: none; }
+  .casino-card:hover { transform: none; }
+}
+
+/* Opt-in state badges — not wired to any data field today (no
+   featured/verified/editor's-choice column exists in the schema).
+   Purely additive: adding class="casino-card casino-card--featured"
+   in a future template/controller change is all that's needed to
+   activate one. Safe no-op until then. */
+.casino-card--featured { border-color: var(--primary); box-shadow: 0 0 0 1px var(--primary), var(--shadow); }
+.casino-card--verified::after,
+.casino-card--featured::after,
+.casino-card--editors-choice::after,
+.casino-card--new::after {
+  content: attr(data-badge-label);
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 3;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  color: var(--white);
+}
+.casino-card--verified::after     { content: "Verified";        background: var(--success); }
+.casino-card--featured::after     { content: "Editor's Choice";  background: var(--primary); }
+.casino-card--new::after          { content: "New";              background: var(--secondary, var(--primary)); }
 
 /* ---------- Header: logo + name + rating ---------- */
 
+.casino-card__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 18px 0;
+}
+
+.casino-card__logo-wrap {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--bg);
+  border: 1px solid var(--light-gray);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.casino-card__logo {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+}
+
+.casino-card__title-group { min-width: 0; }
+
+.casino-card__name {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0 0 2px;
+  color: var(--dark);
+}
+
+/* Compact review cards put the title straight in an <h3>, no __header */
+.casino-card__body > h3 {
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 0 0 8px;
+  color: var(--dark);
+}
+.casino-card__body > h3 a { color: inherit; text-decoration: none; }
+.casino-card__body > h3 a:hover { color: var(--primary); text-decoration: underline; }
+
+.casino-card__rating {
+  color: var(--warning);
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
 /* ---------- Body: bonus + geo status ---------- */
+
+.casino-card__body {
+  padding: 14px 18px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1 0 auto;
+}
 
 .bonus-title {
   color: #596579;
@@ -98,7 +243,47 @@
   overflow: hidden;
 }
 
+.casino-card__bonus {
+  background: var(--bg);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.casino-card__geo-status {
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.casino-card__geo-status.geo-allowed { color: var(--success); }
+.casino-card__geo-status.geo-blocked { color: var(--danger); }
+.casino-card__geo-status.geo-unknown { color: var(--gray); }
+
+/* Compliance / operator disclosure rows (18+, T&Cs, operator name) */
+.compliance-row {
+  font-size: 12px;
+  color: var(--gray);
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.compliance-label { font-weight: 600; color: var(--dark); }
+.compliance-value { color: var(--gray); }
+.compliance-link { color: var(--primary); text-decoration: underline; }
+
 /* ---------- Actions ---------- */
+
+.casino-card__actions {
+  display: flex;
+  gap: 8px;
+  padding: 16px 18px 18px;
+  margin-top: auto;
+}
+.casino-card__actions .btn { flex: 1; }
 
 /* ---------- Badges: bookmark / promo / geo ---------- */
 
@@ -131,12 +316,41 @@
 .geo-badge--blocked .geo-badge__icon { color: var(--danger, #e74c3c); }
 .geo-badge--unknown .geo-badge__icon { color: var(--gray, #64748b); }
 
-/* ---------- Content safety net (long names/bonuses never overflow) ---------- */span,
-div,
-a,
-strong,
-small,
-label) {
+.casino-card__bookmark {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 3;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,.92);
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform .15s ease;
+}
+.casino-card__bookmark:hover { transform: scale(1.08); }
+.casino-card__bookmark:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+.bookmark-icon { font-size: 16px; color: var(--dark); line-height: 1; }
+
+/* JS (app.js) toggles both is-bookmarked and aria-pressed together
+   on save/unsave — matched here for safety, only one will ever fire. */
+.casino-card__bookmark.is-bookmarked .bookmark-icon,
+.casino-card__bookmark[aria-pressed="true"] .bookmark-icon {
+  color: var(--danger);
+}
+
+/* ---------- Content safety net (long names/bonuses never overflow) ----------
+   Fix: the ':is(' selector opener was missing here, making this whole
+   rule invalid CSS — browsers silently dropped it, so long casino
+   names/bonus text had no overflow protection in production. Restored
+   and scoped to the casino card, matching the original intent. */
+.casino-card :is(h3, span, div, a, strong, small, label) {
   max-width: 100%;
   overflow-wrap: anywhere;
   word-break: break-word;
@@ -144,4 +358,15 @@ label) {
 
 /* ---------- Small mobile refinement ---------- */
 
+@media (max-width: 480px) {
+  .casino-card__header { padding: 14px 14px 0; }
+  .casino-card__body { padding: 12px 14px 6px; }
+  .casino-card__actions { padding: 12px 14px 14px; }
+}
+
 /* ---------- Accessibility ---------- */
+
+.casino-card:focus-within {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
