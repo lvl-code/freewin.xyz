@@ -219,6 +219,21 @@ if (path === "/api/v1/public/casinos/list") {
 }
 
 if (path === "/api/v1/public/news/list") {
+  let newsList = await getCached(env, CACHE_KEYS.PUBLIC_NEWS);
+
+  if (!newsList) {
+    newsList = await news.getAllNews(env.DB);
+
+    await setCached(
+      env,
+      CACHE_KEYS.PUBLIC_NEWS,
+      newsList
+    );
+  }
+
+  return json({ news: newsList });
+}
+if (path === "/api/v1/public/newsbackup/list") {
   let news = await getCached(env, CACHE_KEYS.PUBLIC_NEWS);
   if (!news) {
     const result = await env.DB.prepare(`
