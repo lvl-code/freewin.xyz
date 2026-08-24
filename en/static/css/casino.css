@@ -199,10 +199,11 @@
 /*.casino-card__title-group { min-width: 0; }*/
 .casino-card__title-group {
   min-width: 0;
+  flex: 1;
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
 }
-
 .casino-card__name {
   font-size: 17px;
   font-weight: 700;
