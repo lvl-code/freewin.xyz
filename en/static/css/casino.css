@@ -99,8 +99,28 @@
 }
 
 /* ---------- Card shell ---------- */
-
 .casino-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background:
+    radial-gradient(120% 140% at 0% 0%, rgba(var(--primary-rgb, 79, 60, 201), 0.06), transparent 55%),
+    linear-gradient(180deg, var(--white) 0%, var(--bg) 100%);
+  border: 1px solid var(--light-gray);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .04), var(--shadow);
+  overflow: hidden;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+.casino-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px -8px rgba(16, 24, 40, .18), var(--shadow-lg);
+  border-color: var(--primary);
+}
+
+/*.casino-card {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -117,7 +137,7 @@
   transform: translateY(-4px);
   box-shadow: var(--shadow-lg);
   border-color: var(--primary);
-}
+}*/
 
 @media (prefers-reduced-motion: reduce) {
   .casino-card { transition: none; }
@@ -370,11 +390,6 @@
 }
 
 
-.casino-card__title-group .casino-card__rating {
-  display: block !important;
-  width: 100%;
-  margin-top: 3px;
-}
 
 /* ---------- Accessibility ---------- */
 
