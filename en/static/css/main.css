@@ -1,19 +1,60 @@
 :root {
-  --primary: #6c5ce7;
-  --primary-dark: #5a4bd1;
-  --dark: #1a1a2e;
-  --dark-2: #16213e;
-  --gray: #64748b;
-  --light-gray: #e2e8f0;
-  --bg: #f8fafc;
+  /* Brand + surface tokens now defer to the per-tenant theme layer
+     (worker/site-settings.js buildThemeCss), which injects a
+     <style id="tenant-theme"> block after all these files load.
+     The value on the right of each var() is only a fallback for
+     when that theme block fails to render, not the live default. */
+  --primary: var(--theme-primary, #6c5ce7);
+  --primary-dark: var(--theme-primary-hover, #5a4bd1);
+
+  /* --dark = TEXT color only (see --surface-dark below for backgrounds) */
+  --dark: var(--theme-text, #1a1a2e);
+  /* --surface-dark = dark chrome BACKGROUNDS (header, footer, dark panels) */
+  --surface-dark: var(--theme-surface, #1a1a2e);
+  --dark-2: var(--theme-surface-alt, #16213e);
+
+  --gray: var(--theme-text-muted, #64748b);
+  --light-gray: var(--theme-border, #e2e8f0);
+  --bg: var(--theme-background, #f8fafc);
   --white: #fff;
+
+  /* Semantic status colors stay fixed — not part of tenant branding */
   --success: #00b894;
   --danger: #e74c3c;
   --warning: #fdcb6e;
-  --radius: 12px;
+
+  --radius: var(--theme-card-radius, 12px);
+  --btn-radius: var(--theme-button-radius, 8px);
   --shadow: 0 2px 8px rgba(0,0,0,0.08);
   --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
-  --container: 1200px;
+  --container: var(--theme-container-width, 1200px);
+
+  /* Spacing scale — did not exist anywhere in the codebase before.
+     Consumers should prefer these over ad-hoc px values. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Typography scale — headings previously had weight/line-height
+     rules but no controlled font-size anywhere, relying on browser
+     UA defaults. clamp() keeps them fluid instead of jumping at
+     breakpoints. */
+  --text-xs: clamp(0.72rem, 0.7rem + 0.1vw, 0.78rem);
+  --text-sm: clamp(0.82rem, 0.8rem + 0.1vw, 0.875rem);
+  --text-base: clamp(0.95rem, 0.93rem + 0.1vw, 1rem);
+  --text-lg: clamp(1.05rem, 1rem + 0.25vw, 1.15rem);
+  --text-xl: clamp(1.2rem, 1.1rem + 0.5vw, 1.4rem);
+  --text-2xl: clamp(1.4rem, 1.25rem + 0.75vw, 1.75rem);
+  --text-3xl: clamp(1.7rem, 1.45rem + 1.25vw, 2.25rem);
+  --text-4xl: clamp(2.1rem, 1.7rem + 2vw, 3rem);
+  --text-5xl: clamp(2.6rem, 2rem + 3vw, 3.75rem);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -33,7 +74,7 @@ a:hover { text-decoration: underline; }
 /* Buttons */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 10px 20px; border-radius: var(--radius); font-weight: 600;
+  padding: 10px 20px; border-radius: var(--btn-radius); font-weight: 600;
   font-size: 14px; cursor: pointer; border: none; transition: all 0.2s;
   text-decoration: none;
 }
@@ -44,19 +85,37 @@ a:hover { text-decoration: underline; }
   color: var(--white);
 }
 .btn--secondary:hover {
-  background: var(--dark);
+  background: var(--surface-dark);
   text-decoration: none;
 }
 .btn--ghost { background: transparent; border: 2px solid var(--light-gray); color: var(--dark); }
 .btn--ghost:hover { border-color: var(--primary); color: var(--primary); text-decoration: none; }
+.btn--outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+.btn--outline:hover { background: var(--primary); color: var(--white); text-decoration: none; }
+.btn--success { background: var(--success); color: var(--white); }
+.btn--success:hover { filter: brightness(0.92); text-decoration: none; }
 .btn--lg { padding: 14px 28px; font-size: 16px; }
 .btn--block { width: 100%; }
 .btn--danger { background: var(--danger); color: var(--white); }
+.btn--danger:hover { filter: brightness(0.92); text-decoration: none; }
 .btn--sm { padding: 6px 12px; font-size: 12px; }
+
+.btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.btn:active { transform: translateY(1px); }
+.btn:disabled,
+.btn[disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn { transition: none; }
+  .btn:active { transform: none; }
+}
 
 /* Header */
 .site-header {
-  background: var(--dark); color: var(--white);
+  background: var(--surface-dark); color: var(--white);
   position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow);
 }
 
@@ -91,7 +150,7 @@ a:hover { text-decoration: underline; }
 }
 
 .logo-accent{
-    color:#A855F7;
+    color: var(--theme-accent, #A855F7);
 }
 .logo:hover { text-decoration: none; }
 
@@ -137,7 +196,7 @@ a:hover { text-decoration: underline; }
 
 /* Hero */
 .hero {
-  background: linear-gradient(135deg, var(--dark) 0%, var(--dark-2) 100%);
+  background: linear-gradient(135deg, var(--surface-dark) 0%, var(--dark-2) 100%);
   color: var(--white); padding: 60px 0; text-align: center;
 }
 .hero h1 { font-size: 42px; margin-bottom: 12px; }
@@ -262,64 +321,23 @@ a:hover { text-decoration: underline; }
 
 /* ============================================================
    GENERAL CARD CONTENT PROTECTION
-   ============================================================ */span,
-div,
-a,
-strong,
-small,
-label
-) {
+   Fix: the ':is(' opener was missing here, making this whole rule
+   invalid CSS — browsers silently dropped it, so long titles/values
+   in these cards had no overflow protection in production.
+   ============================================================ */
+.feature-card :is(h3, span, div, a, strong, small, label),
+.news-card :is(h3, span, div, a, strong, small, label),
+.info-card :is(h3, span, div, a, strong, small, label),
+.review-card :is(h3, span, div, a, strong, small, label) {
   max-width: 100%;
 
   overflow-wrap: anywhere;
   word-break: break-word;
 }
 
-/*
-.casino-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
-  align-items: stretch;
-}
-
-.casino-card {
-  background: var(--white);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-  transition: transform 0.2s, box-shadow 0.2s;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.casino-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
-.casino-card__header { display: flex; align-items: center; gap: 12px; padding: 16px; }
-.casino-card__logo { width: 48px; height: 48px; border-radius: 8px; object-fit: cover; }
-.casino-card__rating { color: var(--warning); font-size: 14px; }
-.casino-card__body {
-  padding: 0 16px 12px;
-  flex-grow:0 1 auto;
-}
-.casino-card__body h3 { font-size: 18px; margin-bottom: 8px; }
-.casino-card__bonus {
-  background: var(--bg); border-radius: 8px; padding: 10px 12px;
-  display: flex; flex-direction: column; gap: 2px;
-}
-
-
-.bonus-title { font-size: 12px; color: var(--gray); text-transform: uppercase; }
-.bonus-value { font-size: 16px; font-weight: 700; color: var(--primary); }
-.casino-card__actions {
-  display: flex;
-  gap: 8px;
-  padding: 0 16px 16px;
-  margin-top: auto;
-}
-.casino-card__actions .btn { flex: 1; }
-
-*/
+/* .casino-grid / .casino-card: see casino.css — the documented
+   single source of truth for that namespace. A dead, never-live
+   commented-out copy previously sat here; removed. */
 
 .features-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -367,18 +385,10 @@ label
 .chip:hover { background: var(--primary); color: var(--white); text-decoration: none; }
 .country-chips, .category-list { display: flex; flex-wrap: wrap; }
 
-/* Footer */
-.site-footer { background: var(--dark); color: var(--light-gray); margin-top: 60px; }
-.footer-grid {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 30px;
-  padding: 50px 0;
-}
-.footer-col h4 { color: var(--white); margin-bottom: 14px; font-size: 16px; }
-.footer-col ul { list-style: none; }
-.footer-col li { margin-bottom: 8px; }
-.footer-col a { color: var(--light-gray); font-size: 14px; }
-.footer-col a:hover { color: var(--white); }
-.footer-bottom { border-top: 1px solid rgba(255,255,255,0.1); padding: 20px 0; text-align: center; font-size: 13px; }
+/* .site-footer / .footer-grid / .footer-col / .footer-bottom base
+   rules consolidated into the single footer section further down
+   this file (search "Footer — consolidated"). This file previously
+   had 3 separate, partially-conflicting copies. */
 
 /* Casino Detail */
 .casino-hero {
@@ -464,7 +474,7 @@ label
   color: var(--white);
 }
 .btn--secondary:hover {
-  background: var(--dark);
+  background: var(--surface-dark);
   text-decoration: none;
 }
 
@@ -526,7 +536,7 @@ label
   top: 64px;
   right: 20px;
   width: 240px;
-  background: var(--dark);
+  background: var(--surface-dark);
   border-radius: var(--radius);
   box-shadow: var(--shadow-lg);
   padding: 16px;
@@ -581,34 +591,11 @@ body {
 .layout-wrapper {
   flex: 1 0 auto;
 }
-.site-footer {
-  flex-shrink: 0;
-}
-
-/* ===== PATCH: Footer compliance section ===== */
-.footer-compliance {
-  border-top: 1px solid rgba(255,255,255,0.1);
-  padding: 24px 0;
-  font-size: 12px;
-  color: rgba(255,255,255,0.6);
-}
-.footer-compliance h4 {
-  color: var(--white);
-  margin-bottom: 8px;
-  font-size: 14px;
-}
-.footer-compliance ul {
-  list-style: none;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin: 10px 0;
-}
-.footer-compliance a {
-  color: rgba(255,255,255,0.6);
-  font-size: 12px;
-}
-.footer-compliance a:hover { color: var(--white); }
+/* .footer-compliance (no "-box") removed — dead CSS. The real
+   template (footer.html) uses class="footer-compliance-box", styled
+   in the consolidated footer section below; this class never
+   matched any element. .site-footer{flex-shrink:0} folded in there
+   too. */
 
 /* ===== PATCH: Mobile search toggle ===== */
 .mobile-search-btn {
@@ -623,7 +610,7 @@ body {
 .mobile-search-container {
   display: none;
   padding: 10px 20px;
-  background: var(--dark);
+  background: var(--surface-dark);
   position: relative;
 }
 .mobile-search-container.active {
@@ -658,24 +645,15 @@ body {
   gap: 8px;
   justify-content: center;
 }
-.geo-allowed { color: var(--success); }
-.geo-blocked { color: var(--danger); }
-.geo-restricted { color: var(--warning); }
+/* geo-allowed/blocked/unknown + geo-badge--unknown icon color now live
+   only in casino.css (the documented single source of truth for the
+   casino card/badge system) — this file previously had 3 duplicate/
+   conflicting copies of these rules. Removed. */
 
 @media (max-width: 768px) {
   .mobile-search-btn { display: block; }
   .search-box { display: none !important; }
 }
-
-
-.geo-badge--unknown .geo-badge__icon {
-  color: #94a3b8; /* gray */
-  font-size: 16px;
-  font-weight: bold;
-}
-.geo-allowed { color: #00b894; background: #e6fff5; }
-.geo-blocked { color: #e74c3c; background: #fee; }
-.geo-unknown { color: #64748b; background: #f1f5f9; }
 
 
 /* ===== Page Content Styles ===== */
@@ -903,9 +881,17 @@ body {
   line-height: 1.5;
 }
 
-/* ===== Footer ===== */
+/* ===== Footer — consolidated =====
+   This file previously had 3 separate, partially-conflicting
+   .site-footer/.footer-grid/.footer-col definitions plus a dead
+   .footer-compliance class; this is the single remaining copy.
+   Text-color specifics (p/li/a/h4 etc.) are governed by the
+   higher-specificity "FOOTER — MAXIMUM READABILITY" section in
+   supportive.css, which always wins regardless of what's set here —
+   values below are the structural/layout rules plus a sane fallback
+   if that file fails to load. */
 .site-footer {
-  background: var(--dark);
+  background: var(--surface-dark);
   color: var(--light-gray);
   margin-top: 60px;
   flex-shrink: 0;
@@ -962,8 +948,9 @@ body {
 .footer-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
-  padding-bottom: 32px;
+  gap: var(--space-6);
+  padding-top: var(--space-10);
+  padding-bottom: var(--space-8);
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 .footer-col h4 {
@@ -981,7 +968,7 @@ body {
   margin-bottom: 8px;
 }
 .footer-col a {
-  color: rgba(255,255,255,0.55);
+  color: var(--light-gray);
   font-size: 13px;
   transition: color 0.2s;
 }

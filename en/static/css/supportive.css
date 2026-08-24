@@ -7,7 +7,7 @@
 :root {
   --support-primary: var(--primary, #6c5ce7);
   --support-primary-dark: var(--primary-dark, #5a4bd1);
-  --support-dark: var(--dark, #1a1a2e);
+  --support-dark: var(--surface-dark, #1a1a2e);
   --support-dark-2: var(--dark-2, #16213e);
   --support-bg: var(--bg, #f8fafc);
   --support-surface: var(--white, #fff);
@@ -42,24 +42,12 @@ html {
   scroll-padding-top: 84px;
 }
 
-body {
-  font-family: var(--support-font-body);
-  color: var(--support-text);
-  font-size: 15px;
-  line-height: 1.65;
-  letter-spacing: -.005em;
-}
+/* body{}/h1-h6{} base rules consolidated into section 31.1/31.2 below —
+   this file previously had two separate, overlapping copies of both. */
 
 button,input,select,textarea { font: inherit; }
-
-h1,h2,h3,h4,h5,h6 {
-  color: var(--support-text);
-  line-height: 1.18;
-  letter-spacing: -.025em;
-  text-wrap: balance;
-}
-h1{font-weight:800} h2{font-weight:750} h3{font-weight:700} h4,h5,h6{font-weight:650}
 strong,b{font-weight:700}
+
 small,.muted,.help-text,.form-help,.field-help{color:var(--support-muted)}
 code,pre,kbd{font-family:var(--support-font-mono)}
 code{background:color-mix(in srgb,var(--support-primary) 7%,var(--support-bg));color:var(--support-primary-dark);padding:2px 6px;border-radius:5px}
@@ -81,30 +69,67 @@ a:hover{text-decoration-thickness:1.5px}
 .section-header{gap:20px}
 .section-header .link{white-space:nowrap}
 
-/* Header */
+/* Header — consolidated. This file previously had two separate
+   .site-header sections (this one, and one further down commented
+   "Modern navbar") which duplicated/partially overrode each other;
+   the later one's active-link treatment silently killed this one's
+   underline effect via display:none. Merged into one. */
 .site-header {
-  background:linear-gradient(180deg,color-mix(in srgb,var(--support-dark) 98%,#000 2%),var(--support-dark));
-  border-bottom:1px solid rgba(255,255,255,.07);
-  box-shadow:0 8px 30px rgba(15,23,42,.10);
-  backdrop-filter:saturate(140%) blur(14px);
-  -webkit-backdrop-filter:saturate(140%) blur(14px);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--support-dark) 98%, #000 2%), var(--support-dark));
+  border-bottom: 1px solid rgba(255,255,255,.09);
+  box-shadow: 0 8px 30px rgba(5,8,20,.2), inset 0 -1px 0 rgba(255,255,255,.025);
+  backdrop-filter: saturate(140%) blur(14px);
+  -webkit-backdrop-filter: saturate(140%) blur(14px);
 }
-.header-inner{min-height:64px;height:auto;padding-top:8px;padding-bottom:8px;gap:12px}
+.header-inner{position:relative;min-height:68px;height:auto;padding-top:var(--space-2);padding-bottom:var(--space-2);gap:var(--space-3)}
 .logo{min-width:0}
-.logo-icon{filter:drop-shadow(0 5px 14px rgba(168,85,247,.20));transition:transform .22s ease}
+.logo-icon{filter:drop-shadow(0 5px 14px color-mix(in srgb, var(--theme-accent, #A855F7) 70%, transparent));transition:transform .22s ease}
 .logo:hover .logo-icon{transform:translateY(-1px) scale(1.03)}
-.logo-text{font-family:var(--support-font-display);font-size:clamp(1rem,1.8vw,1.22rem);letter-spacing:.015em;line-height:1;text-shadow:0 2px 12px rgba(168,85,247,.18)}
-.main-nav{align-items:center}
-.main-nav a{position:relative;padding:9px 2px;border-radius:6px;transition:color .14s ease}
-.main-nav a::after{content:"";position:absolute;left:0;right:0;bottom:3px;height:2px;border-radius:999px;background:var(--support-primary);transform:scaleX(0);transition:transform .22s ease}
-.main-nav a:hover::after,.main-nav a.active::after,.main-nav a[aria-current="page"]::after{transform:scaleX(1)}
-.header-actions{gap:10px}
-.search-box input{min-height:40px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.08);box-shadow:inset 0 1px 0 rgba(255,255,255,.05);transition:width .22s,border-color .14s,background .14s,box-shadow .14s}
-.search-box input:focus{width:240px;outline:none;border-color:color-mix(in srgb,var(--support-primary) 70%,white 10%);background:rgba(255,255,255,.12);box-shadow:0 0 0 3px rgba(108,92,231,.18)}
+.logo-text{font-family:var(--support-font-display);font-size:clamp(1rem,1.8vw,1.22rem);letter-spacing:.015em;line-height:1;text-shadow:0 2px 12px color-mix(in srgb, var(--theme-accent, #A855F7) 60%, transparent)}
+
+.main-nav{align-items:center;gap:5px}
+.main-nav a{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:8px 11px;border-radius:9px;color:rgba(255,255,255,.78);font-size:13px;font-weight:650;letter-spacing:.005em;text-decoration:none;transition:color var(--support-fast, .14s) ease,background var(--support-fast, .14s) ease,transform var(--support-fast, .14s) ease}
+.main-nav a:hover{color:#fff;background:rgba(255,255,255,.075);transform:translateY(-1px)}
+.main-nav a.active,.main-nav a[aria-current="page"]{
+  color:#fff;
+  background:linear-gradient(135deg, color-mix(in srgb, var(--support-primary) 28%, transparent), color-mix(in srgb, var(--support-primary) 10%, transparent));
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--support-primary) 45%, white 20%), 0 5px 15px rgba(0,0,0,.1);
+}
+.main-nav a.active::before,.main-nav a[aria-current="page"]::before{
+  content:"";
+  width:5px;
+  height:5px;
+  margin-right:7px;
+  border-radius:50%;
+  background: color-mix(in srgb, var(--support-primary) 55%, white);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--support-primary) 55%, white 20%);
+}
+
+.header-actions{gap:var(--space-2)}
+
+.search-box input{min-height:40px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.065);color:#fff;border-radius:9px;box-shadow:inset 0 1px 0 rgba(255,255,255,.05);transition:width .22s,border-color .14s,background .14s,box-shadow .14s}
+.search-box input::placeholder{color:rgba(255,255,255,.52)}
+.search-box input:focus{width:240px;outline:none;border-color:color-mix(in srgb,var(--support-primary) 70%,white 15%);background:rgba(255,255,255,.095);box-shadow:0 0 0 3px color-mix(in srgb, var(--support-primary) 22%, transparent), inset 0 1px 0 rgba(255,255,255,.05)}
 .search-results{margin-top:8px;overflow:hidden;border:1px solid var(--support-border);box-shadow:var(--support-shadow-lg)}
 .search-result-item{min-height:54px;transition:background .14s}
-.nav-toggle{min-width:44px;min-height:44px;border-radius:10px}
-.nav-toggle:hover{background:rgba(255,255,255,.08)}
+
+.nav-toggle{min-width:44px;min-height:44px;border-radius:10px;border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.055);color:#fff;box-shadow:0 3px 12px rgba(0,0,0,.12)}
+.nav-toggle:hover,.nav-toggle:focus-visible{background:color-mix(in srgb, var(--support-primary) 18%, transparent);border-color:color-mix(in srgb, var(--support-primary) 30%, white 20%)}
+
+@media (max-width:1024px){.main-nav a{padding-left:9px;padding-right:9px;font-size:12.5px}.header-actions{gap:7px}}
+@media (max-width:768px){
+ .site-header{background:linear-gradient(180deg,rgba(20,22,42,.99),rgba(26,26,46,.97))}
+ .header-inner{min-height:62px}
+ .main-nav{border-top:1px solid rgba(255,255,255,.07);background:linear-gradient(180deg,rgba(18,20,38,.99),rgba(26,26,46,.99));box-shadow:0 16px 35px rgba(0,0,0,.2)}
+ .main-nav a{min-height:46px;justify-content:flex-start;padding:10px 14px;border-radius:8px}
+ .main-nav a:hover,.main-nav a.active,.main-nav a[aria-current="page"]{transform:none}
+ .main-nav a.active,.main-nav a[aria-current="page"]{background:linear-gradient(90deg, color-mix(in srgb, var(--support-primary) 23%, transparent), color-mix(in srgb, var(--support-primary) 6%, transparent))}
+ .main-nav a.active::before,.main-nav a[aria-current="page"]::before{width:6px;height:22px;margin-right:9px;border-radius:5px}
+}
+
 
 /* Buttons */
 .btn,button.btn{min-height:40px;border:1px solid transparent;border-radius:10px;font-weight:700;letter-spacing:-.005em;box-shadow:var(--support-shadow-xs);transition:transform .14s,box-shadow .22s,background .14s,border-color .14s,color .14s}
@@ -261,7 +286,7 @@ pre,.code-block,.json-viewer,.schema-preview{overflow:auto;max-width:100%;paddin
 @keyframes support-shimmer{to{background-position:-200% 0}}
 
 /* Footer */
-.site-footer{position:relative;overflow:hidden;margin-top:70px;background:radial-gradient(circle at 10% 0%,rgba(108,92,231,.13),transparent 28%),radial-gradient(circle at 90% 30%,rgba(168,85,247,.08),transparent 26%),linear-gradient(180deg,var(--support-dark),#111322);border-top:1px solid rgba(255,255,255,.06)}
+.site-footer{position:relative;overflow:hidden;margin-top:70px;background:radial-gradient(circle at 10% 0%,color-mix(in srgb, var(--support-primary) 13%, transparent),transparent 28%),radial-gradient(circle at 90% 30%,color-mix(in srgb, var(--theme-accent, #A855F7) 8%, transparent),transparent 26%),linear-gradient(180deg,var(--support-dark),#111322);border-top:1px solid rgba(255,255,255,.06)}
 .site-footer::before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(rgba(255,255,255,.012) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px);background-size:40px 40px;mask-image:linear-gradient(to bottom,black,transparent 80%)}
 .site-footer .container{position:relative;z-index:1}.footer-compliance-box{padding-top:34px;border-bottom-color:rgba(255,255,255,.09)}
 .compliance-logos img{max-width:120px;max-height:44px;object-fit:contain;filter:grayscale(.1)}.rg-text{color:rgba(255,255,255,.64);font-size:13px}.rg-text a{color:#b9aaff}.disclaimer-text{color:rgba(255,255,255,.43);font-size:11.5px}
@@ -319,21 +344,13 @@ pre,.code-block,.json-viewer,.schema-preview{overflow:auto;max-width:100%;paddin
 .stack{display:flex;flex-direction:column;gap:16px}.cluster{display:flex;flex-wrap:wrap;align-items:center;gap:10px}.center{display:grid;place-items:center}
 .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
 
-/* High-clarity typography on normal/light surfaces. */:where(.main-content,
-.page-content,
-.review-content,
-.news-content,
-.casino-page,
-.casino-detail,
-.admin-content,
-.admin-section,
-.admin-form,
-.auth-card,
-.info-block,
-.info-card,
-.sidebar-block,
-.feature-card,
-.news-card {color:var(--support-text)}:where(.main-content,
+/* High-clarity typography on normal/light surfaces.
+   Fix: the ':where(' opener below was missing its closing paren
+   before '{', making the whole rule invalid — browsers silently
+   dropped it. Its intended effect (theme-aware text color) was
+   masked by a second, valid rule that used a hardcoded hex instead.
+   Merged into one valid, theme-aware rule. */
+:where(.main-content,
 .page-content,
 .review-content,
 .news-content,
@@ -352,14 +369,16 @@ pre,.code-block,.json-viewer,.schema-preview{overflow:auto;max-width:100%;paddin
 small,
 .help-text,
 .form-help,
-.field-help) {color:#526174}
+.field-help) {color:var(--support-text, #526174)}
 
 /* Sharp readable text on dark surfaces. */
 :where(.site-header,.site-footer,.hero,.admin-nav,.mobile-bottom-nav){color:rgba(255,255,255,.94)}
-.site-footer :where(p,li,dd,dt,span,small,.rg-text,.disclaimer-text,.footer-bottom){color:rgba(255,255,255,.78)}
-.site-footer :where(.footer-col h4,h1,h2,h3,h4,h5,h6){color:#fff}
-.site-footer :where(a){color:rgba(255,255,255,.84);text-shadow:0 1px 2px rgba(0,0,0,.2)}
-.site-footer :where(a:hover,a:focus-visible){color:#fff}
+/* .site-footer text-color rules (p/li/a/footer-col h4 etc.) removed
+   from here — section 31.18 "FOOTER — MAXIMUM READABILITY" further
+   down uses higher-specificity selectors (.site-footer p vs this
+   block's .site-footer :where(p) ) and always won anyway; this was
+   dead weight that never actually rendered. */
+
 
 /* Premium breadcrumbs: visible on light and dark backgrounds. */
 .breadcrumbs{position:relative;z-index:2;display:flex;flex-wrap:wrap;align-items:center;gap:6px;width:fit-content;max-width:100%;min-height:34px;margin:0 0 18px;padding:7px 12px;border:1px solid #d8dee8;border-radius:10px;background:rgba(255,255,255,.96);color:#334155;box-shadow:0 3px 12px rgba(15,23,42,.08);font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:12.5px;font-weight:650;line-height:1.35;letter-spacing:.005em;text-shadow:none;backdrop-filter:blur(10px) saturate(125%);-webkit-backdrop-filter:blur(10px) saturate(125%)}
@@ -374,30 +393,10 @@ small,
 .hero .breadcrumbs a:hover,.hero .breadcrumbs a:focus-visible,.casino-hero .breadcrumbs a:hover,.casino-hero .breadcrumbs a:focus-visible,.dark .breadcrumbs a:hover,.dark .breadcrumbs a:focus-visible,.bg-dark .breadcrumbs a:hover,.bg-dark .breadcrumbs a:focus-visible,[data-theme="dark"] .breadcrumbs a:hover,[data-theme="dark"] .breadcrumbs a:focus-visible{color:#fff}
 .hero .breadcrumbs>*+*::before,.casino-hero .breadcrumbs>*+*::before,.dark .breadcrumbs>*+*::before,.bg-dark .breadcrumbs>*+*::before,[data-theme="dark"] .breadcrumbs>*+*::before{color:rgba(255,255,255,.55)}
 
-/* Modern navbar: refined desktop + responsive mobile treatment. */
-.site-header{position:sticky;top:0;z-index:1000;background:linear-gradient(180deg,rgba(20,22,42,.98),rgba(26,26,46,.95));border-bottom:1px solid rgba(255,255,255,.09);box-shadow:0 8px 30px rgba(5,8,20,.2),inset 0 -1px 0 rgba(255,255,255,.025)}
-.header-inner{position:relative;min-height:68px}
-.main-nav{gap:5px}
-.main-nav a{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:8px 11px;border-radius:9px;color:rgba(255,255,255,.78);font-size:13px;font-weight:650;letter-spacing:.005em;text-decoration:none;transition:color var(--support-fast) ease,background var(--support-fast) ease,transform var(--support-fast) ease}
-.main-nav a::after{display:none}
-.main-nav a:hover{color:#fff;background:rgba(255,255,255,.075);transform:translateY(-1px)}
-.main-nav a.active,.main-nav a[aria-current="page"]{color:#fff;background:linear-gradient(135deg,rgba(108,92,231,.28),rgba(108,92,231,.1));box-shadow:inset 0 0 0 1px rgba(167,139,250,.17),0 5px 15px rgba(0,0,0,.1)}
-.main-nav a.active::before,.main-nav a[aria-current="page"]::before{content:"";width:5px;height:5px;margin-right:7px;border-radius:50%;background:#a78bfa;box-shadow:0 0 10px rgba(167,139,250,.75)}
-.nav-toggle{border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.055);color:#fff;box-shadow:0 3px 12px rgba(0,0,0,.12)}
-.nav-toggle:hover,.nav-toggle:focus-visible{background:rgba(108,92,231,.18);border-color:rgba(167,139,250,.3)}
-.search-box input{border-color:rgba(255,255,255,.12);background:rgba(255,255,255,.065);color:#fff;border-radius:9px}
-.search-box input::placeholder{color:rgba(255,255,255,.52)}
-.search-box input:focus{border-color:rgba(167,139,250,.55);background:rgba(255,255,255,.095);box-shadow:0 0 0 3px rgba(108,92,231,.2),inset 0 1px 0 rgba(255,255,255,.05)}
-
-@media (max-width:1024px){.main-nav a{padding-left:9px;padding-right:9px;font-size:12.5px}.header-actions{gap:7px}}
+/* .site-header/.header-inner/.main-nav/.nav-toggle/.search-box for
+   this breakpoint set are now part of the single consolidated header
+   section near the top of this file (see "Header — consolidated"). */
 @media (max-width:768px){
- .site-header{background:linear-gradient(180deg,rgba(20,22,42,.99),rgba(26,26,46,.97))}
- .header-inner{min-height:62px}
- .main-nav{border-top:1px solid rgba(255,255,255,.07);background:linear-gradient(180deg,rgba(18,20,38,.99),rgba(26,26,46,.99));box-shadow:0 16px 35px rgba(0,0,0,.2)}
- .main-nav a{min-height:46px;justify-content:flex-start;padding:10px 14px;border-radius:8px}
- .main-nav a:hover,.main-nav a.active,.main-nav a[aria-current="page"]{transform:none}
- .main-nav a.active,.main-nav a[aria-current="page"]{background:linear-gradient(90deg,rgba(108,92,231,.23),rgba(108,92,231,.06))}
- .main-nav a.active::before,.main-nav a[aria-current="page"]::before{width:6px;height:22px;margin-right:9px;border-radius:5px}
  .breadcrumbs{width:100%;max-width:100%;overflow-x:auto;flex-wrap:nowrap;white-space:nowrap;scrollbar-width:none}
  .breadcrumbs::-webkit-scrollbar{display:none}
 }
@@ -409,10 +408,15 @@ small,
    -------------------------------------------------------------------------- */
 
 :root {
-  --text-strong: #111827;
-  --text-body: #263244;
-  --text-secondary: #526174;
-  --text-muted-strong: #64748b;
+  /* These previously loaded last and won the cascade for body text
+     color with fully hardcoded hex — bypassing --support-text (above)
+     and the theme system entirely. Now derived from the same
+     theme-aware chain as everything else, original values kept only
+     as the fallback. */
+  --text-strong: var(--dark, #111827);
+  --text-body: var(--dark, #263244);
+  --text-secondary: var(--gray, #526174);
+  --text-muted-strong: var(--gray, #64748b);
 
   --dark-text-strong: #ffffff;
   --dark-text-body: rgba(255,255,255,.91);
@@ -433,38 +437,26 @@ body {
 
 /* --------------------------------------------------------------------------
    31.2 ALL IMPORTANT HEADINGS
+   (Consolidated — this file previously had two separate h1..h6 blocks,
+   one near the top of the file and this one; the sizes below were
+   missing from both, so bare headings had no controlled font-size at
+   all and fell back to browser UA defaults.)
    -------------------------------------------------------------------------- */
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
+h1, h2, h3, h4, h5, h6 {
   color: var(--text-strong);
-  font-weight: 750;
   line-height: 1.2;
   letter-spacing: -.025em;
   text-rendering: optimizeLegibility;
+  text-wrap: balance;
 }
 
-h1 {
-  font-weight: 800;
-}
-
-h2 {
-  font-weight: 780;
-}
-
-h3 {
-  font-weight: 740;
-}
-
-h4,
+h1 { font-size: var(--text-5xl); font-weight: 800; }
+h2 { font-size: var(--text-4xl); font-weight: 780; }
+h3 { font-size: var(--text-2xl); font-weight: 740; }
+h4 { font-size: var(--text-xl); font-weight: 700; }
 h5,
-h6 {
-  font-weight: 700;
-}
+h6 { font-size: var(--text-lg); font-weight: 700; }
 
 
 /* --------------------------------------------------------------------------
