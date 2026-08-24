@@ -467,17 +467,10 @@ function buildCasinoCards(casinoList, geoData = null) {
         <span class="geo-badge__flag">${flag}</span>
         <span class="geo-badge__icon">${geoIcon}</span>
       </div>` : "";
-   // const geoBadge = geoData ? `
-     // <div class="geo-badge ${geoClass}">
-       // <span class="geo-badge__flag">${flag}</span>
-       // <span class="geo-badge__icon">${geoIcon}</span>
-     // </div>` : "";
     const geoStatusText = geoData ? `
   <div class="casino-card__geo-status geo-${geoStatus}">
     ${flag} ${geoLabel} for players from ${countryFullName(geoData.country)}
   </div>` : "";
-
-// Then add ${geoStatusText} inside the card body, after the bonus div
 
 
     const complianceHtml = `
@@ -519,19 +512,6 @@ function buildCasinoCards(casinoList, geoData = null) {
   ${complianceHtml}
 </div>
 
-      //<div class="casino-card__header">
-        //<img src="${casino.logo || '/static/images/default.png'}" alt="${casino.name}"  class="casino-card__logo"  onerror="this.src='/static/images/default.png'"   loading="lazy">
-       // <div class="casino-card__rating">${'★'.repeat(Math.round(casino.rating))}${'☆'.repeat(5 - Math.round(casino.rating))}</div>
-    //  </div>
-      //<div class="casino-card__body">
-        //<h3>${casino.name}</h3>
-       // <div class="casino-card__bonus">
-         // <span class="bonus-title">${casino.bonus_title || 'Welcome Bonus'}</span>
-         // <span class="bonus-value">${casino.bonus_value || ''}</span>
-       // </div>
-       // ${geoStatusText}
-       // ${complianceHtml}
-     // </div>
       <div class="casino-card__actions">
         <a href="/en/casino/${casino.slug}" class="btn btn--secondary">Review</a>
         <a href="/en/go/${casino.slug}" class="btn btn--primary" rel="nofollow sponsored">Visit</a>
