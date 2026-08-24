@@ -369,6 +369,13 @@
   .casino-card__actions { padding: 12px 14px 14px; }
 }
 
+
+.casino-card__title-group .casino-card__rating {
+  display: block !important;
+  width: 100%;
+  margin-top: 3px;
+}
+
 /* ---------- Accessibility ---------- */
 
 .casino-card:focus-within {
