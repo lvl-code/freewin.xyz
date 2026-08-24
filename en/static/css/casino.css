@@ -397,25 +397,3 @@
   outline-offset: 2px;
 }
 
-
-
-/* Rating positioned above the casino logo */
-.casino-card__header {
-  position: relative;
-}
-
-.casino-card__rating {
-  position: absolute;
-  top: -2px;
-  left: 22px;
-  z-index: 4;
-  display: block;
-  width: 92px;
-  text-align: center;
-  font-size: 14px;
-  line-height: 1.4;
-  letter-spacing: 0;
-  background: var(--white);
-  border-radius: 6px;
-  padding: 3px 0;
-}
