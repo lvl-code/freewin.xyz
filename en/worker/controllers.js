@@ -1330,7 +1330,7 @@ function applyAutoRules(content, rules, usedComponentIds, requestInfo, pageType)
     if (!htmlToInject) continue;
 
     // Track appearances
-    const currentCount = insertionCount.get(rule.component_id) || 0;
+    const currentCount = insertionCount.get(rule.id) || 0;
     const remainingSlots = rule.max_appearances - currentCount;
     if (remainingSlots <= 0) continue;
 
@@ -1347,7 +1347,7 @@ function applyAutoRules(content, rules, usedComponentIds, requestInfo, pageType)
       allInsertions.push({ index: idx, html: `\n${htmlToInject}\n`, order: allInsertions.length });
     }
 
-    insertionCount.set(rule.component_id, currentCount + points.length);
+    insertionCount.set(rule.id, currentCount + points.length);
     usedComponentIds.add(rule.component_id);
   }
 
@@ -1388,6 +1388,48 @@ function getParagraphStartPositions(content) {
   return positions;
 }
 
+function getHeadingEndPositions(content) {
+  const regex = /<\/h[1-6]>/gi;
+  const positions = [];
+  let match;
+  while ((match = regex.exec(content)) !== null) {
+    positions.push(match.index + match[0].length);
+  }
+  return positions;
+}
+
+function getHeadingStartPositions(content) {
+  const regex = /<h[1-6][^>]*>/gi;
+  const positions = [];
+  let match;
+  while ((match = regex.exec(content)) !== null) {
+    positions.push(match.index);
+  }
+  return positions;
+}
+
+function getImageEndPositions(content) {
+  const regex = /<img\b[^>]*>/gi;
+  const positions = [];
+  let match;
+  while ((match = regex.exec(content)) !== null) {
+    positions.push(match.index + match[0].length);
+  }
+  return positions;
+}
+
+function pickPosition(positions, positionValue) {
+  if (positions.length === 0) return undefined;
+
+  const wanted = Number(positionValue) || 1;
+  const clamped = Math.min(
+    Math.max(wanted, 1),
+    positions.length
+  );
+
+  return positions[clamped - 1];
+}
+
 function findInsertionPoints(content, rule) {
   // Repeat mode: insert after every Nth paragraph, starting at position_value
   if (rule.repeat_interval > 0 && rule.placement === 'after_paragraph') {
@@ -1417,16 +1459,27 @@ function findInsertionPoints(content, rule) {
     case 'before_article':
       return [0];
     case 'after_heading': {
-      const m = content.match(/<\/h[1-6]>/i);
-      return m ? [m.index + m[0].length] : [];
+      const idx = pickPosition(
+        getHeadingEndPositions(content),
+        rule.position_value
+      );
+      return idx !== undefined ? [idx] : [];
     }
+
     case 'before_heading': {
-      const m = content.match(/<h[1-6]/i);
-      return m ? [m.index] : [];
+      const idx = pickPosition(
+        getHeadingStartPositions(content),
+        rule.position_value
+      );
+      return idx !== undefined ? [idx] : [];
     }
+
     case 'after_first_image': {
-      const m = content.match(/<\/img>|<img[^>]*\/>/i);
-      return m ? [m.index + m[0].length] : [];
+      const idx = pickPosition(
+        getImageEndPositions(content),
+        rule.position_value
+      );
+      return idx !== undefined ? [idx] : [];
     }
     case 'middle_of_article': {
       const positions = getParagraphEndPositions(content);
