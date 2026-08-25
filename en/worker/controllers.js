@@ -689,6 +689,14 @@ if (review.casino_slug) {
   const reviewBlocksHtml = await renderer.renderReviewBlocks(slug);
   const dynamicSeo = await renderer.loadDynamicSeo("review", slug);
 
+  // ── Inline advertisement injection (was missing for reviews) ──
+  let reviewDisplayContent = review.content || "";
+  try {
+    reviewDisplayContent = await injectInlineAds(reviewDisplayContent, env, request, "review");
+  } catch (e) {
+    console.error("Inline ad injection error (review):", e.message);
+  }
+
   let casino = null;
   let casinoName = "";
 
@@ -751,6 +759,7 @@ if (review.casino_slug) {
 };
   const html = await renderer.render("review.html", {
     ...review,
+    content: reviewDisplayContent,
     casino_name: casinoName,
     author_name: author?.name || "",
     author_bio: author?.bio || "",
@@ -1295,8 +1304,8 @@ function extractRequestInfo(request) {
 function applyAutoRules(content, rules, usedComponentIds, requestInfo, pageType) {
   if (!rules || rules.length === 0) return content;
 
-  let modified = content;
   const insertionCount = new Map();
+  const allInsertions = []; // { index, html, order } — computed against the ORIGINAL content
 
   for (const rule of rules) {
     // Skip if component already used manually and max_appearances is 1
@@ -1322,30 +1331,111 @@ function applyAutoRules(content, rules, usedComponentIds, requestInfo, pageType)
 
     // Track appearances
     const currentCount = insertionCount.get(rule.component_id) || 0;
-    if (currentCount >= rule.max_appearances) continue;
+    const remainingSlots = rule.max_appearances - currentCount;
+    if (remainingSlots <= 0) continue;
 
-    // Apply placement
-    if (rule.repeat_interval > 0 && rule.placement === 'after_paragraph') {
-      // Repeat mode: insert after every N paragraphs
-      modified = insertRepeating(
-        modified,
-        htmlToInject,
-        rule.position_value,
-        rule.repeat_interval,
-        rule.max_appearances,
-        usedComponentIds,
-        rule.component_id,
-        insertionCount
-      );
-    } else {
-      // Single placement
-      modified = applySinglePlacement(modified, htmlToInject, rule);
-      insertionCount.set(rule.component_id, currentCount + 1);
-      usedComponentIds.add(rule.component_id);
+    // Compute insertion points against the ORIGINAL, untouched content.
+    // This is the key fix: every rule's paragraph/heading/image positions
+    // are located against the same fixed baseline, so an earlier rule's
+    // injected ad HTML (which may itself contain <p> tags) can never shift
+    // where a later rule lands.
+    let points = findInsertionPoints(content, rule);
+    if (points.length > remainingSlots) points = points.slice(0, remainingSlots);
+    if (points.length === 0) continue;
+
+    for (const idx of points) {
+      allInsertions.push({ index: idx, html: `\n${htmlToInject}\n`, order: allInsertions.length });
     }
+
+    insertionCount.set(rule.component_id, currentCount + points.length);
+    usedComponentIds.add(rule.component_id);
   }
 
+  if (allInsertions.length === 0) return content;
+
+  // Apply from the last position to the first so earlier indices stay valid.
+  // For insertions that land at the exact same index, process the
+  // higher-`order` (later-added) one first so the original rule/priority
+  // order is preserved in the final reading order.
+  allInsertions.sort((a, b) => (b.index - a.index) || (b.order - a.order));
+
+  let modified = content;
+  for (const ins of allInsertions) {
+    modified = modified.slice(0, ins.index) + ins.html + modified.slice(ins.index);
+  }
   return modified;
+}
+
+// ── Compute insertion points for a rule against a fixed baseline ────────
+
+function getParagraphEndPositions(content) {
+  const regex = /<\/p>/gi;
+  const positions = [];
+  let match;
+  while ((match = regex.exec(content)) !== null) {
+    positions.push(match.index + match[0].length);
+  }
+  return positions;
+}
+
+function getParagraphStartPositions(content) {
+  const regex = /<p[^>]*>/gi;
+  const positions = [];
+  let match;
+  while ((match = regex.exec(content)) !== null) {
+    positions.push(match.index);
+  }
+  return positions;
+}
+
+function findInsertionPoints(content, rule) {
+  // Repeat mode: insert after every Nth paragraph, starting at position_value
+  if (rule.repeat_interval > 0 && rule.placement === 'after_paragraph') {
+    const positions = getParagraphEndPositions(content);
+    const points = [];
+    const start = rule.position_value || 1;
+    const interval = rule.repeat_interval;
+    for (let p = start; p <= positions.length && points.length < rule.max_appearances; p += interval) {
+      points.push(positions[p - 1]);
+    }
+    return points;
+  }
+
+  switch (rule.placement) {
+    case 'after_paragraph': {
+      const positions = getParagraphEndPositions(content);
+      const idx = positions[(rule.position_value || 3) - 1];
+      return idx !== undefined ? [idx] : [];
+    }
+    case 'before_paragraph': {
+      const positions = getParagraphStartPositions(content);
+      const idx = positions[(rule.position_value || 1) - 1];
+      return idx !== undefined ? [idx] : [];
+    }
+    case 'end_of_article':
+      return [content.length];
+    case 'before_article':
+      return [0];
+    case 'after_heading': {
+      const m = content.match(/<\/h[1-6]>/i);
+      return m ? [m.index + m[0].length] : [];
+    }
+    case 'before_heading': {
+      const m = content.match(/<h[1-6]/i);
+      return m ? [m.index] : [];
+    }
+    case 'after_first_image': {
+      const m = content.match(/<\/img>|<img[^>]*\/>/i);
+      return m ? [m.index + m[0].length] : [];
+    }
+    case 'middle_of_article': {
+      const positions = getParagraphEndPositions(content);
+      if (positions.length === 0) return [content.length];
+      return [positions[Math.floor(positions.length / 2)]];
+    }
+    default:
+      return [];
+  }
 }
 
 // ── Scheduling check ────────────────────────────────────
@@ -1395,140 +1485,6 @@ function ruleMatchesCountry(rule, requestCountry) {
 function ruleMatchesPageType(rule, pageType) {
   if (!rule.page_type || rule.page_type === 'all') return true;
   return rule.page_type === pageType;
-}
-
-// ── Single placement ────────────────────────────────────
-
-function applySinglePlacement(content, html, rule) {
-  switch (rule.placement) {
-    case 'after_paragraph':
-      return insertAfterParagraph(content, html, rule.position_value || 3);
-    case 'before_paragraph':
-      return insertBeforeParagraph(content, html, rule.position_value || 1);
-    case 'end_of_article':
-      return content + `\n${html}\n`;
-    case 'before_article':
-      return `${html}\n${content}`;
-    case 'after_heading':
-      return insertAfterFirst(content, html, /<\/h[1-6]>/i);
-    case 'before_heading':
-      return insertBeforeFirst(content, html, /<h[1-6]/i);
-    case 'after_first_image':
-      return insertAfterFirst(content, html, /<\/img>|<img[^>]*\/>/i);
-    case 'middle_of_article':
-      return insertAtMiddle(content, html);
-    default:
-      return content;
-  }
-}
-
-// ── Repeating placement ─────────────────────────────────
-
-function insertRepeating(content, html, startParagraph, interval, maxAppearances, usedIds, componentId, countMap) {
-  const regex = /<\/p>/gi;
-  let match;
-  const positions = [];
-
-  while ((match = regex.exec(content)) !== null) {
-    positions.push(match.index + match[0].length);
-  }
-
-  let inserted = 0;
-  let modified = content;
-  const insertions = [];
-
-  for (let p = startParagraph; p <= positions.length && inserted < maxAppearances; p += interval) {
-    insertions.push({ index: positions[p - 1], html: `\n${html}\n` });
-    inserted++;
-  }
-
-  // Insert from end to beginning
-  insertions.sort((a, b) => b.index - a.index);
-  for (const ins of insertions) {
-    modified = modified.slice(0, ins.index) + ins.html + modified.slice(ins.index);
-  }
-
-  countMap.set(componentId, inserted);
-  usedIds.add(componentId);
-
-  return modified;
-}
-
-// ── Insertion helpers ───────────────────────────────────
-
-function insertAfterParagraph(content, html, paragraphNum) {
-  const regex = /<\/p>/gi;
-  let match;
-  let count = 0;
-  let insertAt = -1;
-
-  while ((match = regex.exec(content)) !== null) {
-    count++;
-    if (count === paragraphNum) {
-      insertAt = match.index + match[0].length;
-      break;
-    }
-  }
-
-  if (insertAt > 0) {
-    return content.slice(0, insertAt) + `\n${html}\n` + content.slice(insertAt);
-  }
-  return content;
-}
-
-function insertBeforeParagraph(content, html, paragraphNum) {
-  const regex = /<p[^>]*>/gi;
-  let match;
-  let count = 0;
-  let insertAt = -1;
-
-  while ((match = regex.exec(content)) !== null) {
-    count++;
-    if (count === paragraphNum) {
-      insertAt = match.index;
-      break;
-    }
-  }
-
-  if (insertAt > 0) {
-    return content.slice(0, insertAt) + `\n${html}\n` + content.slice(insertAt);
-  }
-  return content;
-}
-
-function insertAfterFirst(content, html, regex) {
-  const match = content.match(regex);
-  if (match) {
-    const idx = match.index + match[0].length;
-    return content.slice(0, idx) + `\n${html}\n` + content.slice(idx);
-  }
-  return content;
-}
-
-function insertBeforeFirst(content, html, regex) {
-  const match = content.match(regex);
-  if (match) {
-    const idx = match.index;
-    return content.slice(0, idx) + `\n${html}\n` + content.slice(idx);
-  }
-  return content;
-}
-
-function insertAtMiddle(content, html) {
-  const regex = /<\/p>/gi;
-  let match;
-  const positions = [];
-
-  while ((match = regex.exec(content)) !== null) {
-    positions.push(match.index + match[0].length);
-  }
-
-  if (positions.length === 0) return content + `\n${html}\n`;
-
-  const mid = Math.floor(positions.length / 2);
-  const insertAt = positions[mid];
-
-  return content.slice(0, insertAt) + `\n${html}\n` + content.slice(insertAt);
 }
 
 // ── Load ad components ───────────────────────────────────
@@ -1856,6 +1812,14 @@ export async function renderDynamicPage(request, env, slug) {
     "datePublished": page.created_at,
     "dateModified": page.updated_at || page.created_at
   };
+  // ── Inline advertisement injection (was missing for pages) ──
+  let pageDisplayContent = parseContentJson(page.content_json);
+  try {
+    pageDisplayContent = await injectInlineAds(pageDisplayContent, env, request, "page");
+  } catch (e) {
+    console.error("Inline ad injection error (page):", e.message);
+  }
+
   const html = await renderer.render("page.html", {
     ...page,
     canonical: dynamicSeo.canonical || site.url(`/en/${slug}`),
@@ -1865,7 +1829,7 @@ export async function renderDynamicPage(request, env, slug) {
     author_slug: author?.slug || "",
     datePublished: formatDate(page.created_at),
     dateModified: formatDate(page.updated_at || page.created_at),
-    content_json: parseContentJson(page.content_json),
+    content_json: pageDisplayContent,
     components_top: allComponents.top,
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
