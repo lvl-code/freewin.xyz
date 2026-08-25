@@ -2225,3 +2225,9 @@ padding:22px;
   display: block;
   margin-top: 12px;
 }
+
+
+.mobile-bottom-nav {
+  background: #000000 !important;
+  border-top-color: rgba(255,255,255,0.09) !important;
+}
