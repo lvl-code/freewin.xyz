@@ -2332,3 +2332,22 @@ padding:22px;
 :root {
   --theme-footer-background: #000000 !important;
 }
+
+
+/* Admin buttons: Add / View / Edit -> deep gold.
+   Scoped to .admin-content so header/hero/cancel ghost buttons
+   elsewhere on the site are unaffected. */
+.admin-content .btn--primary,
+.admin-content .btn--ghost {
+  background: #B8860B !important;
+  border-color: #B8860B !important;
+  color: #1a1a1a !important;
+  font-weight: 700 !important;
+}
+
+.admin-content .btn--primary:hover,
+.admin-content .btn--ghost:hover {
+  background: #996515 !important;
+  border-color: #996515 !important;
+  color: #1a1a1a !important;
+}
