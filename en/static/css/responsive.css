@@ -618,3 +618,23 @@ code {
 }
 
 
+
+
+/* ---- Mobile Logo Sizing (large phones) ---- */
+@media (max-width: 480px) {
+  .logo-text { font-size: 1rem; }
+}
+
+/* ---- News Search Bar: keep button visible on large phones ---- */
+@media (max-width: 480px) {
+  .news-list-page form[action="/en/news"] {
+    flex-wrap: wrap;
+  }
+  .news-list-page form[action="/en/news"] input[type="search"] {
+    min-width: 0;
+    flex-basis: 100%;
+  }
+  .news-list-page form[action="/en/news"] button[type="submit"] {
+    flex-shrink: 0;
+  }
+}

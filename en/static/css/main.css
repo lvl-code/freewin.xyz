@@ -4,13 +4,17 @@
      <style id="tenant-theme"> block after all these files load.
      The value on the right of each var() is only a fallback for
      when that theme block fails to render, not the live default. */
-  --primary: var(--theme-primary, #6c5ce7);
-  --primary-dark: var(--theme-primary-hover, #5a4bd1);
+  --primary: var(--theme-primary, #D4AF37);          /* was #6c5ce7 */
+  --primary-dark: var(--theme-primary-hover, #B8952E); /* was #5a4bd1 */
+  --surface-dark: var(--theme-surface, #000000);       /* was #1a1a2e */
 
+/*  --primary: var(--theme-primary, #6c5ce7);
+  --primary-dark: var(--theme-primary-hover, #5a4bd1);
+*/
   /* --dark = TEXT color only (see --surface-dark below for backgrounds) */
   --dark: var(--theme-text, #1a1a2e);
   /* --surface-dark = dark chrome BACKGROUNDS (header, footer, dark panels) */
-  --surface-dark: var(--theme-surface, #1a1a2e);
+/*  --surface-dark: var(--theme-surface, #1a1a2e);*/
   --dark-2: var(--theme-surface-alt, #16213e);
 
   --gray: var(--theme-text-muted, #64748b);
