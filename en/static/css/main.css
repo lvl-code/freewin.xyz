@@ -2318,3 +2318,18 @@ padding:22px;
   color: rgba(255,255,255,0.7) !important;
 }
 
+
+
+/* Header: explicit deep gold, decoupled from --theme-surface so it
+   doesn't also change the footer/dark panels. !important beats the
+   header-style variants (solid/glass/transparent) in site-settings.js
+   since none of those declare !important themselves. */
+.site-header {
+  background: #B8860B !important;   /* deep gold */
+}
+
+/* Footer stays black independently of the header now that header
+   no longer reads --theme-surface for this purpose. */
+:root {
+  --theme-footer-background: #000000 !important;
+}
