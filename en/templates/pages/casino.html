@@ -2,6 +2,25 @@
   <div class="container">
     <div class="casino-hero">
       <div class="casino-hero__left">
+        <div class="casino-card__logo-wrap">
+          <img src="{{logo}}" alt="{{name}}" class="casino-card>
+        </div>                                                      <div class="casino-card__title-group">
+          <h1 class="casino-card__name">{{name}}</h1>
+          <div class="casino-card__rating">{{rating_display}}</>
+        </div>
+      </div>
+      <div class="casino-hero__right">
+        <div class="casino-card__bonus">
+          <span class="bonus-title">{{bonus_title}}</span>
+          <span class="bonus-value">{{bonus_value}}</span>
+        </div>
+        <a href="/en/go/{{slug}}" class="btn btn--primary btn-->
+        <p>18+ | PLAY RESPONSIBLY | T&CS APPLY</p>
+      </div>
+    </div>
+
+<!--    <div class="casino-hero">
+      <div class="casino-hero__left">
         <img src="{{logo}}" alt="{{name}}" class="casino-hero__logo" onerror="this.src='/static/images/default.png'">
         <div>
           <h1>{{name}}</h1>
@@ -17,7 +36,7 @@
         <p> 18+ | PLAY RESPONSIBLY | T&CS APPLY</p>
       </div>
     </div>
-
+-->
     <div class="casino-body">
       {{components_top}}
       <div class="casino-main">
