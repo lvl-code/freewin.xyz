@@ -2351,3 +2351,11 @@ padding:22px;
   border-color: #996515 !important;
   color: #1a1a1a !important;
 }
+
+.link {
+  color: #B8860B !important;
+}
+
+.link:hover {
+  color: #996515 !important;
+}
