@@ -2270,3 +2270,33 @@ padding:22px;
 .btn--outline:hover {
   color: #1a1a1a !important;  /* stays readable when it fills gold on hover */
 }
+
+
+.site-header,
+.main-nav a,
+.site-header .logo-text {
+  color: #ffffff !important;
+}
+
+.main-nav a:hover {
+  color: #D4AF37 !important;
+}
+
+.site-footer,
+.site-footer p,
+.site-footer li,
+.site-footer dd,
+.site-footer dt,
+.site-footer span,
+.site-footer small,
+.footer-col a,
+.footer-col h4,
+.rg-text,
+.disclaimer-text,
+.footer-bottom {
+  color: rgba(255,255,255,0.92) !important;
+}
+
+.footer-col a:hover {
+  color: #D4AF37 !important;
+}
