@@ -1215,7 +1215,7 @@
         </div>
       </div>                                                        
 
-
+<!--
 <script>
 (function() {
   const nav = document.getElementById('settingsToc');
@@ -1268,7 +1268,65 @@ if (adminContent) {
   sections.forEach(s => observer.observe(s));
 })();
 </script>
+-->
 
+<script>
+(function() {
+  const nav = document.getElementById('settingsToc');
+  if (!nav) return;
+
+  // Reserve original space so content doesn't jump when nav goes fixed
+  const placeholder = document.createElement('div');
+  placeholder.style.height = nav.offsetHeight + 'px';
+  nav.parentNode.insertBefore(placeholder, nav);
+
+  document.body.appendChild(nav);
+  nav.style.position = 'fixed';
+  nav.style.right = '0';
+  nav.style.zIndex = '500';
+  nav.style.margin = '0';
+  nav.style.borderRadius = '0';
+
+  function positionNav() {
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+      // admin-nav becomes a horizontal bar below the 64px site header on mobile —
+      // push the TOC below both, and span full width
+      nav.style.left = '0';
+      nav.style.top = '120px';
+    } else {
+      // admin-nav is a 248px sidebar on desktop — keep TOC beside it
+      nav.style.left = '248px';
+      nav.style.top = '70px';
+    }
+    placeholder.style.height = nav.offsetHeight + 'px';
+  }
+
+  positionNav();
+  window.addEventListener('resize', positionNav);
+
+  // Active-link highlight on scroll
+  const links = Array.from(nav.querySelectorAll('a'));
+  const sections = links
+    .map(a => document.querySelector(a.getAttribute('href')))
+    .filter(Boolean);
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = '#' + entry.target.id;
+        const activeLink = links.find(a => a.getAttribute('href') === id);
+        links.forEach(a => a.classList.toggle('active', a === activeLink));
+        if (activeLink) {
+          activeLink.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        }
+      }
+    });
+  }, { rootMargin: '-100px 0px -70% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+})();
+</script>
   </div>
 
 </div>
