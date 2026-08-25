@@ -2359,3 +2359,17 @@ padding:22px;
 .link:hover {
   color: #996515 !important;
 }
+
+
+#loadMoreBtn {
+  background: #B8860B !important;
+  border-color: #B8860B !important;
+  color: #1a1a1a !important;
+  font-weight: 700 !important;
+}
+
+#loadMoreBtn:hover {
+  background: #996515 !important;
+  border-color: #996515 !important;
+  color: #1a1a1a !important;
+}
