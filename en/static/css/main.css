@@ -2255,7 +2255,7 @@ padding:22px;
 .hero .btn--ghost,
 .btn--secondary,
 .btn--outline {
-  color: #ffffff;
+  color: #ffffff!important;
 }
 
 .btn--outline:hover {
