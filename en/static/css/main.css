@@ -2250,3 +2250,23 @@ padding:22px;
 .mobile-nav-item.active {
   color: #D4AF37 !important;  /* gold, so the active tab still stands out */
 }
+
+
+/* Button text visibility: dark text on gold (primary) buttons for
+   contrast, solid white text on dark/ghost/secondary buttons. */
+.btn--primary {
+  color: #1a1a1a !important;
+  font-weight: 700 !important;
+}
+
+.btn--ghost,
+.site-header .btn--ghost,
+.hero .btn--ghost,
+.btn--secondary,
+.btn--outline {
+  color: #ffffff !important;
+}
+
+.btn--outline:hover {
+  color: #1a1a1a !important;  /* stays readable when it fills gold on hover */
+}
