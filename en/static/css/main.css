@@ -2231,3 +2231,13 @@ padding:22px;
   background: #000000 !important;
   border-top-color: rgba(255,255,255,0.09) !important;
 }
+.mobile-nav-item,
+.mobile-nav-item .mobile-nav-icon,
+.mobile-nav-item .mobile-nav-label {
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+.mobile-nav-item.active {
+  color: #D4AF37 !important;  /* gold, so the active tab still stands out */
+}
