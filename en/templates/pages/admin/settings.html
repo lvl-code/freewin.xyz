@@ -1215,17 +1215,12 @@
         </div>
       </div>                                                        
 
-  </div>
-
-</div>
 
 <script>
 (function() {
   const nav = document.getElementById('settingsToc');
   if (!nav) return;
 
-  // Move nav to be a direct child of body — escapes any ancestor
-  // that silently breaks position:sticky/fixed (transform, filter, etc.)
   document.body.appendChild(nav);
 
   nav.style.position = 'fixed';
@@ -1236,7 +1231,6 @@
   nav.style.margin = '0';
   nav.style.borderRadius = '0';
 
-  // Active-link highlight on scroll
   const links = Array.from(nav.querySelectorAll('a'));
   const sections = links
     .map(a => document.querySelector(a.getAttribute('href')))
@@ -1246,7 +1240,18 @@
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         const id = '#' + entry.target.id;
-        links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === id));
+        const activeLink = links.find(a => a.getAttribute('href') === id);
+
+        links.forEach(a => a.classList.toggle('active', a === activeLink));
+
+        // Auto-scroll the nav horizontally so the active link is visible
+        if (activeLink) {
+          activeLink.scrollIntoView({
+            behavior: 'smooth',
+            inline: 'center',
+            block: 'nearest'
+          });
+        }
       }
     });
   }, { rootMargin: '-100px 0px -70% 0px' });
@@ -1254,3 +1259,7 @@
   sections.forEach(s => observer.observe(s));
 })();
 </script>
+
+  </div>
+
+</div>
