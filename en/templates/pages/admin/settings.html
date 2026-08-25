@@ -1225,11 +1225,20 @@
 
   nav.style.position = 'fixed';
   nav.style.top = '70px';
-  nav.style.left = '0';
+  nav.style.left = '248px';
   nav.style.right = '0';
   nav.style.zIndex = '500';
   nav.style.margin = '0';
   nav.style.borderRadius = '0';
+
+  // Prevent content from being hidden under the now-floating nav
+const adminContent = document.querySelector('.admin-content');
+if (adminContent) {
+  adminContent.style.paddingTop = (adminContent.offsetHeight ? 0 : 0); // no-op placeholder
+  const spacer = document.createElement('div');
+  spacer.style.height = nav.offsetHeight + 'px';
+  nav.insertAdjacentElement('afterend', spacer);
+}
 
   const links = Array.from(nav.querySelectorAll('a'));
   const sections = links
