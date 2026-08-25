@@ -56,8 +56,66 @@ async function initUserDashboard() {
 }
 
 // ── Bookmarks Page ──
-
 async function initBookmarksPage() {
+  const container = document.getElementById("bookmarksContainer");
+  if (!container) return;
+
+  try {
+    const res = await fetch("/en/api/v1/user/bookmarks");
+    const data = await res.json();
+    const bookmarks = data.bookmarks || [];
+
+    if (bookmarks.length === 0) {
+      container.innerHTML = '<p class="muted">No bookmarks yet. Browse casinos and click the heart icon to save them.</p>';
+      return;
+    }
+
+    container.innerHTML = bookmarks.map(c => `
+      <div class="casino-card" data-casino-slug="${c.slug}">
+        ${c.geoBadge || ''}
+        <button
+          type="button"
+          class="casino-card__bookmark"
+          data-bookmark-slug="${c.slug}"
+          aria-label="Remove ${c.name} from bookmarks"
+          aria-pressed="true"
+          title="Remove ${c.name}"
+          onclick="removeBookmark('${c.slug}')"
+        >
+          <span class="bookmark-icon" aria-hidden="true">♥</span>
+        </button>
+
+        <div class="casino-card__header">
+          <div class="casino-card__logo-wrap">
+            <img src="${c.logo || '/static/images/default.png'}" alt="${c.name}" class="casino-card__logo" onerror="this.src='/static/images/default.png'" loading="lazy">
+          </div>
+          <div class="casino-card__title-group">
+            <h3 class="casino-card__name">${c.name}</h3>
+            <div class="casino-card__rating">${'★'.repeat(Math.round(c.rating || 0))}${'☆'.repeat(5 - Math.round(c.rating || 0))}</div>
+          </div>
+        </div>
+
+        <div class="casino-card__body">
+          <div class="casino-card__bonus">
+            <span class="bonus-title">${c.bonus_title || 'Welcome Bonus'}</span>
+            <span class="bonus-value">${c.bonus_value || ''}</span>
+          </div>
+          ${c.geoStatusText || ''}
+          ${c.complianceHtml || ''}
+        </div>
+
+        <div class="casino-card__actions">
+          <a href="/en/casino/${c.slug}" class="btn btn--secondary">Review</a>
+          <a href="/en/go/${c.slug}" class="btn btn--primary" rel="nofollow sponsored">Visit</a>
+        </div>
+      </div>
+    `).join("");
+
+  } catch {
+    container.innerHTML = '<p class="muted">Failed to load bookmarks.</p>';
+  }
+}
+async function initBookmarksPagebackup() {
   const container = document.getElementById("bookmarksContainer");
   if (!container) return;
 
