@@ -72,8 +72,15 @@ export async function getAuthorContent(db, authorId) {
   `).bind(authorId).all();
 
   const news = await db.prepare(`
-    SELECT slug, title, created_at, updated_at FROM news
-    WHERE author_id = ? AND published = 1 ORDER BY created_at DESC
+    SELECT
+      n.slug, n.title, n.excerpt, n.created_at, n.updated_at,
+      m.url AS featured_image_url,
+      m.thumbnail_url AS featured_image_thumbnail,
+      m.alt_text AS featured_image_alt
+    FROM news n
+    LEFT JOIN media_library m ON m.id = n.featured_image
+    WHERE n.author_id = ? AND n.published = 1
+    ORDER BY n.created_at DESC
   `).bind(authorId).all();
 
   const pages = await db.prepare(`

@@ -3027,12 +3027,26 @@ export async function renderAuthor(request, env, slug) {
   }).join("");
 
   // Build news cards
-  const newsCards = content.news.map(n => `
-    <a href="/en/news/${n.slug}" class="news-card">
-      <h3>${n.title}</h3>
-      <p class="muted">${new Date(n.created_at).toLocaleDateString()}</p>
-    </a>
-  `).join("");
+  const newsCards = content.news.map(n => {
+    const image = n.featured_image_url || n.featured_image_thumbnail || "";
+    const imageHtml = image
+      ? `<div style="aspect-ratio:16/9;overflow:hidden"><img src="${escapeHtml(image)}" alt="${escapeHtml(n.featured_image_alt || n.title)}" style="width:100%;height:100%;object-fit:cover" loading="lazy" decoding="async"></div>`
+      : `<div style="aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--gray);font-size:13px">No image</div>`;
+
+    return `
+    <article style="overflow:hidden;border:1px solid var(--light-gray);border-radius:12px;background:var(--white);transition:transform 0.2s,box-shadow 0.2s">
+      <a href="/en/news/${n.slug}" style="display:block;color:inherit;text-decoration:none">
+        ${imageHtml}
+        <div style="padding:20px">
+          <h3 style="margin:0 0 8px;font-size:18px;line-height:1.3;color:var(--dark)">${escapeHtml(n.title)}</h3>
+          ${n.excerpt ? `<p style="margin:0 0 10px;color:var(--gray);font-size:14px;line-height:1.6">${escapeHtml(n.excerpt)}</p>` : ""}
+          <p class="muted" style="margin:0">${new Date(n.created_at).toLocaleDateString()}</p>
+        </div>
+      </a>
+    </article>
+  `;
+  }).join("");
+
 
   // Build page list
   const pageList = content.pages.map(p => `
