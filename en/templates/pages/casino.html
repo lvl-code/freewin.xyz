@@ -1,39 +1,23 @@
 <section class="casino-detail">
   <div class="container">
     <div class="casino-hero">
-
       <div class="casino-hero__left">
-
-        <img src="{{logo}}" alt="{{name}}" class="casino-he>
-
+        <img src="{{logo}}" alt="{{name}}" class="casino-hero__logo" onerror="this.src='/static/images/default.png'">
         <div>
-
           <h1>{{name}}</h1>
-
           <div class="rating-stars">{{rating_display}}</div>
-
         </div>
-
        </div>
-
       <div class="casino-hero__right">
-
         <div class="bonus-box">
-
           <span class="bonus-label">{{bonus_title}}</span>
-
           <span class="bonus-amount">{{bonus_value}}</span>
-
         </div>
-
-        <a href="/en/go/{{slug}}" class="btn btn--primary b>
-
+        <a href="/en/go/{{slug}}" class="btn btn--primary btn--lg" rel="nofollow sponsored noopener">Claim Bonus</a>
         <p> 18+ | PLAY RESPONSIBLY | T&CS APPLY</p>
-
       </div>
-
     </div>
-  
+
     <div class="casino-body">
       {{components_top}}
       <div class="casino-main">
@@ -57,7 +41,7 @@
         </div>
         {{components_content_top}}
         {{components_content_bottom}}
-    
+
       </div>
 
       <div class="casino-aside">
@@ -65,7 +49,7 @@
           <h4>Casino Info</h4>
           <dl>
             <dt>Rating</dt><dd>{{rating}} / 5</dd>
-           <!-- <dt>Website</dt><dd><a href="{{website_url}}" target="_blank" rel="noopener">{{website_url}}</a></dd>-->
+          <!--  <dt>Website</dt><dd><a href="{{website_url}}" target="_blank" rel="noopener">{{website_url}}</a></dd> -->
             <dt>Status</dt><dd>{{status}}</dd>
           </dl>
         </div>
