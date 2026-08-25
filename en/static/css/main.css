@@ -61,6 +61,15 @@
   --text-5xl: clamp(2.6rem, 2rem + 3vw, 3.75rem);
 }
 
+:root {
+  --theme-primary: #D4AF37 !important;
+  --theme-primary-hover: #B8952E !important;
+  --theme-accent: #D4AF37 !important;
+  --theme-surface: #000000 !important;
+  --theme-surface-alt: #0a0a0a !important;
+}
+
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
