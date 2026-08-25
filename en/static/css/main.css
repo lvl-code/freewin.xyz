@@ -391,6 +391,97 @@ a:hover { text-decoration: underline; }
    had 3 separate, partially-conflicting copies. */
 
 /* Casino Detail */
+/* Casino Detail */
+.casino-hero {
+  display: flex; justify-content: space-between; align-items: center;
+  background: var(--white); border-radius: var(--radius); padding: 30px;
+  box-shadow: var(--shadow); margin-bottom: 30px; flex-wrap: wrap; gap: 20px;
+}
+.casino-hero__left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+.casino-hero__logo {
+  flex-shrink: 0;
+  width: 80px;
+  height: 80px;
+  border-radius: 14px;
+  object-fit: contain;
+  background: var(--bg);
+  border: 1px solid var(--light-gray);
+  padding: 8px;
+}
+.casino-hero__left > div {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.casino-hero__left h1 {
+  margin: 0;
+  font-size: clamp(1.4rem, 2.5vw, 2rem);
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--dark);
+  letter-spacing: -.02em;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.rating-stars {
+  color: var(--warning);
+  font-size: 18px;
+  letter-spacing: 2px;
+}
+.casino-hero__right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  min-width: 0;
+}
+.bonus-box {
+  width: 100%;
+  max-width: 280px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 8%, var(--bg)), var(--bg));
+  border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--light-gray));
+  border-radius: 14px;
+  padding: 16px 20px;
+  text-align: center;
+  box-shadow: 0 1px 2px rgba(16,24,40,.04);
+}
+.bonus-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--gray);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  margin-bottom: 4px;
+}
+.bonus-amount {
+  display: block;
+  font-size: clamp(18px, 2.2vw, 24px);
+  font-weight: 800;
+  letter-spacing: -.015em;
+  color: var(--primary);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.25;
+}
+
+@media (max-width: 600px) {
+  .casino-hero__left { flex-wrap: wrap; }
+  .casino-hero__logo { width: 64px; height: 64px; }
+  .bonus-box { max-width: 100%; }
+}
+
+/*
 .casino-hero {
   display: flex; justify-content: space-between; align-items: center;
   background: var(--white); border-radius: var(--radius); padding: 30px;
@@ -406,6 +497,8 @@ a:hover { text-decoration: underline; }
 .bonus-label { display: block; font-size: 12px; color: var(--gray); text-transform: uppercase; }
 .bonus-amount { display: block; font-size: 22px; font-weight: 700; color: var(--primary); }
 .rating-stars { color: var(--warning); font-size: 16px; }
+*/
+/* Casino Detail */
 
 .casino-body { display: grid; grid-template-columns: 1fr 300px; gap: 30px; }
 .info-block { background: var(--white); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow); }
@@ -418,6 +511,8 @@ a:hover { text-decoration: underline; }
 .info-card dl { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 14px; }
 .info-card dt { color: var(--gray); }
 .info-card dd { font-weight: 600; text-align: right; word-break: break-all; }
+
+
 
 /* Review */
 .review-detail { padding: 40px 0; }
