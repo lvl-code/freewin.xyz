@@ -10,24 +10,20 @@
       Configure tenant-specific branding, icons, homepage hero,
       responsible gambling information and footer compliance.
     </p>
-
-    <div class="toc-box">
-  <h3>Jump to a section</h3>
-  <ul>
-    <li><a href="#general">General</a></li>
-    <li><a href="#branding">Branding</a></li>
-    <li><a href="#favicons">Favicons & App Icons</a></li>
-    <li><a href="#theme">Platform Theme</a></li>
-    <li><a href="#layout">— Layout</a></li>
-    <li><a href="#hero">Homepage Hero</a></li>
-    <li><a href="#homepage-content">Homepage Content</a></li>
-    <li><a href="#responsible-gambling">Responsible Gambling</a></li>
-    <li><a href="#settings-footer">Footer</a></li>
-    <li><a href="#compliance-logos">Footer Compliance Logos</a></li>
-    <li><a href="#news-ads">News Inline Advertisements</a></li>
-    <li><a href="#ad-rules">Advertisement Automation</a></li>
-  </ul>
-</div>
+<nav class="review-nav" id="settingsToc">
+  <a href="#general">General</a>
+  <a href="#branding">Branding</a>
+  <a href="#favicons">Favicons & App Icons</a>
+  <a href="#theme">Platform Theme</a>
+  <a href="#layout">Layout</a>
+  <a href="#hero">Homepage Hero</a>
+  <a href="#homepage-content">Homepage Content</a>
+  <a href="#responsible-gambling">Responsible Gambling</a>
+  <a href="#settings-footer">Footer</a>
+  <a href="#compliance-logos">Compliance Logos</a>
+  <a href="#news-ads">News Ads</a>
+  <a href="#ad-rules">Ad Rules</a>
+</nav>
     <form
       id="settingsForm"
       class="admin-form"
@@ -1220,4 +1216,26 @@
       </div>                                                        
 
   </div>
+
+<script>
+(function() {
+  const nav = document.getElementById('settingsToc');
+  if (!nav) return;
+  const links = Array.from(nav.querySelectorAll('a'));
+  const sections = links
+    .map(a => document.querySelector(a.getAttribute('href')))
+    .filter(Boolean);
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = '#' + entry.target.id;
+        links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === id));
+      }
+    });
+  }, { rootMargin: '-100px 0px -70% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+})();
+</script>
 </div>
