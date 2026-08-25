@@ -71,26 +71,67 @@ async function initBookmarksPage() {
       return;
     }
 
-    container.innerHTML = bookmarks.map(c => `
-      <div class="casino-card">
-        <div class="casino-card__header">
-          <img src="${c.logo || '/static/images/default.png'}" alt="${c.name}" class="casino-card__logo" onerror="this.src='/static/images/default.png'" loading="lazy">
-          <div class="casino-card__rating">${'★'.repeat(Math.round(c.rating || 0))}${'☆'.repeat(5 - Math.round(c.rating || 0))}</div>
+container.innerHTML = bookmarks.map(c => {
+  const rating = Math.round(c.rating || 0);
+  const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+
+  return `
+    <div class="casino-card" data-casino-slug="${c.slug}">
+
+      <button
+        type="button"
+        class="casino-card__bookmark"
+        data-bookmark-slug="${c.slug}"
+        aria-label="Remove ${c.name} from bookmarks"
+        aria-pressed="true"
+        title="Remove ${c.name} from bookmarks"
+      >
+        <span class="bookmark-icon" aria-hidden="true">♥</span>
+      </button>
+
+      <div class="casino-card__header">
+        <div class="casino-card__logo-wrap">
+          <img
+            src="${c.logo || '/static/images/default.png'}"
+            alt="${c.name}"
+            class="casino-card__logo"
+            onerror="this.src='/static/images/default.png'"
+            loading="lazy"
+          >
         </div>
-        <div class="casino-card__body">
-          <h3>${c.name}</h3>
-          <div class="casino-card__bonus">
-            <span class="bonus-title">${c.bonus_title || 'Welcome Bonus'}</span>
-            <span class="bonus-value">${c.bonus_value || ''}</span>
-          </div>
-        </div>
-        <div class="casino-card__actions">
-          <a href="/en/casino/${c.slug}" class="btn btn--secondary">Review</a>
-          <a href="/en/go/${c.slug}" class="btn btn--primary" rel="nofollow sponsored">Visit</a>
-          <button class="btn btn--ghost" onclick="removeBookmark('${c.slug}')" title="Remove bookmark">♥</button>
+
+        <div class="casino-card__title-group">
+          <h3 class="casino-card__name">${c.name}</h3>
+          <div class="casino-card__rating">${stars}</div>
         </div>
       </div>
-    `).join("");
+
+      <div class="casino-card__body">
+
+        <div class="casino-card__bonus">
+          <span class="bonus-title">${c.bonus_title || 'Welcome Bonus'}</span>
+          <span class="bonus-value">${c.bonus_value || ''}</span>
+        </div>
+
+      </div>
+
+      <div class="casino-card__actions">
+        <a
+          href="/en/casino/${c.slug}"
+          class="btn btn--secondary"
+        >Review</a>
+
+        <a
+          href="/en/go/${c.slug}"
+          class="btn btn--primary"
+          rel="nofollow sponsored"
+        >Visit</a>
+      </div>
+
+    </div>
+  `;
+}).join("");
+
   } catch {
     container.innerHTML = '<p class="muted">Failed to load bookmarks.</p>';
   }
