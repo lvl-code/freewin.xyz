@@ -2977,7 +2977,102 @@ export async function renderDashboardSeo(request, env) {
 // AUTHOR PROFILE PAGE
 // ==================================
 
+
 export async function renderAuthor(request, env, slug) {
+  const author = await authors.getAuthor(env.DB, slug);
+  if (!author) return render404(request, env);
+
+  const renderer = new Renderer(env, request);
+  const site = await getSiteContext(request, env);
+  const content = await authors.getAuthorContent(env.DB, author.id);
+  const stats = await authors.getAuthorStats(env.DB, author.id);
+  const allComponents = await renderer.renderAllComponents("author", slug);
+  const dynamicSeo = await renderer.loadDynamicSeo("author", slug);
+
+  // Build review cards
+  // NEW: fetch casino logo/name for review cards
+  const authorCasinoSlugs = [...new Set(content.reviews.filter(r => r.casino_slug).map(r => r.casino_slug))];
+  let authorCasinoMeta = {};
+  if (authorCasinoSlugs.length > 0) {
+    const metaPlaceholders = authorCasinoSlugs.map(() => '?').join(',');
+    const casinoRows = await env.DB.prepare(`
+      SELECT slug, name, logo FROM casinos WHERE slug IN (${metaPlaceholders})
+    `).bind(...authorCasinoSlugs).all();
+    for (const row of (casinoRows.results || [])) {
+      authorCasinoMeta[row.slug] = row;
+    }
+  }
+
+  // Build review cards
+  const reviewCards = content.reviews.map(r => {
+    const casino = r.casino_slug ? authorCasinoMeta[r.casino_slug] : null;
+    const casinoImage = casino?.logo || '/static/images/default.png';
+    const casinoImageAlt = casino?.name || r.title;
+
+    return `
+    <div class="casino-card">
+      <div class="casino-card__image">
+        <img src="${casinoImage}" alt="${casinoImageAlt}" loading="lazy" onerror="this.src='/static/images/default.png'">
+      </div>
+      <div class="casino-card__body">
+        <h3><a href="/en/review/${r.slug}">${r.title}</a></h3>
+        <div class="casino-card__rating">★ ${r.rating || "N/A"}</div>
+        <p class="muted">Updated: ${new Date(r.updated_at).toLocaleDateString()}</p>
+      </div>
+      <div class="casino-card__actions">
+        <a href="/en/review/${r.slug}" class="btn btn--primary">Read Review</a>
+      </div>
+    </div>
+  `;
+  }).join("");
+
+  // Build news cards
+  const newsCards = content.news.map(n => `
+    <a href="/en/news/${n.slug}" class="news-card">
+      <h3>${n.title}</h3>
+      <p class="muted">${new Date(n.created_at).toLocaleDateString()}</p>
+    </a>
+  `).join("");
+
+  // Build page list
+  const pageList = content.pages.map(p => `
+    <li><a href="/en/${p.slug}">${p.title}</a> <span class="muted">— ${new Date(p.created_at).toLocaleDateString()}</span></li>
+  `).join("");
+
+  const authorSchema = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": author.name,
+    "description": author.bio || "",
+    "image": author.avatar_url || "",
+    "jobTitle": author.role || "Editor"
+  };
+
+  const html = await renderer.render("author.html", {
+    ...author,
+    author_name: author.name,
+    author_bio: author.bio || "",
+    author_avatar: author.avatar_url || site.logoUrl,
+    author_role: author.role || "Editor",
+    author_social: author.social_links || "",
+    review_cards: reviewCards,
+    news_cards: newsCards || '<p class="muted">No articles yet.</p>',
+    page_list: pageList || '<li class="muted">No pages yet.</li>',
+    review_count: stats.reviews,
+    news_count: stats.news,
+    page_count: stats.pages,
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,                                                                                                              components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
+    components_sidebar: allComponents.sidebar,
+    seo_title: dynamicSeo.seo_title || author.name + " — " + site.siteName,
+    seo_description: dynamicSeo.seo_description || author.bio || author.name + " is a " + (author.role || "editor") + " at " + site.siteName ,
+    canonical: dynamicSeo.canonical || site.url(`/en/author/${slug}`)
+  }, authorSchema, buildBreadcrumbs("author", {author_name: author.name }));
+  return new Response(html, { headers: cacheHeaders() });
+}
+
+export async function renderAuthorbackup(request, env, slug) {
   const author = await authors.getAuthor(env.DB, slug);
   if (!author) return render404(request, env);
 
