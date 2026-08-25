@@ -2055,6 +2055,17 @@ export async function renderReviewList(request, env) {
       else geoStatuses[slug] = "blocked";
     }
   }
+  // NEW: fetch casino logo/name for the review cards
+  let casinoMeta = {};
+  if (casinoSlugs.length > 0) {
+    const metaPlaceholders = casinoSlugs.map(() => '?').join(',');
+    const casinoRows = await env.DB.prepare(`
+      SELECT slug, name, logo FROM casinos WHERE slug IN (${metaPlaceholders})
+    `).bind(...casinoSlugs).all();
+    for (const row of (casinoRows.results || [])) {
+      casinoMeta[row.slug] = row;
+    }
+  }
 
     // Geo-rank: available first (by rating desc), then unavailable (by rating desc)
   reviews.sort((a, b) => {
@@ -2072,8 +2083,15 @@ export async function renderReviewList(request, env) {
         ? '<span class="status-badge status-draft">✕ Restricted</span>'
         : '<span class="status-badge status-draft">Unknown</span>';
 
+    const casino = r.casino_slug ? casinoMeta[r.casino_slug] : null;
+    const casinoImage = casino?.logo || '/static/images/default.png';
+    const casinoImageAlt = casino?.name || r.title;
+
     return `
     <div class="casino-card">
+      <div class="casino-card__image">
+        <img src="${casinoImage}" alt="${casinoImageAlt}" loading="lazy" onerror="this.src='/static/images/default.png'">
+      </div>
       <div class="casino-card__body">
         <h3><a href="/en/review/${r.slug}">${r.title}</a></h3>
         <div class="casino-card__rating">★ ${r.rating || "N/A"}</div>
