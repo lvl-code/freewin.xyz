@@ -1176,8 +1176,53 @@ export function buildHomepageSectionsHtml(
 // ------------------------------------------------------------
 // Google Analytics (gtag.js)
 // ------------------------------------------------------------
+// ------------------------------------------------------------
+// Google Analytics (gtag.js)
+// ------------------------------------------------------------
 
 export function buildGaScript(siteSettings) {
+  const raw =
+    String(siteSettings?.gaMeasurementId || "").trim();
+
+  if (!raw) {
+    return "";
+  }
+
+  // Supports one ID, or a comma-separated pair/list — e.g. a GA4
+  // property together with a Google Tag / GTM container id:
+  // "G-XXXXXXXXXX, GT-XXXXXXXX". Each token is individually
+  // whitelisted (letters, digits, dashes only) so nothing else
+  // can be injected into this inline script.
+  const idPattern = /^[A-Za-z0-9-]{6,20}$/;
+
+  const ids = raw
+    .split(",")
+    .map(id => id.trim())
+    .filter(id => idPattern.test(id));
+
+  if (!ids.length) {
+    return "";
+  }
+
+  const safeIds = ids.map(id => escapeHtml(id));
+
+  const configLines = safeIds
+    .map(id => `    gtag('config', '${id}');`)
+    .join("\n");
+
+  return `
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=${safeIds[0]}"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+${configLines}
+  </script>`;
+}
+
+
+export function buildGaScriptbackup(siteSettings) {
   const rawId =
     String(siteSettings?.gaMeasurementId || "").trim();
 
