@@ -21,7 +21,11 @@ const DEFAULTS = {
   manifest: "/site.webmanifest",
 
   heroImage: "",
-  
+  // ==========================================================
+  // ANALYTICS
+  // ==========================================================
+
+  gaMeasurementId: "",
    // ==========================================================
   // THEME / PLATFORM LAYOUT
   // ==========================================================
@@ -638,6 +642,9 @@ heroOverlay:
       DEFAULTS.responsibleHelpLabel,
 
     compliance: safeCompliance,
+    gaMeasurementId:
+      values.ga_measurement_id ||
+      DEFAULTS.gaMeasurementId,
 
     homepageSections:
   parseHomepageSections(
@@ -1164,6 +1171,36 @@ export function buildHomepageSectionsHtml(
       )
     )
     .join("\n");
+}
+
+// ------------------------------------------------------------
+// Google Analytics (gtag.js)
+// ------------------------------------------------------------
+
+export function buildGaScript(siteSettings) {
+  const rawId =
+    String(siteSettings?.gaMeasurementId || "").trim();
+
+  // Only allow valid GA4 ("G-XXXXXXX") / UA ("UA-XXXXXXX-X") /
+  // GTM-style ids — letters, digits and dashes only — so nothing
+  // else can be injected into this inline script.
+  const isValid = /^[A-Za-z0-9-]{6,20}$/.test(rawId);
+
+  if (!isValid) {
+    return "";
+  }
+
+  const id = escapeHtml(rawId);
+
+  return `
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=${id}"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', '${id}');
+  </script>`;
 }
 
 // ------------------------------------------------------------

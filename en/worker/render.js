@@ -6,7 +6,8 @@ import { getSiteContext } from "./site-context.js";
 import {
   buildComplianceHtml,
   buildHomepageSectionsHtml,
-  buildThemeCss
+  buildThemeCss,
+  buildGaScript
 } from "./site-settings.js";
 import {
   buildBreadcrumbSchema,
@@ -466,6 +467,9 @@ site.homepageSectionsHtml =
 site.themeCss =
   buildThemeCss(site);
 
+site.gaScriptHtml =
+  buildGaScript(site);
+
 const allData = {
   ...navData,
 
@@ -520,7 +524,7 @@ const allData = {
 
   homepage_sections_html: site.homepageSectionsHtml,
 
-
+  ga_script: site.gaScriptHtml,
   theme_css: site.themeCss,
 
 theme_preset: site.themePreset,
