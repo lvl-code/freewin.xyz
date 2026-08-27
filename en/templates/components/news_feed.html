@@ -1,4 +1,65 @@
+
 <section class="section component-news-feed">
+  <div class="container">
+    {{#if title}}<div class="section-header"><h2>{{title}}</h2></div>{{/if}}
+    <div class="news-grid" id="componentNewsGrid">
+      <p class="muted">Loading news...</p>
+    </div>
+  </div>
+</section>
+<script>
+(async () => {
+  const grid = document.getElementById("componentNewsGrid");
+  if (!grid) return;
+  try {
+    const res = await fetch("/en/api/v1/public/news/list");
+    const data = await res.json();
+    const news = (data.news || []).slice(0, {{limit}});
+    if (news.length === 0) { grid.innerHTML = '<p class="muted">No news yet.</p>'; return; }
+
+    grid.innerHTML = news.map(n => {
+      const image = n.featured_image_url || n.featured_image_thumbnail || "";
+      const imageAlt = n.featured_image_alt || n.title || "News article";
+      const excerpt = n.excerpt || "";
+      const publishedDate = n.published_at || n.created_at;
+
+      const tags = (n.tags || "")
+        .split(",")
+        .map(t => t.trim())
+        .filter(Boolean)
+        .slice(0, 3);
+
+      return `
+        <article class="news-card">
+          <a href="/en/news/${n.slug}" class="news-card__link">
+            ${image ? `
+              <div class="news-card__image">
+                <img src="${image}" alt="${imageAlt}" loading="lazy" decoding="async">
+              </div>
+            ` : ""}
+
+            <div class="news-card__body">
+              <h3>${n.title}</h3>
+
+              ${excerpt ? `<p>${excerpt}</p>` : ""}
+
+              ${tags.length ? `
+                <div class="news-card__tags">
+                  ${tags.map(t => `<span class="news-tag">${t}</span>`).join("")}
+                </div>
+              ` : ""}
+
+              <span class="news-date">${new Date(publishedDate).toLocaleDateString()}</span>
+            </div>
+          </a>
+        </article>
+      `;
+    }).join("");
+  } catch { grid.innerHTML = '<p class="muted">Failed to load.</p>'; }
+})();
+</script>
+
+<!--<section class="section component-news-feed">
   <div class="container">
     {{#if title}}<div class="section-header"><h2>{{title}}</h2></div>{{/if}}
     <div class="news-grid" id="componentNewsGrid">
@@ -25,3 +86,4 @@
   } catch { grid.innerHTML = '<p class="muted">Failed to load.</p>'; }
 })();
 </script>
+-->
