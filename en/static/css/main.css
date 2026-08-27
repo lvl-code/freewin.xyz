@@ -2234,6 +2234,20 @@ padding:22px;
   margin-top: 12px;
 }
 
+/* Tag chips inside the featured news card */
+#homeNews .news-card__tags,
+.component-news-feed .news-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+#homeNews .news-card__tags .news-tag,
+.component-news-feed .news-card__tags .news-tag {
+  padding: 3px 10px;
+  font-size: 12px;
+}
 
 .mobile-bottom-nav {
   background: #000000 !important;
