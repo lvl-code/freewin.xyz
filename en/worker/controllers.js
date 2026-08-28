@@ -2111,7 +2111,7 @@ export async function renderReviewList(request, env) {
       </div>
       <div class="casino-card__body">
         <h3><a href="/en/review/${r.slug}">${r.title}</a></h3>
-        <div class="casino-card__rating">★ ${r.rating || "N/A"}</div>
+        <div class="casino-card__rating">★ ${r.rating ? r.rating + "/5" : "N/A"}</div>
         <p class="muted">${(r.content || "").substring(0, 120)}...</p>
         ${r.casino_slug ? geoBadge : ""}
       </div>
@@ -3033,7 +3033,7 @@ export async function renderAuthor(request, env, slug) {
       </div>
       <div class="casino-card__body">
         <h3><a href="/en/review/${r.slug}">${r.title}</a></h3>
-        <div class="casino-card__rating">★ ${r.rating || "N/A"}</div>
+        <div class="casino-card__rating">★ ${r.rating ? r.rating + "/5" : "N/A"}</div>
         <p class="muted">Updated: ${new Date(r.updated_at).toLocaleDateString()}</p>
       </div>
       <div class="casino-card__actions">
@@ -3119,7 +3119,7 @@ export async function renderAuthorbackup(request, env, slug) {
     <div class="casino-card">
       <div class="casino-card__body">
         <h3><a href="/en/review/${r.slug}">${r.title}</a></h3>
-        <div class="casino-card__rating">★ ${r.rating || "N/A"}</div>
+        <div class="casino-card__rating">★ ${r.rating ? r.rating + "/5" : "N/A"}</div>
         <p class="muted">Updated: ${new Date(r.updated_at).toLocaleDateString()}</p>
       </div>
       <div class="casino-card__actions">
