@@ -1,7 +1,7 @@
 @media (max-width: 968px) {
   .layout-wrapper { grid-template-columns: 1fr; }
   .sidebar { order: -1; display: none; }
-  .casino-body { grid-template-columns: 1fr; }
+  .casino-columns { grid-template-columns: 1fr; }
   .review-pros-cons { grid-template-columns: 1fr; }
   .footer-grid { grid-template-columns: repeat(2, 1fr); }
 }
@@ -376,6 +376,10 @@
 /* ---- Mobile Casino Body Layout ---- */
 @media (max-width: 768px) {
   .casino-body {
+    gap: 16px;
+  }
+
+  .casino-columns {
     grid-template-columns: 1fr;
     gap: 16px;
   }

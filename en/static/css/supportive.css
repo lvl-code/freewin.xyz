@@ -301,7 +301,7 @@ pre,.code-block,.json-viewer,.schema-preview{overflow:auto;max-width:100%;paddin
   .admin-wrapper{grid-template-columns:220px minmax(0,1fr);background:linear-gradient(90deg,var(--support-dark) 0 220px,var(--support-bg) 220px)}
   .dashboard-card,.admin-card{grid-column:span 6}
 }
-@media (max-width:968px){.layout-wrapper,.casino-body{gap:22px}.casino-hero__right{align-items:flex-start}.footer-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:968px){.layout-wrapper,.casino-body,.casino-columns{gap:22px}.casino-hero__right{align-items:flex-start}.footer-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:768px){
   body{font-size:15px}.container{padding-left:16px;padding-right:16px}.header-inner{gap:10px}.logo-text{font-size:1rem}.search-box{display:none}
   .hero{min-height:330px;padding:58px 0}.hero-actions{align-items:stretch}.hero-actions .btn{width:100%}.section{padding:38px 0}.section-header{align-items:flex-start}.section-header h2{font-size:23px}.news-grid {grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr))}.casino-hero{padding:20px}.casino-hero__left,.casino-hero__right{width:100%}.bonus-box{width:100%}.info-card dl{grid-template-columns:1fr}.info-card dd{text-align:left}.review-pros-cons{grid-template-columns:1fr}
@@ -327,7 +327,7 @@ pre,.code-block,.json-viewer,.schema-preview{overflow:auto;max-width:100%;paddin
 .header-actions,
 .site-footer,
 .btn {display:none!important}
-  body{background:#fff;color:#000}.layout-wrapper,.admin-wrapper,.casino-body{display:block;max-width:none;margin:0;padding:0}.admin-content{padding:0;background:#fff}.news-card,
+  body{background:#fff;color:#000}.layout-wrapper,.admin-wrapper,.casino-body,.casino-columns{display:block;max-width:none;margin:0;padding:0}.admin-content{padding:0;background:#fff}.news-card,
 .info-block,
 .info-card,
 .admin-section,

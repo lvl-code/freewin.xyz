@@ -17,45 +17,47 @@
         <p> 18+ | PLAY RESPONSIBLY | T&CS APPLY</p>
       </div>
     </div>
-
+    
     <div class="casino-body">
       {{components_top}}
-      <div class="casino-main">
-        <div class="info-block">
-          <h2>About {{name}}</h2>
-          <p class="casino-description">{{seo_description}}</p>
-        </div>
-
-        <div class="info-block">
-          <h3>Features</h3>
-          <div class="features-list">
-            {{features_html}}
+      <div class="casino-columns">
+        <div class="casino-main">
+          <div class="info-block">
+            <h2>About {{name}}</h2>
+            <p class="casino-description">{{seo_description}}</p>
           </div>
-        </div>
 
-        <div class="info-block" id="casinoReviews">
-          <h3>Reviews</h3>
-          <div id="reviewsContainer">
-            <p class="muted">Loading reviews...</p>
+          <div class="info-block">
+            <h3>Features</h3>
+            <div class="features-list">
+              {{features_html}}
+            </div>
           </div>
-        </div>
-        {{components_content_top}}
-        {{components_content_bottom}}
 
-      </div>
+          <div class="info-block" id="casinoReviews">
+            <h3>Reviews</h3>
+            <div id="reviewsContainer">
+              <p class="muted">Loading reviews...</p>
+            </div>
+          </div>
+          {{components_content_top}}
+          {{components_content_bottom}}
 
-      <div class="casino-aside">
-        <div class="info-card">
-          <h4>Casino Info</h4>
-          <dl>
-            <dt>Rating</dt><dd>{{rating}} / 5</dd>
-          <!--  <dt>Website</dt><dd><a href="{{website_url}}" target="_blank" rel="noopener">{{website_url}}</a></dd> -->
-            <dt>Status</dt><dd>{{status}}</dd>
-          </dl>
         </div>
-        <div class="info-card" id="geoCard">
-          <h4>Your Region</h4>
-          <p class="muted">Detecting...</p>
+
+        <div class="casino-aside">
+          <div class="info-card">
+            <h4>Casino Info</h4>
+            <dl>
+              <dt>Rating</dt><dd>{{rating}} / 5</dd>
+            <!--  <dt>Website</dt><dd><a href="{{website_url}}" target="_blank" rel="noopener">{{website_url}}</a></dd> -->
+              <dt>Status</dt><dd>{{status}}</dd>
+            </dl>
+          </div>
+          <div class="info-card" id="geoCard">
+            <h4>Your Region</h4>
+            <p class="muted">Detecting...</p>
+          </div>
         </div>
       </div>
     {{components_bottom}}

@@ -522,7 +522,11 @@ a:hover { text-decoration: underline; }
 */
 /* Casino Detail */
 
-.casino-body { display: grid; grid-template-columns: 1fr 300px; gap: 30px; }
+/*.casino-body { display: grid; grid-template-columns: 1fr 300px; gap: 30px; }*/
+/* casino-body just stacks its children (top/bottom components + the two-column area) in a single column */
+.casino-body { display: flex; flex-direction: column; gap: 30px; }
+/* casino-columns is the only part that splits into main content + sidebar */
+.casino-columns { display: grid; grid-template-columns: 1fr 300px; gap: 30px; align-items: start; }
 .info-block { background: var(--white); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow); }
 .info-block h2, .info-block h3 { margin-bottom: 14px; }
 .features-list { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -1369,8 +1373,10 @@ html {
 }
 
 /* Grid children must allow shrinking below content size */
+
 .main-content,
 .casino-body > *,
+.casino-columns > *,
 .casino-main,
 .casino-aside {
   min-width: 0;
