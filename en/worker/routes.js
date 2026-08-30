@@ -245,6 +245,17 @@ if (path === "/favicon.ico") {
 }
 
   // =====================================================
+  // SUPER API (Lummet control-plane channel)
+  // Must be matched before the generic API catch-all below.
+  // =====================================================
+  if (path.startsWith("/en/api/super/")) {
+    return {
+      type: "superApi",
+      path
+    };
+  }
+
+  // =====================================================
   // API 
   // =====================================================
   if (path.startsWith("/api/") || path.startsWith("/en/api/")) {

@@ -1,6 +1,7 @@
 import { getRoute }
 from "./routes.js";
 import { serveMedia } from './media-upload.js';
+import { handleSuperApi } from "./super/router.js";
 import {
   renderHome,
   renderAuthor,
@@ -311,6 +312,8 @@ if (
         return serveMedia(request, env, route.key);
       case "favicon":
         return env.ASSETS.fetch(request);
+      case "superApi":
+        return handleSuperApi(request, env, ctx, route.path);
       case "api":
 
   const user =
