@@ -618,14 +618,24 @@ export async function renderReview(request, env, slug) {
   }
 
   let pros = [], cons = [];
-  try { pros = JSON.parse(review.pros || "[]"); } catch {}
-  try { cons = JSON.parse(review.cons || "[]"); } catch {}
+
+  try {
+    const parsedPros = JSON.parse(review.pros || "[]");
+    pros = Array.isArray(parsedPros) ? parsedPros : [];
+  } catch {}
+
+  try {
+    const parsedCons = JSON.parse(review.cons || "[]");
+    cons = Array.isArray(parsedCons) ? parsedCons : [];
+  } catch {}
+
   let faqHtml = "";
 
-try {
-  const faqs = JSON.parse(review.faq_json || "[]");
+  try {
+    const parsedFaqs = JSON.parse(review.faq_json || "[]");
+    const faqs = Array.isArray(parsedFaqs) ? parsedFaqs : [];
 
-  faqHtml = faqs.map(faq => `
+    faqHtml = faqs.map(faq => `
     <div class="faq-item">
       <button class="faq-question">
         ${faq.q}
