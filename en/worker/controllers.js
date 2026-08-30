@@ -739,7 +739,7 @@ if (review.casino_slug) {
     },
     "author": {
       "@type": "Person",
-      "name": author.name
+      "name": author?.name || site.siteName
     },
   "publisher": {
   "@type": "Organization",
