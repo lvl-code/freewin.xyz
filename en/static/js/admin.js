@@ -3248,7 +3248,7 @@ async function editReview(slug) {
     const review = (data.reviews || []).find(r => r.slug === slug);
     if (!review) return;
     const form = document.getElementById("reviewForm");
-    form.querySelector("[name='id']").value = review.id;
+    form.querySelector("[name='id']").value = review.id || review.slug;
     form.querySelector("[name='slug']").value = review.slug;
     form.querySelector("[name='casino_slug']").value = review.casino_slug || "";
     form.querySelector("[name='country_code']").value = review.country_code || "";
