@@ -92,14 +92,22 @@ PUT    /en/api/super/<resource>/:id
 DELETE /en/api/super/<resource>/:id
 ```
 
-Supported resources in Phase 1: `casinos`, `reviews`, `news`, `pages`,
-`categories`, `countries`, `authors`, `media` (metadata only — no
-upload endpoint yet), `settings` (safe config keys only), `users`
-(list/read/role-update only — no password reads, no create/delete).
+Supported resources: `casinos`, `reviews`, `news`, `pages`,
+`categories`, `countries`, `authors`, `media` (metadata only, plus
+`POST /media/upload` — base64-JSON image upload), `settings` (safe
+config keys only), `users` (list/read/role-update/delete),
+`components`, `blocks` (page_components — component placements on
+pages), `permissions` (role/resource/action matrix), `nav-items`,
+`banners`.
 
 All handlers call the tenant's existing `worker/database/*.js`
-functions directly — no parallel business logic exists. There is
-**no arbitrary SQL endpoint** and no raw query passthrough.
+functions directly — no parallel business logic exists, except
+where the tenant's own `en/worker/api.js` performs required-field
+validation before calling the database layer (casinos, reviews,
+pages) — that same validation is now replicated in the Super API
+handlers so it rejects invalid input exactly like the tenant's own
+admin does, rather than silently accepting an incomplete record.
+There is **no arbitrary SQL endpoint** and no raw query passthrough.
 
 ## Settings safety
 

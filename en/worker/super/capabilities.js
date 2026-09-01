@@ -6,7 +6,13 @@
 // per rule #16/#17 (capability + version discovery).
 // =====================================================
 
-export const SUPER_API_VERSION = 1;
+// Version 2: added components, page_components ("blocks"),
+// permissions matrix, nav_items, banners, and base64-JSON media
+// upload. Existing v1 resources are unchanged — a Lummet control
+// plane that only knows v1 can keep working against everything it
+// already used; it just won't show the new resources until it
+// checks capabilities/version again.
+export const SUPER_API_VERSION = 2;
 
 export const CAPABILITIES = {
   casinos: true,
@@ -17,8 +23,14 @@ export const CAPABILITIES = {
   countries: true,
   authors: true,
   media: true,
+  media_upload: true,
   settings: true,
-  users: true
+  users: true,
+  components: true,
+  page_components: true,
+  permissions: true,
+  nav_items: true,
+  banners: true
 };
 
 export function getCapabilities() {

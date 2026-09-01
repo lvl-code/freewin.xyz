@@ -59,6 +59,7 @@ const ROUTES = [
 
   ["GET", "/en/api/super/media", h.handleListMedia, "media"],
   ["GET", "/en/api/super/media/:id", h.handleGetMedia, "media"],
+  ["POST", "/en/api/super/media/upload", h.handleUploadMedia, "media"],
   ["PUT", "/en/api/super/media/:id", h.handleUpdateMedia, "media"],
   ["DELETE", "/en/api/super/media/:id", h.handleDeleteMedia, "media"],
 
@@ -67,7 +68,39 @@ const ROUTES = [
 
   ["GET", "/en/api/super/users", h.handleListUsers, "users"],
   ["GET", "/en/api/super/users/:id", h.handleGetUser, "users"],
-  ["PUT", "/en/api/super/users/:id/role", h.handleUpdateUserRole, "users"]
+  ["PUT", "/en/api/super/users/:id/role", h.handleUpdateUserRole, "users"],
+  ["DELETE", "/en/api/super/users/:id", h.handleDeleteUser, "users"],
+
+  ["GET", "/en/api/super/components", h.handleListComponents, "components"],
+  ["GET", "/en/api/super/components/:id", h.handleGetComponent, "components"],
+  ["POST", "/en/api/super/components", h.handleCreateComponent, "components"],
+  ["PUT", "/en/api/super/components/:id", h.handleUpdateComponent, "components"],
+  ["DELETE", "/en/api/super/components/:id", h.handleDeleteComponent, "components"],
+
+  ["GET", "/en/api/super/blocks", h.handleListBlocks, "page_components"],
+  ["GET", "/en/api/super/blocks/:id", h.handleGetBlock, "page_components"],
+  ["POST", "/en/api/super/blocks", h.handleCreateBlock, "page_components"],
+  ["PUT", "/en/api/super/blocks/:id", h.handleUpdateBlock, "page_components"],
+  ["DELETE", "/en/api/super/blocks/:id", h.handleDeleteBlock, "page_components"],
+
+  // Permissions is a role/resource/action matrix, not an id-keyed
+  // list of records — GET returns the whole matrix, PUT sets one
+  // cell (body: {role, resource, action, allowed}), DELETE removes
+  // one row by its numeric id.
+  ["GET", "/en/api/super/permissions", h.handleListPermissions, "permissions"],
+  ["PUT", "/en/api/super/permissions", h.handleSetPermission, "permissions"],
+  ["DELETE", "/en/api/super/permissions/:id", h.handleDeletePermission, "permissions"],
+
+  ["GET", "/en/api/super/nav-items", h.handleListNavItems, "nav_items"],
+  ["POST", "/en/api/super/nav-items", h.handleCreateNavItem, "nav_items"],
+  ["PUT", "/en/api/super/nav-items/:id", h.handleUpdateNavItem, "nav_items"],
+  ["DELETE", "/en/api/super/nav-items/:id", h.handleDeleteNavItem, "nav_items"],
+
+  ["GET", "/en/api/super/banners", h.handleListBanners, "banners"],
+  ["GET", "/en/api/super/banners/:id", h.handleGetBanner, "banners"],
+  ["POST", "/en/api/super/banners", h.handleCreateBanner, "banners"],
+  ["PUT", "/en/api/super/banners/:id", h.handleUpdateBanner, "banners"],
+  ["DELETE", "/en/api/super/banners/:id", h.handleDeleteBanner, "banners"]
 ];
 
 function matchRoute(method, path) {

@@ -9,6 +9,20 @@ export async function getCasino(db, slug) {
     .first();
 }
 
+// Admin-safe variant — no published/status filter, so drafts and
+// unpublished casinos are visible to admin tooling. Mirrors the
+// existing getAllNewsAdmin/getAllAuthorsAdmin convention.
+export async function getCasinoAdmin(db, slug) {
+  return await db
+    .prepare(`
+      SELECT * FROM casinos
+      WHERE slug = ?
+      LIMIT 1
+    `)
+    .bind(slug)
+    .first();
+}
+
 export async function getAllCasinos(db) {
   const result = await db
     .prepare(`
@@ -18,6 +32,16 @@ export async function getAllCasinos(db) {
     `)
     .all();
   return result.results;
+}
+
+export async function getAllCasinosAdmin(db) {
+  const result = await db
+    .prepare(`
+      SELECT * FROM casinos
+      ORDER BY created_at DESC
+    `)
+    .all();
+  return result.results || [];
 }
 
 

@@ -126,6 +126,19 @@ export async function getPageComponents(db, pageType, pageSlug, injectionPoint =
   return result.results || [];
 }
 
+export async function getPageAssignmentById(db, id) {
+  return await db
+    .prepare(`
+      SELECT pc.*, c.name, c.type, c.title
+      FROM page_components pc
+      JOIN components c ON c.id = pc.component_id
+      WHERE pc.id = ?
+      LIMIT 1
+    `)
+    .bind(id)
+    .first();
+}
+
 export async function getAllPageAssignments(db, pageType = null, pageSlug = null) {
   if (pageType && pageSlug) {
     const result = await db.prepare(`

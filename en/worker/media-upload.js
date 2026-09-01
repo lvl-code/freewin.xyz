@@ -151,7 +151,7 @@ function detectMediaType(mimeType) {
  * @param {number} size - File size in bytes.
  * @returns {{valid: boolean, error?: string, mediaType?: string, ext?: string}}
  */
-function validateFile(filename, mimeType, size) {
+export function validateFile(filename, mimeType, size) {
     const { name, ext } = normalizeFilename(filename);
     const mediaType = detectMediaType(mimeType);
 
@@ -211,7 +211,7 @@ function validateFile(filename, mimeType, size) {
  * @param {string} ext - The file extension (without dot).
  * @returns {string} The R2 key.
  */
-function generateR2Key(folderSlug, ext) {
+export function generateR2Key(folderSlug, ext) {
     const safeFolder = folderSlug
         ? folderSlug.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase()
         : 'general';
@@ -228,7 +228,7 @@ function generateR2Key(folderSlug, ext) {
  * @param {string} requestHost - The request host (for building absolute URL).
  * @returns {string} The public URL.
  */
-function generatePublicUrl(r2Key, requestHost) {
+export function generatePublicUrl(r2Key, requestHost) {
     // The Worker serves R2 media at /media/{key}
     // This route will be added in api.js
     return `https://${requestHost}/${r2Key}`;
@@ -240,7 +240,7 @@ function generatePublicUrl(r2Key, requestHost) {
  * @param {string} publicUrl - The original image public URL.
  * @returns {{thumbnail: string, responsive: string[]}} Thumbnail and responsive URLs.
  */
-function generateThumbnailUrls(publicUrl) {
+export function generateThumbnailUrls(publicUrl) {
     // Cloudflare Image Resizing URL format:
     // /cdn-cgi/image/width=400,format=webp/{original_path}
     const urlObj = new URL(publicUrl);
