@@ -62,11 +62,16 @@
 }
 
 :root {
-  --theme-primary: #D4AF37 !important;
-  --theme-primary-hover: #B8952E !important;
-  --theme-accent: #D4AF37 !important;
- /* --theme-surface: #000000 !important; */
-  --theme-surface-alt: #0a0a0a !important;
+  --theme-primary: #EE9F28 !important;
+  --theme-primary-hover: #D8840D !important;
+  --theme-accent: #EE9F28 !important;
+
+  --theme-surface: #000000 !important;
+  --theme-surface-alt: #0A0A0A !important;
+
+  --primary: var(--theme-primary, #EE9F28);
+  --primary-dark: var(--theme-primary-hover, #D8840D);
+  --surface-dark: var(--theme-surface, #000000);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -2375,11 +2380,11 @@ padding:22px;
    doesn't also change the footer/dark panels. !important beats the
    header-style variants (solid/glass/transparent) in site-settings.js
    since none of those declare !important themselves. */
-/*
+
 .site-header {
-  background:#EE9F28 !important; /* was  #B8860B8;  deep gold *
-} */
-.site-header {
+  background:#000000 !important; /* was  #B8860B8;  deep gold */
+} 
+/*.site-header {
   background: linear-gradient(
     to right,
     #000000 0%,
@@ -2387,7 +2392,7 @@ padding:22px;
     #EE9F28 50%,
     #EE9F28 100%
   ) !important;
-}
+}*/
 
 /* Footer stays black independently of the header now that header
    no longer reads --theme-surface for this purpose. */
