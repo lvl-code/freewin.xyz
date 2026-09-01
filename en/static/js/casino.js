@@ -32,7 +32,7 @@ async function loadCasinoReviews() {
         (r) => `
       <div class="review-item">
         <h4><a href="/en/review/${r.slug}">${r.title}</a></h4>
-        <span class="review-rating">★ ${r.rating || "N/A"}</span>
+        <span class="review-rating">★ ${r.rating ? r.rating + "/5" : "N/A"}</span>
         <p class="review-excerpt">${(r.content || "").substring(0, 200)}...</p>
       </div>
     `
