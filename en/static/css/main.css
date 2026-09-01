@@ -2401,8 +2401,8 @@ padding:22px;
    elsewhere on the site are unaffected. */
 .admin-content .btn--primary,
 .admin-content .btn--ghost {
-  background: #B8860B !important;
-  border-color: #B8860B !important;
+  background: #EE9F28 !important;
+  border-color: #EE9F28 !important;
   color: #1a1a1a !important;
   font-weight: 700 !important;
 }
@@ -2424,8 +2424,8 @@ padding:22px;
 
 
 #loadMoreBtn {
-  background: #B8860B !important;
-  border-color: #B8860B !important;
+  background: #EE9F28 !important;
+  border-color: ##EE9F28 !important;
   color: #1a1a1a !important;
   font-weight: 700 !important;
 }
