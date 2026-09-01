@@ -40,6 +40,10 @@ const ROUTES = {
 };
 
 export function buildBreadcrumbs(route, data = {}) {
+  if (route === "home") {
+    return [];
+  }
+
   const crumbs = [
     {
       label: "Home",
