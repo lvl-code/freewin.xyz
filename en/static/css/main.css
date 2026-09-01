@@ -2376,7 +2376,7 @@ padding:22px;
    header-style variants (solid/glass/transparent) in site-settings.js
    since none of those declare !important themselves. */
 .site-header {
-  background:#000000 !important; /* was  #B8860B8;  deep gold */
+  background:#EE9F28 !important; /* was  #B8860B8;  deep gold */
 }
 
 /* Footer stays black independently of the header now that header
