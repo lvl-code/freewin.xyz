@@ -29,6 +29,7 @@
     </header>
     <div class="review-body">
 <nav id="review-nav" class="review-nav">
+
     <a href="#overview">Overview</a>
     <a href="#games">Games</a>
     <a href="#bonuses">Bonuses</a>
@@ -91,6 +92,47 @@
         </tr>
     </table>
 </div>
+  {{#if overview}}
+  <h2 id="overview">Overview</h2>
+  <p>{{overview}}</p>
+  {{/if}}
+
+  {{#if games}}
+  <h2 id="games">Games</h2>
+  <p>{{games}}</p>
+  {{/if}}
+
+  {{#if bonuses}}
+  <h2 id="bonuses">Bonuses</h2>
+  <p>{{bonuses}}</p>
+  {{/if}}
+
+  {{#if payments}}
+  <h2 id="payments">Payment Methods</h2>
+  <p>{{payments}}</p>
+  {{/if}}
+
+  {{#if licenses}}
+  <h2 id="licensing">Licensing</h2>
+  <p>{{licenses}}</p>
+  {{/if}}
+
+  {{#if content}}
+  <section id="more-details">
+    <h2>More Details</h2>
+    {{content}}
+  </section>
+  {{/if}}
+
+  {{review_blocks_html}}
+  {{components_content_top}}
+  {{components_content_bottom}}
+
+  {{#if verdict}}
+  <h2 id="verdict">Verdict</h2>
+  <p>{{verdict}}</p>
+  {{/if}}
+<!--
   <h2 id="overview">Overview</h2>
   <p>{{overview}}</p>
 
@@ -114,7 +156,122 @@
   {{components_content_bottom}}
   <h2 id="verdict">Verdict</h2>
   <p>{{verdict}}</p>
+-->
 </div>
+      Claude finished the response
+
+Ran a command
+Ran a command
+Found it — the bug isn't in your edit, it's in render.js. Your breadcrumbs.js fix is correct and working exactly as intended (it correctly returns "" for the homepage). The problem is one line downstream in injectComponents():
+
+js
+const breadcrumbs = breadcrumbHtml || await this.loadTemplate("components/breadcrumbs.html");
+In JavaScript, an empty string "" is falsy. So when your fix makes renderBreadcrumbs([]) return "" for the homepage, this line's || treats that empty string as "nothing was passed" and silently falls back to loading templates/components/breadcrumbs.html — which is a separate, hardcoded breadcrumb template that always shows "Home":
+
+html
+<nav class="breadcrumbs" id="breadcrumbs">
+  <a href="/en">Home</a>
+</nav>
+That static file is what you're actually seeing on the homepage — your dynamic breadcrumb logic was correctly suppressed, but this fallback template overrides it regardless.
+
+Fix — in worker/render.js, change the || to an explicit null/undefined check so an intentional empty string isn't treated the same as "not provided":
+
+js
+async injectComponents(html, breadcrumbHtml = null) {
+    const header = await this.loadTemplate("layout/header.html");
+    const footer = await this.loadTemplate("layout/footer.html");
+    const sidebar = await this.loadTemplate("layout/sidebar.html");
+
+    const breadcrumbs = breadcrumbHtml !== null
+      ? breadcrumbHtml
+      : await this.loadTemplate("components/breadcrumbs.html");
+
+    html = html.replace("{{HEADER}}", header);
+    html = html.replace("{{FOOTER}}", footer);
+    html = html.replace("{{SIDEBAR}}", sidebar);
+    html = html.replace("{{BREADCRUMBS}}", breadcrumbs);
+
+    return html;
+}
+Since renderHome's call chain always passes an actual string (even if empty) via renderBreadcrumbs(breadcrumbs) on line 589, breadcrumbHtml will be "" (not null) for the homepage — so !== null correctly keeps it empty, while every other page still gets its real breadcrumb HTML passed straight through, no change in behavior there.
+
+With both changes in place (your breadcrumbs.js edit + this one), level.casino/en will render no breadcrumb nav at all, and every other route is unaffected.
+
+I want if some review field are empty, don't show up hardcoded headers, like pages, ..
+
+
+Ran 3 commands, viewed 2 files
+Ran 3 commands, viewed 2 files
+This is straightforward — your template engine already has a working {{#if key}}...{{/if}} conditional system (it's what powers the author_name/author_avatar checks at the top of the same file). The review sections just don't use it yet; they render the <h2> headers unconditionally regardless of whether the field is empty.
+
+Fix — in templates/pages/review.html, wrap each hardcoded section in the matching {{#if}} block:
+
+html
+  {{#if overview}}
+  <h2 id="overview">Overview</h2>
+  <p>{{overview}}</p>
+  {{/if}}
+
+  {{#if games}}
+  <h2 id="games">Games</h2>
+  <p>{{games}}</p>
+  {{/if}}
+
+  {{#if bonuses}}
+  <h2 id="bonuses">Bonuses</h2>
+  <p>{{bonuses}}</p>
+  {{/if}}
+
+  {{#if payments}}
+  <h2 id="payments">Payment Methods</h2>
+  <p>{{payments}}</p>
+  {{/if}}
+
+  {{#if licenses}}
+  <h2 id="licensing">Licensing</h2>
+  <p>{{licenses}}</p>
+  {{/if}}
+
+  {{#if content}}
+  <section id="more-details">
+    <h2>More Details</h2>
+    {{content}}
+  </section>
+  {{/if}}
+
+  {{review_blocks_html}}
+  {{components_content_top}}
+  {{components_content_bottom}}
+
+  {{#if verdict}}
+  <h2 id="verdict">Verdict</h2>
+  <p>{{verdict}}</p>
+  {{/if}}
+And the same for Pros/Cons and FAQ:
+
+html
+  {{#if pros_html}}
+  <div id="pros-cons" class="review-pros-cons">
+    <div class="pros-cons-block pros">
+      <h3>Pros</h3>
+      {{pros_html}}
+    </div>
+    {{#if cons_html}}
+    <div class="pros-cons-block cons">
+      <h3>Cons</h3>
+      {{cons_html}}
+    </div>
+    {{/if}}
+  </div>
+  {{/if}}
+
+  {{#if faq_html}}
+  <section id="faq">
+    <h2>Frequently Asked Questions</h2>
+    {{faq_html}}
+  </section>
+  {{/if}}
+<!--
       <div id="pros-cons" class="review-pros-cons">
         <div class="pros-cons-block pros">
           <h3>Pros</h3>
@@ -129,6 +286,7 @@
         <h2>Frequently Asked Questions</h2>
         {{faq_html}}
       </section>
+-->
 
     </div>
     <div class="review-cta">
