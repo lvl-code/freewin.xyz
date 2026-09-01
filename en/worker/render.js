@@ -223,7 +223,10 @@ replaceVariablesbackups(template, data = {}) {
     const footer = await this.loadTemplate("layout/footer.html");
     const sidebar = await this.loadTemplate("layout/sidebar.html");
 
-    const breadcrumbs = breadcrumbHtml || await this.loadTemplate("components/breadcrumbs.html");
+    //const breadcrumbs = breadcrumbHtml || await this.loadTemplate("components/breadcrumbs.html");
+    const breadcrumbs = breadcrumbHtml !== null
+      ? breadcrumbHtml
+      : await this.loadTemplate("components/breadcrumbs.html");
 
     html = html.replace("{{HEADER}}", header);
     html = html.replace("{{FOOTER}}", footer);
