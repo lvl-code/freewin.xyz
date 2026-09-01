@@ -2375,8 +2375,18 @@ padding:22px;
    doesn't also change the footer/dark panels. !important beats the
    header-style variants (solid/glass/transparent) in site-settings.js
    since none of those declare !important themselves. */
+/*
 .site-header {
-  background:#EE9F28 !important; /* was  #B8860B8;  deep gold */
+  background:#EE9F28 !important; /* was  #B8860B8;  deep gold *
+} */
+.site-header {
+  background: linear-gradient(
+    to right,
+    #000000 0%,
+    #000000 40%,
+    #EE9F28 40%,
+    #EE9F28 100%
+  ) !important;
 }
 
 /* Footer stays black independently of the header now that header
