@@ -2304,7 +2304,7 @@ padding:22px;
 }
 
 .mobile-nav-item.active {
-  color: #D4AF37 !important;  /* gold, so the active tab still stands out */
+  color: #EE9F28 !important;  /* gold, so the active tab still stands out */
 }
 
 
@@ -2335,7 +2335,7 @@ padding:22px;
 }
 
 .main-nav a:hover {
-  color: #D4AF37 !important;
+  color: #EE9F28 !important;
 }
 
 .site-footer,
@@ -2354,7 +2354,7 @@ padding:22px;
 }
 
 .footer-col a:hover {
-  color: #D4AF37 !important;
+  color: #EE9F28 !important;
 }
 
 
@@ -2420,7 +2420,7 @@ padding:22px;
 }
 
 .link {
-  color: #B8860B !important;
+  color: #EE9F28 !important;
 }
 
 .link:hover {
