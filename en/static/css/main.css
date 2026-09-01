@@ -2425,3 +2425,38 @@ padding:22px;
   border-color: #996515 !important;
   color: #1a1a1a !important;
 }
+
+
+
+
+/* ==========================================================
+   HOMEPAGE TOP COMPONENTS
+   Immediately below hero — zero external whitespace
+   ========================================================== */
+
+.hero + .component,
+.hero + [class*="component-"] {
+    margin-top: 0 !important;
+}
+
+/* Homepage components themselves must not create large gaps */
+.component {
+    margin-top: 0 !important;
+}
+
+/* Compact CTA spacing */
+.component-cta {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 16px !important;
+    padding-bottom: 16px !important;
+}
+
+/* Remove unnecessary first/last element margins */
+.component-cta > :first-child {
+    margin-top: 0 !important;
+}
+
+.component-cta > :last-child {
+    margin-bottom: 0 !important;
+}
