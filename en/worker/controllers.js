@@ -207,6 +207,36 @@ export async function renderHome(request, env) {
   const allComponents = await renderer.renderAllComponents("homepage", "homepage");
   const dynamicSeo = await renderer.loadDynamicSeo("homepage", "homepage");
 
+  const latestReviews = await reviews.getLatestReviews(env.DB, 6);
+  const latestNews = (await news.getAllNews(env.DB)).slice(0, 4);
+
+  const reviewCardsHtml = latestReviews.map(r => `
+    <div class="casino-card">
+      <div class="casino-card__header">
+        <div class="casino-card__logo-wrap">
+          <img src="${r.casino_logo || '/static/images/default.png'}" alt="${r.casino_name}" class="casino-card__logo" onerror="this.src='/static/images/default.png'" loading="lazy">
+        </div>
+        <div class="casino-card__title-group">
+          <h3 class="casino-card__name"><a href="/en/review/${r.slug}">${r.title}</a></h3>
+          <div class="casino-card__rating">${'★'.repeat(Math.round(r.rating || 0))}${'☆'.repeat(5 - Math.round(r.rating || 0))}</div>
+        </div>
+      </div>
+      <div class="casino-card__body">
+        <p class="muted">${r.casino_name}</p>
+      </div>
+      <div class="casino-card__actions">
+        <a href="/en/review/${r.slug}" class="btn btn--secondary">Read Review</a>
+      </div>
+    </div>`).join("");
+
+  const newsCardsHtml = latestNews.map(n => `
+    <a href="/en/news/${n.slug}" class="news-card">
+      ${n.featured_image_thumbnail || n.featured_image_url ? `<img src="${n.featured_image_thumbnail || n.featured_image_url}" alt="${n.title}" loading="lazy">` : ""}
+      <h3>${n.title}</h3>
+      ${n.excerpt ? `<p class="muted">${n.excerpt}</p>` : ""}
+      <p class="muted">${new Date(n.published_at || n.created_at).toLocaleDateString()}</p>
+    </a>`).join("");
+
   const homeSchema = {
     "@context": "https://schema.org",
     "@type": "WebSite",
@@ -238,7 +268,13 @@ export async function renderHome(request, env) {
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
-    components_sidebar: allComponents.sidebar
+    components_sidebar: allComponents.sidebar,
+    review_cards: reviewCardsHtml,
+    has_reviews: latestReviews.length > 0,
+    no_reviews: latestReviews.length === 0,
+    news_cards: newsCardsHtml,
+    has_news: latestNews.length > 0,
+    no_news: latestNews.length === 0
   }, homeSchema, buildBreadcrumbs("home"));
 
   return new Response(html, {

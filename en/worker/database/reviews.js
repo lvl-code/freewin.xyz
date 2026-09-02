@@ -159,6 +159,27 @@ export async function getCasinoReviews(
   return result.results;
 }
 
+// Most recent published reviews across every casino, for surfaces
+// like the homepage that want a cross-casino feed rather than one
+// casino's review history (which getCasinoReviews already covers).
+export async function getLatestReviews(db, limit = 6) {
+  const result = await db.prepare(`
+    SELECT
+      r.*,
+      c.name AS casino_name,
+      c.logo AS casino_logo
+    FROM reviews r
+    JOIN casinos c ON c.slug = r.casino_slug
+    WHERE r.published IS NOT 0
+    ORDER BY COALESCE(r.updated_at, r.created_at) DESC, r.id DESC
+    LIMIT ?
+  `)
+    .bind(limit)
+    .all();
+
+  return result.results || [];
+}
+
 
 export async function deleteReview(db, slug) {
   return db.prepare(`

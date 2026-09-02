@@ -91,6 +91,16 @@ const ROUTES = [
   ["PUT", "/en/api/super/permissions", h.handleSetPermission, "permissions"],
   ["DELETE", "/en/api/super/permissions/:id", h.handleDeletePermission, "permissions"],
 
+  // Item-level access — per-user scope (none/own/all/assigned) on
+  // top of the role permissions above. "defaults" is a literal
+  // segment checked before the dynamic :id routes below, so a
+  // numeric user id never collides with it.
+  ["GET", "/en/api/super/item-access/defaults", h.handleGetItemAccessDefaults, "item_access"],
+  ["PUT", "/en/api/super/item-access/defaults", h.handleSetItemAccessDefaultScope, "item_access"],
+  ["GET", "/en/api/super/item-access/:id", h.handleGetUserItemAccess, "item_access"],
+  ["PUT", "/en/api/super/item-access/:id", h.handleSetUserItemAccess, "item_access"],
+  ["PUT", "/en/api/super/item-access/:id/assignment", h.handleSetItemAssignment, "item_access"],
+
   ["GET", "/en/api/super/nav-items", h.handleListNavItems, "nav_items"],
   ["POST", "/en/api/super/nav-items", h.handleCreateNavItem, "nav_items"],
   ["PUT", "/en/api/super/nav-items/:id", h.handleUpdateNavItem, "nav_items"],

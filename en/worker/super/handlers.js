@@ -20,6 +20,8 @@ import * as componentsDB from "../database/components.js";
 import * as permissionsDB from "../database/permissions.js";
 import * as navDB from "../database/nav.js";
 import * as bannersDB from "../database/banners.js";
+import * as geoDB from "../database/geo.js";
+import * as itemAccessDB from "../database/item-access.js";
 import {
   validateFile,
   generateR2Key,
@@ -156,6 +158,16 @@ export async function handleListCasinos(request, env) {
 export async function handleGetCasino(request, env, slug) {
   const row = await casinosDB.getCasinoAdmin(env.DB, slug);
   if (!row) return fail("not_found", 404);
+
+  // Enrich with the casino's category assignments (casino_categories
+  // join table) and per-country geo rules (geo_rules table) — these
+  // aren't columns on `casinos` itself, but the control plane's form
+  // needs them alongside the record to let admins choose categories
+  // and countries, matching what the tenant's own /api/v1/casino/get
+  // and /api/v1/geo/list already expose.
+  row.category_ids = await casinosDB.getCasinoCategories(env.DB, row.id);
+  row.geo_rules = await geoDB.getGeoRulesForCasino(env.DB, row.slug);
+
   return ok({ data: row });
 }
 
@@ -164,6 +176,12 @@ export async function handleCreateCasino(request, env, _slug, bodyText) {
   try {
     validateRequired(body, ["slug", "name", "affiliate_url"]);
     const id = await casinosDB.createCasino(env.DB, body);
+    if (Array.isArray(body.category_ids)) {
+      await casinosDB.setCasinoCategories(env.DB, id, body.category_ids);
+    }
+    if (Array.isArray(body.geo_rules)) {
+      await geoDB.setCasinoGeoRules(env.DB, body.slug, body.geo_rules);
+    }
     return created({ data: { id } });
   } catch (error) {
     return fail(error.message || "invalid_input", 422);
@@ -181,6 +199,23 @@ export async function handleUpdateCasino(request, env, slug, bodyText) {
     // slug). Whatever value the caller sends in body.slug wins.
     validateRequired(body, ["name", "affiliate_url"]);
     await casinosDB.updateCasino(env.DB, slug, body);
+
+    const newSlug = body.slug || slug;
+    const casinoId = await casinosDB.getCasinoIdBySlug(env.DB, newSlug);
+
+    if (casinoId && Array.isArray(body.category_ids)) {
+      await casinosDB.setCasinoCategories(env.DB, casinoId, body.category_ids);
+    }
+    if (Array.isArray(body.geo_rules)) {
+      // Geo rules are keyed by casino_slug, not id — if the slug
+      // changed, the old rows are orphaned under the old slug and
+      // must be cleared out before writing the new set.
+      if (newSlug !== slug) {
+        await geoDB.deleteGeoRulesForCasino(env.DB, slug);
+      }
+      await geoDB.setCasinoGeoRules(env.DB, newSlug, body.geo_rules);
+    }
+
     return ok();
   } catch (error) {
     return fail(error.message || "invalid_input", 422);
@@ -679,6 +714,83 @@ export async function handleSetPermission(request, env, _id, bodyText) {
 export async function handleDeletePermission(request, env, id) {
   await permissionsDB.deletePermission(env.DB, id);
   return ok();
+}
+
+// =====================================================
+// ITEM-LEVEL ACCESS
+// Wraps en/worker/database/item-access.js — the same module the
+// tenant's own (unmounted) item-access-api.js already wraps, so no
+// authorization logic is duplicated here. Sits ON TOP of the
+// role/resource/action permissions above: permissions decide
+// whether a role can act on a resource at all; this decides WHICH
+// items of that resource a given user can act on
+// (none/own/all/assigned).
+// =====================================================
+
+// GET — the whole picture for one user: their per-resource/action
+// scopes, the system default, and (to avoid needing per-resource
+// query params, which this Super API's request signature doesn't
+// cover) their specific item assignments across every registered
+// resource in one shot.
+export async function handleGetUserItemAccess(request, env, userId) {
+  const uid = Number(userId);
+  const access = await itemAccessDB.getAllUserItemAccess(env.DB, uid);
+  const defaultScope = await itemAccessDB.getSystemDefaultScope(env.DB);
+  const resources = itemAccessDB.getRegisteredResources();
+  const assignments = {};
+  for (const resource of resources) {
+    assignments[resource] = await itemAccessDB.getAccessibleItemIds(env.DB, uid, resource);
+  }
+  return ok({ data: { access, defaultScope, resources, assignments } });
+}
+
+// PUT body: { resource, action, scope }
+export async function handleSetUserItemAccess(request, env, userId, bodyText) {
+  const body = await readJsonBody(request, bodyText);
+  if (!body.resource || !body.action || !body.scope) {
+    return fail("resource_action_and_scope_required", 422);
+  }
+  try {
+    await itemAccessDB.setUserItemAccess(env.DB, Number(userId), body.resource, body.action, body.scope);
+    return ok();
+  } catch (error) {
+    return fail(error.message || "invalid_input", 422);
+  }
+}
+
+// PUT body: { resource, item_id, assigned }. A single endpoint for
+// both granting and revoking one item, so this never needs DELETE
+// with a body (which this control plane's client can't send — its
+// request signature is computed over the exact bytes sent).
+export async function handleSetItemAssignment(request, env, userId, bodyText) {
+  const body = await readJsonBody(request, bodyText);
+  if (!body.resource || body.item_id == null) {
+    return fail("resource_and_item_id_required", 422);
+  }
+  if (body.assigned) {
+    await itemAccessDB.assignItem(env.DB, Number(userId), body.resource, Number(body.item_id));
+  } else {
+    await itemAccessDB.unassignItem(env.DB, Number(userId), body.resource, Number(body.item_id));
+  }
+  return ok();
+}
+
+export async function handleGetItemAccessDefaults(request, env) {
+  const scope = await itemAccessDB.getSystemDefaultScope(env.DB);
+  const resources = itemAccessDB.getRegisteredResources();
+  return ok({ data: { scope, resources } });
+}
+
+// PUT body: { scope }
+export async function handleSetItemAccessDefaultScope(request, env, _id, bodyText) {
+  const body = await readJsonBody(request, bodyText);
+  if (!body.scope) return fail("scope_required", 422);
+  try {
+    await itemAccessDB.setSystemDefaultScope(env.DB, body.scope);
+    return ok();
+  } catch (error) {
+    return fail(error.message || "invalid_input", 422);
+  }
 }
 
 // =====================================================

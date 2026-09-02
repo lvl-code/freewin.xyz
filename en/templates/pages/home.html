@@ -1,14 +1,3 @@
-<!--<section class="hero" {{#if site_hero_image}} style=" background-image:url('{{site_hero_image}}'); background-size:cover; background-position:center; " {{/if}} >
-  <div class="container">
-    <h1>Find Your Perfect Casino</h1>
-    <p>Expert reviews, exclusive bonuses, and real player data for {{casino_count}}+ casinos worldwide.</p>
-    <div class="hero-actions">
-      <a href="/en/casino" class="btn btn--primary btn--lg">Browse Casinos</a>
-      <a href="/en/review" class="btn btn--ghost btn--lg">Read Reviews</a>
-    </div>
-  </div>
-</section>-->
-
 {{#if site_hero_enabled}}
 <section
   class="hero"
@@ -118,33 +107,23 @@
 {{components_content_bottom}}
 {{homepage_sections_html}}
 {{components_bottom}}
-<!--<section class="section section--alt">
+
+<section class="section">
   <div class="container">
-    <div class="features-grid">
-      <div class="feature-card">
-        <div class="feature-icon">&#9733;</div>
-        <h3>Expert Reviews</h3>
-        <p>In-depth analysis from industry veterans with years of experience.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">&#128274;</div>
-        <h3>Exclusive Bonuses</h3>
-        <p>Access special bonus offers available only through {{site_name}}.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">&#127760;</div>
-        <h3>Geo-Targeted</h3>
-        <p>See casinos available in your country with localized bonus offers.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">&#128202;</div>
-        <h3>Real Data</h3>
-        <p>Click tracking and player analytics for transparent recommendations.</p>
-      </div>
+    <div class="section-header">
+      <h2>Latest Reviews</h2>
+      <a href="/en/review" class="link">All reviews &rarr;</a>
     </div>
-  {{components_bottom}}
+    {{#if has_reviews}}
+    <div class="casino-grid">
+      {{review_cards}}
+    </div>
+    {{/if}}
+    {{#if no_reviews}}
+    <p class="muted">Reviews are on the way — check back soon.</p>
+    {{/if}}
   </div>
-</section>-->
+</section>
 
 <section class="section">
   <div class="container">
@@ -152,8 +131,14 @@
       <h2>Latest News</h2>
       <a href="/en/news" class="link">All news &rarr;</a>
     </div>
+    {{#if has_news}}
     <div id="homeNews" class="news-grid">
-      <p class="muted">Loading news...</p>
+      {{news_cards}}
     </div>
+    {{/if}}
+    {{#if no_news}}
+    <p class="muted">No news posted yet — check back soon.</p>
+    {{/if}}
   </div>
 </section>
+
