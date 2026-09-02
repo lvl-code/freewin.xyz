@@ -22,14 +22,15 @@
 (function () {
   "use strict";
 
-  // Never run public PageNav AJAX inside the admin area
-  if (window.location.pathname.includes("/admin/")) {
+  const path = window.location.pathname;
+
+  // Never run public PageNav inside dashboard or admin areas
+  if (/\/(dashboard|admin)(?:\/|$)/.test(path)) {
     return;
   }
 
-  // Existing PageNav code continues below...
+  // Existing PageNav code below...
 })();
-
 
 (function () {
   "use strict";
