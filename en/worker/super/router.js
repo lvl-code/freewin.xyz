@@ -58,8 +58,10 @@ const ROUTES = [
   ["DELETE", "/en/api/super/authors/:id", h.handleDeleteAuthor, "authors"],
 
   ["GET", "/en/api/super/media", h.handleListMedia, "media"],
+  ["GET", "/en/api/super/media/folders", h.handleListMediaFolders, "media"],
   ["GET", "/en/api/super/media/:id", h.handleGetMedia, "media"],
   ["POST", "/en/api/super/media/upload", h.handleUploadMedia, "media"],
+  ["POST", "/en/api/super/media/from-url", h.handleCreateMediaFromUrl, "media"],
   ["PUT", "/en/api/super/media/:id", h.handleUpdateMedia, "media"],
   ["DELETE", "/en/api/super/media/:id", h.handleDeleteMedia, "media"],
 
@@ -101,6 +103,16 @@ const ROUTES = [
   ["PUT", "/en/api/super/item-access/:id", h.handleSetUserItemAccess, "item_access"],
   ["PUT", "/en/api/super/item-access/:id/assignment", h.handleSetItemAssignment, "item_access"],
 
+  ["GET", "/en/api/super/review-blocks", h.handleListReviewBlocks, "review_blocks"],
+  ["POST", "/en/api/super/review-blocks", h.handleCreateReviewBlock, "review_blocks"],
+  ["PUT", "/en/api/super/review-blocks/:id", h.handleUpdateReviewBlock, "review_blocks"],
+  ["DELETE", "/en/api/super/review-blocks/:id", h.handleDeleteReviewBlock, "review_blocks"],
+
+  ["GET", "/en/api/super/ad-rules", h.handleListAdRules, "ad_rules"],
+  ["POST", "/en/api/super/ad-rules", h.handleCreateAdRule, "ad_rules"],
+  ["PUT", "/en/api/super/ad-rules/:id", h.handleUpdateAdRule, "ad_rules"],
+  ["DELETE", "/en/api/super/ad-rules/:id", h.handleDeleteAdRule, "ad_rules"],
+
   ["GET", "/en/api/super/nav-items", h.handleListNavItems, "nav_items"],
   ["POST", "/en/api/super/nav-items", h.handleCreateNavItem, "nav_items"],
   ["PUT", "/en/api/super/nav-items/:id", h.handleUpdateNavItem, "nav_items"],
@@ -110,7 +122,13 @@ const ROUTES = [
   ["GET", "/en/api/super/banners/:id", h.handleGetBanner, "banners"],
   ["POST", "/en/api/super/banners", h.handleCreateBanner, "banners"],
   ["PUT", "/en/api/super/banners/:id", h.handleUpdateBanner, "banners"],
-  ["DELETE", "/en/api/super/banners/:id", h.handleDeleteBanner, "banners"]
+  ["DELETE", "/en/api/super/banners/:id", h.handleDeleteBanner, "banners"],
+
+  ["GET", "/en/api/super/updates", h.handleListPlatformUpdates, "updates"],
+  ["GET", "/en/api/super/updates/:id", h.handleGetPlatformUpdate, "updates"],
+  ["POST", "/en/api/super/updates", h.handleCreatePlatformUpdate, "updates"],
+  ["PUT", "/en/api/super/updates/:id", h.handleUpdatePlatformUpdate, "updates"],
+  ["DELETE", "/en/api/super/updates/:id", h.handleDeletePlatformUpdate, "updates"]
 ];
 
 function matchRoute(method, path) {

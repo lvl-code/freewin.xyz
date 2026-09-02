@@ -22,6 +22,9 @@ import * as navDB from "../database/nav.js";
 import * as bannersDB from "../database/banners.js";
 import * as geoDB from "../database/geo.js";
 import * as itemAccessDB from "../database/item-access.js";
+import * as reviewBlocksDB from "../database/review_blocks.js";
+import * as adRulesDB from "../database/ad-rules.js";
+import * as platformUpdatesDB from "../database/platform-updates.js";
 import {
   validateFile,
   generateR2Key,
@@ -459,6 +462,26 @@ export async function handleListMedia(request, env) {
   return ok({ data: rows });
 }
 
+export async function handleListMediaFolders(request, env) {
+  const folders = await mediaDB.getMediaFolders(env.DB);
+  return ok({ data: folders });
+}
+
+// Adds an externally-hosted image to the library by URL, without
+// uploading bytes through this worker — mirrors the tenant's own
+// "Add Image from External URL" form (static/js/media-admin.js ->
+// /api/v1/media/create), using the same plain-metadata createMedia,
+// not the R2-aware createMediaItem the real upload path uses.
+// Body: { url, filename, thumbnail_url?, folder?, alt_text? }
+export async function handleCreateMediaFromUrl(request, env, _id, bodyText) {
+  const body = await readJsonBody(request, bodyText);
+  if (!body.url || !body.filename) {
+    return fail("url_and_filename_required", 422);
+  }
+  const id = await mediaDB.createMedia(env.DB, body);
+  return created({ data: { id } });
+}
+
 export async function handleGetMedia(request, env, id) {
   const row = await mediaDB.getMedia(env.DB, id);
   if (!row) return fail("not_found", 404);
@@ -794,6 +817,86 @@ export async function handleSetItemAccessDefaultScope(request, env, _id, bodyTex
 }
 
 // =====================================================
+// REVIEW BLOCKS
+// Extra ordered title+content sub-sections attached to a review
+// (e.g. "Deposit Methods", "Mobile Experience") — wraps
+// en/worker/database/review_blocks.js, the same module the
+// tenant's own admin already uses at /api/v1/review-blocks/*.
+// =====================================================
+
+export async function handleListReviewBlocks(request, env) {
+  const url = new URL(request.url);
+  const reviewSlug = url.searchParams.get("review_slug");
+  if (!reviewSlug) return fail("review_slug_required", 422);
+  const rows = await reviewBlocksDB.getReviewBlocks(env.DB, reviewSlug);
+  return ok({ data: rows });
+}
+
+// POST body: { review_slug, title, content, position? }
+export async function handleCreateReviewBlock(request, env, _id, bodyText) {
+  const body = await readJsonBody(request, bodyText);
+  if (!body.review_slug || !body.title) {
+    return fail("review_slug_and_title_required", 422);
+  }
+  const id = await reviewBlocksDB.createReviewBlock(env.DB, body);
+  return created({ data: { id } });
+}
+
+// PUT body: { title, content, position? }
+export async function handleUpdateReviewBlock(request, env, id, bodyText) {
+  const body = await readJsonBody(request, bodyText);
+  if (!body.title) return fail("title_required", 422);
+  await reviewBlocksDB.updateReviewBlock(env.DB, id, body);
+  return ok();
+}
+
+export async function handleDeleteReviewBlock(request, env, id) {
+  await reviewBlocksDB.deleteReviewBlock(env.DB, id);
+  return ok();
+}
+
+// =====================================================
+// AD RULES
+// Automatic ad-placement engine — wraps
+// en/worker/database/ad-rules.js (validation lives there already,
+// same module the tenant's own /api/v1/ad-rules/* uses).
+// =====================================================
+
+export async function handleListAdRules(request, env) {
+  const rows = await adRulesDB.getAllAdRules(env.DB);
+  return ok({ data: rows });
+}
+
+export async function handleCreateAdRule(request, env, _id, bodyText) {
+  const body = await readJsonBody(request, bodyText);
+  try {
+    const result = await adRulesDB.createAdRule(env.DB, body);
+    return created({ data: { id: result.meta?.last_row_id } });
+  } catch (error) {
+    return fail(error.message || "invalid_input", 422);
+  }
+}
+
+export async function handleUpdateAdRule(request, env, id, bodyText) {
+  const body = await readJsonBody(request, bodyText);
+  try {
+    await adRulesDB.updateAdRule(env.DB, id, body);
+    return ok();
+  } catch (error) {
+    return fail(error.message || "invalid_input", 422);
+  }
+}
+
+export async function handleDeleteAdRule(request, env, id) {
+  try {
+    await adRulesDB.deleteAdRule(env.DB, id);
+    return ok();
+  } catch (error) {
+    return fail(error.message || "invalid_input", 422);
+  }
+}
+
+// =====================================================
 // NAV ITEMS (id-keyed)
 // =====================================================
 
@@ -848,5 +951,45 @@ export async function handleUpdateBanner(request, env, id, bodyText) {
 
 export async function handleDeleteBanner(request, env, id) {
   await bannersDB.deleteBanner(env.DB, id);
+  return ok();
+}
+
+// =====================================================
+// PLATFORM UPDATES (id-keyed) — the tenant's changelog/announcements
+// feature (en/worker/database/platform-updates.js). Not previously
+// exposed on the Super API at all.
+// =====================================================
+
+export async function handleListPlatformUpdates(request, env) {
+  const rows = await platformUpdatesDB.getAllPlatformUpdates(env.DB);
+  return ok({ data: rows });
+}
+
+export async function handleGetPlatformUpdate(request, env, id) {
+  const row = await platformUpdatesDB.getPlatformUpdateById(env.DB, id);
+  if (!row) return fail("not_found", 404);
+  return ok({ data: row });
+}
+
+export async function handleCreatePlatformUpdate(request, env, _id, bodyText) {
+  const body = await readJsonBody(request, bodyText);
+  if (!body.slug || !body.title || !body.content) {
+    return fail("slug_title_and_content_required", 422);
+  }
+  const result = await platformUpdatesDB.createPlatformUpdate(env.DB, body);
+  return created({ data: { id: result.meta?.last_row_id } });
+}
+
+export async function handleUpdatePlatformUpdate(request, env, id, bodyText) {
+  const body = await readJsonBody(request, bodyText);
+  if (!body.slug || !body.title || !body.content) {
+    return fail("slug_title_and_content_required", 422);
+  }
+  await platformUpdatesDB.updatePlatformUpdate(env.DB, id, body);
+  return ok();
+}
+
+export async function handleDeletePlatformUpdate(request, env, id) {
+  await platformUpdatesDB.deletePlatformUpdate(env.DB, id);
   return ok();
 }

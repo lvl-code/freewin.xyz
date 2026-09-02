@@ -12,9 +12,8 @@
 // plane that only knows v1 can keep working against everything it
 // already used; it just won't show the new resources until it
 // checks capabilities/version again.
-// Version 3: added item-level access control (per-user scope +
-// item assignments on top of the permissions matrix).
-export const SUPER_API_VERSION = 3;
+// Version 5: added platform updates (changelog/announcements) CRUD.
+export const SUPER_API_VERSION = 5;
 
 export const CAPABILITIES = {
   casinos: true,
@@ -32,6 +31,9 @@ export const CAPABILITIES = {
   page_components: true,
   permissions: true,
   item_access: true,
+  review_blocks: true,
+  ad_rules: true,
+  updates: true,
   nav_items: true,
   banners: true
 };
