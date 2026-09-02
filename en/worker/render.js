@@ -303,6 +303,127 @@ replaceVariablesbackups(template, data = {}) {
     };
   }
 
+  // =====================================================
+  // PAGE NAV — {{{pagenav}}}
+  // =====================================================
+  // Contextual, per-page horizontal navigation (location='page'
+  // in nav_items — see migration 0018_page_nav_geo.sql). This is
+  // distinct from the site-wide header/footer/mobile navigation
+  // built by loadNavData() above.
+  //
+  // Caching strategy: the raw, ungeofiltered item list is cached
+  // under "nav:page" using the exact same getCached/setCached
+  // convention as every other nav location (see CACHE_KEYS.NAV
+  // and invalidateNav() in cache.js). GEO eligibility varies per
+  // visitor country, so filtering is always applied fresh, in
+  // memory, after the cache read — it is a single small indexed
+  // D1 query (batched by item id, no N+1) plus an array filter,
+  // not a per-country cache entry.
+  async loadPageNav() {
+    const { getNavItems, filterPageNavItemsByGeo } = await import("./database/nav.js");
+    const { getCached, setCached, CACHE_KEYS } = await import("./cache.js");
+    const { geoEngine } = await import("./geo.js");
+
+    const cacheKey = CACHE_KEYS.NAV("page");
+    let items = await getCached(this.env, cacheKey);
+    if (!items) {
+      items = await getNavItems(this.env.DB, "page");
+      await setCached(this.env, cacheKey, items, 600);
+    }
+
+    if (!items || items.length === 0) return "";
+
+    // Fail gracefully if GEO detection is unavailable for any
+    // reason (e.g. no request object) — fall back to showing all
+    // enabled PageNav items unfiltered rather than breaking the
+    // page.
+    let countryCode = null;
+    try {
+      if (this.request) {
+        const edgeGeo = {
+          country: this.request.cf?.country || null,
+          city: this.request.cf?.city || "Unknown"
+        };
+        const geoInfo = geoEngine.process(this.request, edgeGeo);
+        countryCode = geoInfo.country || null;
+      }
+    } catch (e) {
+      console.error("PageNav GEO detection failed:", e.message);
+      countryCode = null;
+    }
+
+    let visibleItems = items;
+    try {
+      visibleItems = await filterPageNavItemsByGeo(this.env.DB, items, countryCode);
+    } catch (e) {
+      console.error("PageNav GEO filtering failed:", e.message);
+      // Fail open: show the unfiltered list rather than an empty nav.
+      visibleItems = items;
+    }
+
+    return this.buildPageNavHtml(visibleItems);
+  }
+
+  // ── Is this request asking for a partial (AJAX) response? ──
+  // GET-only, and only ever a query-param variant of an existing
+  // route (never a new URL/path). Detected centrally here so no
+  // individual controller/render* function needs to know or care
+  // about AJAX navigation.
+  isPartialRequest() {
+    if (!this.request) return false;
+    if (this.request.method && this.request.method !== "GET") return false;
+    try {
+      const url = new URL(this.request.url);
+      return url.searchParams.get("partial") === "1";
+    } catch {
+      return false;
+    }
+  }
+
+  // ── Current request path, normalized like routes.js ──────
+  getNormalizedPath() {
+    if (!this.request || !this.request.url) return "";
+    let path;
+    try {
+      path = new URL(this.request.url).pathname;
+    } catch {
+      return "";
+    }
+    if (path.length > 1 && path.endsWith("/")) {
+      path = path.slice(0, -1);
+    }
+    return path;
+  }
+
+  // ── Does a PageNav item's URL match the current page? ────
+  isPageNavItemActive(itemUrl, currentPath) {
+    if (!itemUrl || !currentPath) return false;
+    // Absolute/external URLs never match the current relative path.
+    if (/^https?:\/\//i.test(itemUrl)) return false;
+
+    let normalized = itemUrl.split("?")[0].split("#")[0];
+    if (normalized.length > 1 && normalized.endsWith("/")) {
+      normalized = normalized.slice(0, -1);
+    }
+    return normalized === currentPath;
+  }
+
+  buildPageNavHtml(items) {
+    if (!items || items.length === 0) return "";
+
+    const currentPath = this.getNormalizedPath();
+
+    const links = items.map(item => {
+      const isActive = this.isPageNavItemActive(item.url, currentPath);
+      const external = item.is_external ? ' target="_blank" rel="noopener"' : "";
+      const activeClass = isActive ? " pagenav__link--active" : "";
+      const ariaCurrent = isActive ? ' aria-current="page"' : "";
+      return `<a href="${item.url}" class="pagenav__link${activeClass}"${external}${ariaCurrent}>${item.label}</a>`;
+    }).join("\n");
+
+    return `<nav class="pagenav" aria-label="Page navigation"><div class="pagenav__scroll">${links}</div></nav>`;
+  }
+
   buildMobileNav(items) {
     return items.map(item => {
       const icon = item.icon || "";
@@ -452,10 +573,12 @@ ${JSON.stringify(schema)}
 //    const site = await this.getSiteContext();
     const [
   navData,
-  site
+  site,
+  pagenavHtml
 ] = await Promise.all([
   this.loadNavData(),
-  this.getSiteContext()
+  this.getSiteContext(),
+  this.loadPageNav()
 ]);
 
 site.complianceHtml =
@@ -475,6 +598,14 @@ site.gaScriptHtml =
 
 const allData = {
   ...navData,
+
+  // --------------------------------------------------------
+  // Page Navigation ({{{pagenav}}}) — contextual per-page nav,
+  // distinct from header_nav/footer_*/mobile_nav above. Empty
+  // string when there are no enabled PageNav items, so template
+  // guards ({{#if pagenav}}) hide the section entirely.
+  // --------------------------------------------------------
+  pagenav: pagenavHtml,
 
   // --------------------------------------------------------
   // Tenant identity
@@ -555,6 +686,46 @@ theme_layout_style: site.themeLayoutStyle,
 };
 
     page = this.replaceVariables(page, allData);
+
+    // =====================================================
+    // PARTIAL RESPONSE — progressive AJAX navigation
+    // =====================================================
+    // Returns only what client-side AJAX navigation needs to
+    // replace <main id="mainContent"> and update <title>/meta
+    // description — never a complete HTML document. At this
+    // point `page` is already fully resolved (component-engine
+    // placeholders like {{components_top}} were filled by
+    // replaceVariables() above, since renderCategory/renderCasino/
+    // etc. pass their rendered HTML in as ordinary `data` keys) —
+    // so the expensive remainder of this method (base.html load,
+    // banners, header/footer/sidebar injection, theme CSS) is
+    // skipped entirely for partial requests, not just hidden from
+    // the response.
+    //
+    // Title/description/canonical are parsed out of the SAME
+    // buildSEO() output used for full-page requests below, so
+    // there is exactly one source of truth for those values —
+    // they are never recomputed independently.
+    //
+    // Returned as a JSON *string*, not an object, so every
+    // existing `const html = await renderer.render(...); return
+    // new Response(html, {...})` call site across controllers.js
+    // continues to work unchanged.
+    if (this.isPartialRequest()) {
+      const seoPartial = await this.buildSEO(data);
+      const titleMatch = seoPartial.match(/<title>([\s\S]*?)<\/title>/i);
+      const descMatch = seoPartial.match(/<meta name="description" content="([\s\S]*?)">/i);
+      const canonicalMatch = seoPartial.match(/<link rel="canonical" href="([\s\S]*?)">/i);
+      const breadcrumbHtml = renderBreadcrumbs(breadcrumbs);
+
+      return JSON.stringify({
+        partial: true,
+        html: breadcrumbHtml + page,
+        title: titleMatch ? titleMatch[1] : site.siteName,
+        metaDescription: descMatch ? descMatch[1] : "",
+        canonical: canonicalMatch ? canonicalMatch[1] : null
+      });
+    }
 
     let base = await this.loadTemplate("layout/base.html");
     const seo = await this.buildSEO(data);

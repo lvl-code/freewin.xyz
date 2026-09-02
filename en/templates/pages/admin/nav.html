@@ -16,6 +16,7 @@
           <option value="footer_support">Footer — Support</option>
           <option value="footer_legal">Footer — Legal</option>
           <option value="mobile">Mobile Bottom Nav</option>
+          <option value="page">Page Navigation</option>
         </select>
       </div>
     </div>
@@ -52,7 +53,11 @@
             <option value="footer_support">Footer — Support</option>
             <option value="footer_legal">Footer — Legal</option>
             <option value="mobile">Mobile Bottom Nav</option>
+            <option value="page">Page Navigation</option>
           </select>
+          <p class="muted" id="pageNavHint" style="display:none;margin-top:6px;font-size:12px">
+            Page Navigation items are the contextual horizontal navigation rendered on individual pages (e.g. Crypto Casinos, Live Dealer). They are separate from the site header and footer.
+          </p>
         </div>
         <div class="form-group">
           <label>Position (lower = first)</label>
@@ -85,5 +90,40 @@
         <button type="button" class="btn btn--ghost btn--lg" id="navCancelEdit" style="display:none" onclick="cancelNavEdit()">Cancel Edit</button>
       </div>
     </form>
+
+    <div id="pageNavGeoSection" style="display:none;margin-top:30px">
+      <h2>GEO Visibility — <span id="pageNavGeoItemLabel"></span></h2>
+      <p class="muted" style="font-size:13px">
+        No rules = visible to everyone. Add "Allowed" rules to show this item
+        only in specific countries. Add "Blocked" rules to hide it from
+        specific countries everywhere else.
+      </p>
+
+      <table class="admin-table">
+        <thead>
+          <tr><th>Country</th><th>Status</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="pageNavGeoTableBody">
+          <tr><td colspan="3" class="muted">Loading...</td></tr>
+        </tbody>
+      </table>
+
+      <div class="form-row" style="margin-top:16px">
+        <div class="form-group">
+          <label>Country Code</label>
+          <input type="text" id="pageNavGeoCountry" maxlength="2" placeholder="CA, NZ, GB...">
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="pageNavGeoStatus">
+            <option value="allowed">Allowed</option>
+            <option value="blocked">Blocked</option>
+            <option value="restricted">Restricted</option>
+          </select>
+        </div>
+      </div>
+      <div id="pageNavGeoAlert" class="alert" style="display:none"></div>
+      <button type="button" class="btn btn--primary" onclick="addPageNavGeoRule()">Add GEO Rule</button>
+    </div>
   </div>
 </div>

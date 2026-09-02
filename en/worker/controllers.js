@@ -20,6 +20,7 @@ import { geoEngine } from "./geo.js";
 import * as componentsDB from "./database/components.js";
 import * as seoMetaDB from "./database/seo_meta.js";
 import * as nav from "./database/nav.js";
+import { getRelatedCasinos } from "./database/related-casinos.js";
 import {
     buildBreadcrumbs
 } from "./breadcrumbs.js";
@@ -358,6 +359,27 @@ export async function renderCasino(request, env, slug) {
 
   const allComponents = await renderer.renderAllComponents("casino", slug);
   const dynamicSeo = await renderer.loadDynamicSeo("casino", slug);
+
+  // ── Related Casinos ({{{related_casinos_html}}}) ──────────
+  // Same pattern as related_news_html in renderNews(): compute
+  // the HTML in the controller, pass it as a data key, template
+  // guards on it being non-empty. Reuses the existing
+  // buildCasinoCards() card renderer — no second card design.
+  let relatedCasinosHtml = "";
+  try {
+    const relatedCasinos = await getRelatedCasinos(env.DB, casino, geoInfo.country, 6);
+    if (relatedCasinos.length > 0) {
+      const relatedGeoData = {
+        country: geoInfo.country,
+        statuses: Object.fromEntries(relatedCasinos.map(c => [c.slug, "allowed"]))
+      };
+      relatedCasinosHtml = buildCasinoCards(relatedCasinos, relatedGeoData);
+    }
+  } catch (e) {
+    console.error("Related casinos failed to load:", e.message);
+    relatedCasinosHtml = "";
+  }
+
   const html = await renderer.render("casino.html", {
     ...casino,
     components_top: allComponents.top,
@@ -375,7 +397,8 @@ export async function renderCasino(request, env, slug) {
     website_url: casino.website_url || "",
     status: casino.status || "published",
     geo: geoInfo,
-    geoRule: geoRule || { status: "allowed", bonus_override: null }
+    geoRule: geoRule || { status: "allowed", bonus_override: null },
+    related_casinos_html: relatedCasinosHtml
   }, casinoSchema, buildBreadcrumbs("casino", { name: casino.name }));
 
   return new Response(html, {
@@ -803,6 +826,28 @@ if (review.casino_slug) {
     day: "numeric"
   });
 };
+
+  // ── Related Casinos ({{{related_casinos_html}}}) ──────────
+  // Same reuse of buildCasinoCards()/getRelatedCasinos() as
+  // renderCasino() above. Only computed when this review is
+  // actually attached to a casino (review.casino_slug).
+  let relatedCasinosHtml = "";
+  if (casino) {
+    try {
+      const relatedCasinos = await getRelatedCasinos(env.DB, casino, geoCountry, 6);
+      if (relatedCasinos.length > 0) {
+        const relatedGeoData = {
+          country: geoCountry,
+          statuses: Object.fromEntries(relatedCasinos.map(c => [c.slug, "allowed"]))
+        };
+        relatedCasinosHtml = buildCasinoCards(relatedCasinos, relatedGeoData);
+      }
+    } catch (e) {
+      console.error("Related casinos failed to load:", e.message);
+      relatedCasinosHtml = "";
+    }
+  }
+
   const html = await renderer.render("review.html", {
     ...review,
     content: reviewDisplayContent,
@@ -831,7 +876,8 @@ if (review.casino_slug) {
     casino_slug: review.casino_slug || "",
     geo_country: countryFullName(geoCountry),
     geo_status: geoStatus,
-    geo_flag: geoFlag
+    geo_flag: geoFlag,
+    related_casinos_html: relatedCasinosHtml
   }, reviewSchema, buildBreadcrumbs("review", { title: review.title }));
 
   return new Response(html, {

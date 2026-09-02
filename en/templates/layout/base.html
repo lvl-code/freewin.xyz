@@ -53,6 +53,7 @@
   <meta name="theme-color" content="#0f172a">
   <link rel="stylesheet" href="/static/css/main.css">
   <link rel="stylesheet" href="/static/css/casino.css">
+  <link rel="stylesheet" href="/static/css/pagenav.css">
   <link rel="stylesheet" href="/static/css/responsive.css">
   <link rel="stylesheet" href="/static/css/dashboard.css">
   <link rel="stylesheet" href="/static/css/lummet-ai.css">
@@ -67,9 +68,14 @@
          theme-layout-{{theme_layout_style}}"
 >
   {{HEADER}}
+  {{#if pagenav}}
+  <div class="container pagenav-shell">
+    {{{pagenav}}}
+  </div>
+  {{/if}}
   {{BANNERS_TOP}}
   <div class="layout-wrapper">
-    <main class="main-content">
+    <main class="main-content" id="mainContent">
       {{BREADCRUMBS}}
       {{CONTENT}}
     </main>
@@ -90,6 +96,7 @@
   <script defer src="/static/js/media-admin.js"></script>
   <script defer src="/static/js/review-block-admin.js"></script>
   <script defer src="/static/js/nav-admin.js"></script>
+  <script defer src="/static/js/pagenav-ajax.js"></script>
   <script defer src="/static/js/permissions-admin.js"></script>
   <script defer src="/static/js/user-dashboard.js"></script>
   <script defer src="/static/js/admin-tools.js"></script>

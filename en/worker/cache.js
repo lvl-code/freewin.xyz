@@ -62,7 +62,10 @@ export const CACHE_KEYS = {
   NAV: (location) => `nav:${location}`,
 
   // All nav locations for bulk invalidation
-  NAV_ALL_LOCATIONS: ["nav:header", "nav:footer_casinos", "nav:footer_company", "nav:footer_support", "nav:footer_legal", "nav:mobile"],
+  // NOTE: "page" added for PageNav (migration 0017_page_nav_geo.sql).
+  // This is a cache-key bookkeeping change only — no PageNav
+  // rendering or cache-read logic is implemented yet.
+  NAV_ALL_LOCATIONS: ["nav:header", "nav:footer_casinos", "nav:footer_company", "nav:footer_support", "nav:footer_legal", "nav:mobile", "nav:page"],
  // NAV_ALL_LOCATIONS: ["nav:header", "nav:footer_casinos", "nav:footer_company", "nav:footer_support", "nav:footer_legal"],
 };
 

@@ -60,6 +60,14 @@
           </div>
         </div>
       </div>
+    {{#if related_casinos_html}}
+    <div class="info-block related-casinos">
+      <h3>Related Casinos</h3>
+      <div class="casino-grid">
+        {{{related_casinos_html}}}
+      </div>
+    </div>
+    {{/if}}
     {{components_bottom}}
     </div>
   </div>
