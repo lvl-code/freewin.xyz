@@ -19,6 +19,17 @@
 // never destroyed/re-rendered by the content swap below; no
 // re-binding of these listeners is ever needed after navigation.
 // =====================================================
+(function () {
+  "use strict";
+
+  // Never run public PageNav AJAX inside the admin area
+  if (window.location.pathname.includes("/admin/")) {
+    return;
+  }
+
+  // Existing PageNav code continues below...
+})();
+
 
 (function () {
   "use strict";
