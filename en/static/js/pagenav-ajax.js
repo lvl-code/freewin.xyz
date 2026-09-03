@@ -19,17 +19,18 @@
 // never destroyed/re-rendered by the content swap below; no
 // re-binding of these listeners is ever needed after navigation.
 // =====================================================
+
 (function () {
   "use strict";
 
-  const path = window.location.pathname;
+  const pathname = window.location.pathname;
 
-  // Never run public PageNav inside dashboard or admin areas
-  if (/\/(dashboard|admin)(?:\/|$)/.test(path)) {
+  // Public PageNav must never run in the dashboard.
+  if (/\/dashboard(?:\/|$)/.test(pathname)) {
     return;
   }
 
-  // Existing PageNav code below...
+  // Existing PageNav code continues below...
 })();
 
 (function () {
