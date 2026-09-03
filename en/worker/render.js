@@ -537,9 +537,12 @@ async buildSEO(data = {}) {
     data.og_image ||
     site.ogImageUrl;
 
+  const robots = this.escapeHtml(data.robots || "index, follow");
+
   return `
 <title>${title}</title>
 <meta name="description" content="${description}">
+<meta name="robots" content="${robots}">
 <link rel="canonical" href="${canonical}">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="${this.escapeHtml(site.siteName)}">

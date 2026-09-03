@@ -128,7 +128,20 @@ const ROUTES = [
   ["GET", "/en/api/super/updates/:id", h.handleGetPlatformUpdate, "updates"],
   ["POST", "/en/api/super/updates", h.handleCreatePlatformUpdate, "updates"],
   ["PUT", "/en/api/super/updates/:id", h.handleUpdatePlatformUpdate, "updates"],
-  ["DELETE", "/en/api/super/updates/:id", h.handleDeletePlatformUpdate, "updates"]
+  ["DELETE", "/en/api/super/updates/:id", h.handleDeletePlatformUpdate, "updates"],
+
+  // SEO landing pages (country_custom / category_country). Literal
+  // segments ("discover", "countries-search", "eligible-casinos")
+  // are listed before the dynamic :id route so a numeric id never
+  // collides with them.
+  ["GET", "/en/api/super/seo-pages-discover", h.handleDiscoverCategoryCountryCombos, "seo_pages"],
+  ["GET", "/en/api/super/seo-pages-countries-search", h.handleSearchCountriesForSeoPages, "seo_pages"],
+  ["GET", "/en/api/super/seo-pages-eligible-casinos", h.handleGetEligibleCasinosForSeoPage, "seo_pages"],
+  ["GET", "/en/api/super/seo-pages", h.handleListSeoPages, "seo_pages"],
+  ["GET", "/en/api/super/seo-pages/:id", h.handleGetSeoPage, "seo_pages"],
+  ["POST", "/en/api/super/seo-pages", h.handleCreateSeoPage, "seo_pages"],
+  ["PUT", "/en/api/super/seo-pages/:id", h.handleUpdateSeoPage, "seo_pages"],
+  ["DELETE", "/en/api/super/seo-pages/:id", h.handleDeleteSeoPage, "seo_pages"]
 ];
 
 function matchRoute(method, path) {

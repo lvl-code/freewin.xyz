@@ -8,6 +8,7 @@ import * as pages from "./database/pages.js";
 import * as countries from "./database/countries.js";
 import * as news from "./database/news.js";
 import * as platformUpdates from "./database/platform-updates.js";
+import * as seoPages from "./database/seo-pages.js";
 import { logClick }
 from "./database/clicks.js";
 import { getEnabledAdRules } from "./database/ad-rules.js";
@@ -1922,6 +1923,325 @@ export async function renderCategory(request, env, slug) {
 }
 
 
+
+// =====================================================
+// SEO LANDING PAGES (country_custom / category_country)
+// See migrations/0019_seo_landing_pages.sql and
+// worker/database/seo-pages.js.
+// =====================================================
+
+// Resolves the final, live casino list for a landing page according
+// to its casino_mode. Always re-joins to the current `casinos` table
+// (via seoPages.getSeoPageCasinos / the eligibility queries) — never
+// reads cached/duplicated casino facts, per spec section 5.
+async function resolveSeoPageCasinos(env, page, eligibleCasinos) {
+  const manualRows = await seoPages.getSeoPageCasinos(env.DB, page.id);
+  const mainSelections = manualRows.filter((r) => !r.section_key && r.display_mode !== "editorial");
+  const editorialByKey = {};
+  for (const row of manualRows) {
+    if (row.section_key) {
+      editorialByKey[row.section_key] = row;
+    }
+  }
+
+  if (page.casino_mode === "manual") {
+    return { mainList: mainSelections, editorialByKey };
+  }
+
+  if (page.casino_mode === "auto") {
+    return { mainList: eligibleCasinos, editorialByKey };
+  }
+
+  // auto_priority (default): eligible casinos define the pool, but
+  // manually-selected ones are pulled to the front in their chosen
+  // order; everything else follows in the default eligibility order.
+  const manualIds = new Set(mainSelections.map((r) => r.id));
+  const rest = eligibleCasinos.filter((c) => !manualIds.has(c.id));
+  return { mainList: [...mainSelections, ...rest], editorialByKey };
+}
+
+// Renders content_json.sections into HTML. Supports the section
+// types actually built out this pass: rich_text, casino_grid,
+// casino_editorial, faq, cta. Unknown types are skipped rather than
+// erroring, so older/partial content never breaks a page.
+function renderSeoPageSections(content, casinoLookupById, editorialByKey, geoData) {
+  const sections = Array.isArray(content?.sections) ? content.sections : [];
+
+  return sections
+    .map((section) => {
+      const heading = section.title
+        ? `<h2 class="seo-section__title">${section.title}</h2>${section.subtitle ? `<p class="seo-section__subtitle muted">${section.subtitle}</p>` : ""}`
+        : "";
+
+      switch (section.type) {
+        case "rich_text":
+        case "text":
+          return `<section class="seo-section seo-section--text">${heading}<div class="seo-section__body">${section.body || ""}</div></section>`;
+
+        case "heading":
+          return `<h2 class="seo-section__title">${section.title || ""}</h2>`;
+
+        case "image":
+          return section.image
+            ? `<section class="seo-section seo-section--image">${heading}<img src="${section.image}" alt="${section.title || ""}" loading="lazy" /></section>`
+            : "";
+
+        case "casino_grid":
+        case "casino_comparison": {
+          const ids = Array.isArray(section.casino_ids) ? section.casino_ids : null;
+          const list = ids
+            ? ids.map((id) => casinoLookupById[id]).filter(Boolean)
+            : Object.values(casinoLookupById);
+          if (list.length === 0) return "";
+          return `<section class="seo-section seo-section--casinos">${heading}<div class="casino-grid">${buildCasinoCards(list, geoData)}</div></section>`;
+        }
+
+        case "casino_editorial": {
+          const casino = casinoLookupById[section.casino_id];
+          if (!casino) return "";
+          const editorial = editorialByKey[section.id];
+          const body = editorial?.editorial_content || section.body || "";
+          return `
+            <section class="seo-section seo-section--casino-editorial">
+              ${heading}
+              <div class="casino-grid">${buildCasinoCards([casino], geoData)}</div>
+              ${body ? `<div class="seo-section__body">${body}</div>` : ""}
+            </section>`;
+        }
+
+        case "faq": {
+          const items = Array.isArray(section.items) ? section.items : [];
+          if (items.length === 0) return "";
+          return `
+            <section class="seo-section seo-section--faq">
+              ${heading}
+              <div class="faq-list">
+                ${items.map((item) => `
+                  <div class="faq-item">
+                    <h3 class="faq-item__question">${item.q || ""}</h3>
+                    <div class="faq-item__answer">${item.a || ""}</div>
+                  </div>`).join("")}
+              </div>
+            </section>`;
+        }
+
+        case "cta":
+          return `
+            <section class="seo-section seo-section--cta" ${section.background ? `style="background:${section.background};"` : ""}>
+              ${heading}
+              ${section.body ? `<p>${section.body}</p>` : ""}
+              ${section.url ? `<a class="btn btn--primary" href="${section.url}">${section.label || "Learn more"}</a>` : ""}
+            </section>`;
+
+        case "internal_links":
+        case "custom_links": {
+          const links = Array.isArray(section.links) ? section.links : [];
+          if (links.length === 0) return "";
+          return `
+            <section class="seo-section seo-section--links">
+              ${heading}
+              <ul class="seo-section__links">
+                ${links.map((l) => `<li><a href="${l.url}">${l.label}</a></li>`).join("")}
+              </ul>
+            </section>`;
+        }
+
+        default:
+          return "";
+      }
+    })
+    .join("\n");
+}
+
+function seoPageFaqSchema(content) {
+  const sections = Array.isArray(content?.sections) ? content.sections : [];
+  const faqSection = sections.find((s) => s.type === "faq" && Array.isArray(s.items) && s.items.length > 0);
+  if (!faqSection) return null;
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqSection.items
+      .filter((i) => i.q && i.a)
+      .map((i) => ({
+        "@type": "Question",
+        "name": i.q,
+        "acceptedAnswer": { "@type": "Answer", "text": i.a }
+      }))
+  };
+}
+
+export async function renderCountryCustomPage(request, env, countryCode, slug) {
+  const code = countryCode.toUpperCase();
+  const page = await seoPages.getSeoPageByUrl(env.DB, "country_custom", code, slug);
+  if (!page || !page.published) return render404(request, env);
+
+  const country = await countries.getCountry(env.DB, code);
+  if (!country) return render404(request, env);
+
+  const eligibleCasinos = await casinos.getCasinosByCountryAllowlist(env.DB, code);
+  const { mainList, editorialByKey } = await resolveSeoPageCasinos(env, page, eligibleCasinos);
+  const geoData = await prepareGeoData(env, request, mainList);
+
+  const casinoLookupById = {};
+  for (const c of mainList) casinoLookupById[c.id] = c;
+  // Editorial sections can reference any eligible casino, even one
+  // not in the main grid — make sure those resolve too.
+  for (const c of eligibleCasinos) if (!casinoLookupById[c.id]) casinoLookupById[c.id] = c;
+
+  let content = {};
+  try {
+    content = typeof page.content_json === "string" ? JSON.parse(page.content_json) : page.content_json || {};
+  } catch {
+    content = {};
+  }
+
+  const renderer = new Renderer(env, request);
+  const site = await getSiteContext(request, env);
+  const author = page.author_id ? await authors.getAuthorById(env.DB, page.author_id).catch(() => null) : null;
+
+  const pageSchema = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": page.title,
+    "url": page.canonical_url || site.url(`/en/country/${code}/${slug}`)
+  };
+  const itemListSchema = mainList.length
+    ? {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": page.title,
+        "itemListElement": mainList.map((c, i) => ({
+          "@type": "ListItem",
+          "position": i + 1,
+          "url": site.url(`/en/casino/${c.slug}`)
+        }))
+      }
+    : pageSchema;
+  const faqSchema = seoPageFaqSchema(content);
+
+  const allComponents = await renderer.renderAllComponents("country_custom_page", `${code}/${slug}`);
+  const html = await renderer.render("seo-landing.html", {
+    title: page.title,
+    intro: content.intro || "",
+    sections_html: renderSeoPageSections(content, casinoLookupById, editorialByKey, geoData),
+    casino_cards: buildCasinoCards(mainList, geoData),
+    has_casinos: mainList.length > 0,
+    country_name: country.name,
+    country_code: code,
+    parent_label: country.name,
+    parent_url: site.url(`/en/country/${code}`),
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
+    components_sidebar: allComponents.sidebar,
+    seo_title: page.seo_title || page.title,
+    seo_description: page.seo_description || "",
+    canonical: page.canonical_url || site.url(`/en/country/${code}/${slug}`),
+    og_image: page.og_image || page.featured_image || "",
+    robots: page.robots || "index,follow",
+    author_name: author?.name || "",
+    author_id: page.author_id || null
+  }, [itemListSchema, faqSchema].filter(Boolean),
+    buildBreadcrumbs("countryCustomPage", { title: page.title, countryName: country.name, countryCode: code }));
+
+  return new Response(html, { headers: cacheHeaders() });
+}
+
+export async function renderCategoryCountryPage(request, env, categorySlug, countryCode) {
+  const code = countryCode.toUpperCase();
+  const category = await categories.getCategory(env.DB, categorySlug);
+  if (!category) return render404(request, env);
+  const country = await countries.getCountry(env.DB, code);
+  if (!country) return render404(request, env);
+
+  const page = await seoPages.getSeoPageByUrl(env.DB, "category_country", code, categorySlug);
+
+  // No editorial page yet, or it's unpublished: fall back to a pure
+  // auto-generated render IF the combination is genuinely eligible
+  // (real casinos exist for it), so a legitimate category x country
+  // intent still resolves even before an editor has reviewed it.
+  // This never creates a DB row — it's render-only.
+  const eligibleCasinos = await seoPages.getEligibleCasinosForCategoryCountry(env.DB, categorySlug, code);
+
+  if ((!page || !page.published) && eligibleCasinos.length === 0) {
+    return render404(request, env);
+  }
+
+  const effectivePage = page || {
+    id: null,
+    title: `${category.name} Casinos in ${country.name}`,
+    seo_title: null,
+    seo_description: null,
+    canonical_url: null,
+    og_image: null,
+    featured_image: null,
+    robots: "index,follow",
+    author_id: null,
+    content_json: "{}",
+    casino_mode: "auto"
+  };
+
+  const { mainList, editorialByKey } = page
+    ? await resolveSeoPageCasinos(env, page, eligibleCasinos)
+    : { mainList: eligibleCasinos, editorialByKey: {} };
+
+  const geoData = await prepareGeoData(env, request, mainList);
+  const casinoLookupById = {};
+  for (const c of mainList) casinoLookupById[c.id] = c;
+  for (const c of eligibleCasinos) if (!casinoLookupById[c.id]) casinoLookupById[c.id] = c;
+
+  let content = {};
+  try {
+    content = typeof effectivePage.content_json === "string" ? JSON.parse(effectivePage.content_json) : effectivePage.content_json || {};
+  } catch {
+    content = {};
+  }
+
+  const renderer = new Renderer(env, request);
+  const site = await getSiteContext(request, env);
+  const author = effectivePage.author_id ? await authors.getAuthorById(env.DB, effectivePage.author_id).catch(() => null) : null;
+
+  const itemListSchema = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": effectivePage.title,
+    "itemListElement": mainList.map((c, i) => ({
+      "@type": "ListItem",
+      "position": i + 1,
+      "url": site.url(`/en/casino/${c.slug}`)
+    }))
+  };
+  const faqSchema = seoPageFaqSchema(content);
+
+  const allComponents = await renderer.renderAllComponents("category_country_page", `${categorySlug}/${code}`);
+  const html = await renderer.render("seo-landing.html", {
+    title: effectivePage.title,
+    intro: content.intro || category.description || "",
+    sections_html: renderSeoPageSections(content, casinoLookupById, editorialByKey, geoData),
+    casino_cards: buildCasinoCards(mainList, geoData),
+    has_casinos: mainList.length > 0,
+    country_name: country.name,
+    country_code: code,
+    parent_label: category.name,
+    parent_url: site.url(`/en/category/${categorySlug}`),
+    components_top: allComponents.top,
+    components_content_top: allComponents.content_top,
+    components_content_bottom: allComponents.content_bottom,
+    components_bottom: allComponents.bottom,
+    components_sidebar: allComponents.sidebar,
+    seo_title: effectivePage.seo_title || effectivePage.title,
+    seo_description: effectivePage.seo_description || "",
+    canonical: effectivePage.canonical_url || site.url(`/en/category/${categorySlug}/${code}`),
+    og_image: effectivePage.og_image || effectivePage.featured_image || "",
+    robots: effectivePage.robots || "index,follow",
+    author_name: author?.name || "",
+    author_id: effectivePage.author_id || null
+  }, [itemListSchema, faqSchema].filter(Boolean),
+    buildBreadcrumbs("categoryCountryPage", { categorySlug, categoryName: category.name, countryName: country.name }));
+
+  return new Response(html, { headers: cacheHeaders() });
+}
 
 function parseContentJson(contentJson) {
   if (!contentJson) return "";

@@ -101,6 +101,22 @@ export function buildBreadcrumbs(route, data = {}) {
       );
       break;
 
+    case "countryCustomPage":
+      crumbs.push(
+        { label: "Countries", url: "/en/country" },
+        { label: data.countryName, url: `/en/country/${data.countryCode}` },
+        { label: data.title, url: null }
+      );
+      break;
+
+    case "categoryCountryPage":
+      crumbs.push(
+        { label: "Categories", url: "/en/category" },
+        { label: data.categoryName, url: `/en/category/${data.categorySlug}` },
+        { label: data.countryName, url: null }
+      );
+      break;
+
     case "author":
       crumbs.push(
         { label: "Authors", url: "/en/author" },

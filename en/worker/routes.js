@@ -111,6 +111,26 @@ export function getRoute(request) {
   }
 
   // =====================================================
+  // COUNTRY CUSTOM SEO LANDING PAGE
+  // /en/country/ca/best-easy-to-use-casinos
+  // Custom editor-typed slug under a country hub — NOT required to
+  // be an existing category. Backed by seo_pages (page_type =
+  // 'country_custom'). Must be checked before falling through to
+  // the generic dynamic-page route.
+  // =====================================================
+
+  const countryCustomMatch =
+    path.match(/^\/en\/country\/([^\/]+)\/([^\/]+)$/);
+
+  if (countryCustomMatch) {
+    return {
+      type: "countryCustomPage",
+      countryCode: countryCustomMatch[1],
+      slug: countryCustomMatch[2]
+    };
+  }
+
+  // =====================================================
   // CATEGORY
   // /en/category/crypto
   // =====================================================
@@ -122,6 +142,26 @@ export function getRoute(request) {
     return {
       type: "category",
       slug: categoryMatch[1]
+    };
+  }
+
+  // =====================================================
+  // CATEGORY x COUNTRY SEO LANDING PAGE
+  // /en/category/crypto-casinos/ca
+  // Category MUST come from the existing category database (unlike
+  // country_custom above, this is never an arbitrary slug) — the
+  // controller validates the category exists and is eligible before
+  // rendering. Backed by seo_pages (page_type = 'category_country').
+  // =====================================================
+
+  const categoryCountryMatch =
+    path.match(/^\/en\/category\/([^\/]+)\/([^\/]+)$/);
+
+  if (categoryCountryMatch) {
+    return {
+      type: "categoryCountryPage",
+      categorySlug: categoryCountryMatch[1],
+      countryCode: categoryCountryMatch[2]
     };
   }
 
@@ -300,6 +340,9 @@ if (path === "/favicon.ico") {
   }
   if (path === "/sitemap-pages.xml" || path === "/en/sitemap-pages.xml") {
       return { type: "sitemap-pages" };
+  }
+  if (path === "/sitemap-seo-pages.xml" || path === "/en/sitemap-seo-pages.xml") {
+      return { type: "sitemap-seo-pages" };
   }
   if (path === "/robots.txt") {
       return { type: "robots" };

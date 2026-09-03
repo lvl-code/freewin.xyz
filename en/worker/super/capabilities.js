@@ -12,8 +12,9 @@
 // plane that only knows v1 can keep working against everything it
 // already used; it just won't show the new resources until it
 // checks capabilities/version again.
-// Version 5: added platform updates (changelog/announcements) CRUD.
-export const SUPER_API_VERSION = 5;
+// Version 6: added SEO landing pages (country_custom /
+// category_country) — seo_pages + seo_page_casinos.
+export const SUPER_API_VERSION = 6;
 
 export const CAPABILITIES = {
   casinos: true,
@@ -34,6 +35,7 @@ export const CAPABILITIES = {
   review_blocks: true,
   ad_rules: true,
   updates: true,
+  seo_pages: true,
   nav_items: true,
   banners: true
 };

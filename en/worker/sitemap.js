@@ -15,6 +15,7 @@ export const sitemapEngine = {
       { loc: "/en/sitemap-countries.xml", lastmod: currentDate },
       { loc: "/en/sitemap-pages.xml", lastmod: currentDate },
       { loc: "/en/sitemap-authors.xml", lastmod: currentDate },
+      { loc: "/en/sitemap-seo-pages.xml", lastmod: currentDate },
     ];
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
@@ -185,6 +186,27 @@ if (type === "all" || type === "authors") {
           urls.push({ loc: `/en/${item.slug}`, lastmod: currentDate, changefreq: "monthly", priority: "0.5" });
         }
       } catch (e) { console.error("Sitemap pages query failed:", e.message); }
+    }
+
+    // SEO landing pages (country_custom + category_country) — only
+    // published AND sitemap_enabled rows, per spec section 16.
+    if (type === "all" || type === "seo-pages") {
+      try {
+        const r = await db.prepare(
+          `SELECT page_type, slug, country_code, category_id, updated_at
+           FROM seo_pages
+           WHERE published = 1 AND sitemap_enabled = 1
+           LIMIT 50000`
+        ).all();
+        for (const item of r.results || []) {
+          const lm = item.updated_at ? item.updated_at.split(" ")[0] : currentDate;
+          const loc =
+            item.page_type === "country_custom"
+              ? `/en/country/${item.country_code}/${item.slug}`
+              : `/en/category/${item.slug}/${item.country_code}`;
+          urls.push({ loc, lastmod: lm, changefreq: "weekly", priority: "0.6" });
+        }
+      } catch (e) { console.error("Sitemap seo-pages query failed:", e.message); }
     }
 
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;

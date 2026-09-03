@@ -2475,3 +2475,29 @@ padding:22px;
 .component-cta > :last-child {
     margin-bottom: 0 !important;
 }
+
+/* =====================================================
+   SEO LANDING PAGES (country_custom / category_country)
+   Additive only — does not modify any existing selector.
+   ===================================================== */
+
+.seo-landing__parent { margin-bottom: 4px; }
+.seo-landing__parent a { text-decoration: none; }
+.seo-landing__intro { margin: 12px 0; line-height: 1.6; }
+.seo-landing__byline { margin-top: 4px; }
+.seo-landing__sections { display: flex; flex-direction: column; gap: 32px; margin-top: 32px; }
+
+.seo-section__title { margin-bottom: 4px; }
+.seo-section__subtitle { margin-top: 0; margin-bottom: 12px; }
+.seo-section__body { line-height: 1.7; }
+.seo-section__body img { max-width: 100%; height: auto; }
+.seo-section--image img { max-width: 100%; border-radius: 10px; }
+
+.seo-section--links .seo-section__links { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 10px 20px; }
+
+.seo-section--cta { padding: 28px; border-radius: 12px; background: var(--panel-bg, #f5f7fa); text-align: center; }
+.seo-section--cta .btn { margin-top: 10px; }
+
+.faq-list { display: flex; flex-direction: column; gap: 16px; }
+.faq-item__question { margin-bottom: 4px; }
+.faq-item__answer { line-height: 1.6; }

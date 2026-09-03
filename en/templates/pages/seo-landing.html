@@ -1,0 +1,31 @@
+<section class="section">
+  <div class="container">
+    {{components_top}}
+
+    <div class="section-header">
+      <p class="muted seo-landing__parent"><a href="{{parent_url}}">{{parent_label}}</a> &rsaquo; {{country_name}}</p>
+      <h1>{{title}}</h1>
+      {{#if intro}}
+      <div class="seo-landing__intro">{{intro}}</div>
+      {{/if}}
+      {{#if author_name}}
+      <p class="muted seo-landing__byline">By {{author_name}}</p>
+      {{/if}}
+    </div>
+
+    {{components_content_top}}
+
+    {{#if has_casinos}}
+    <div class="casino-grid">
+      {{casino_cards}}
+    </div>
+    {{/if}}
+
+    <div class="seo-landing__sections">
+      {{sections_html}}
+    </div>
+
+    {{components_content_bottom}}
+    {{components_bottom}}
+  </div>
+</section>

@@ -11,7 +11,9 @@ import {
   renderCasino,
   renderReview,
   renderCountry,
+  renderCountryCustomPage,
   renderCategory,
+  renderCategoryCountryPage,
   renderAffiliate,
   renderDashboardPage,
   renderCasinoList,
@@ -193,11 +195,27 @@ if (
           route.slug
         );
 
+      case "countryCustomPage":
+        return renderCountryCustomPage(
+          request,
+          env,
+          route.countryCode,
+          route.slug
+        );
+
       case "category":
         return renderCategory(
           request,
           env,
           route.slug
+        );
+
+      case "categoryCountryPage":
+        return renderCategoryCountryPage(
+          request,
+          env,
+          route.categorySlug,
+          route.countryCode
         );
 
       case "affiliate":
@@ -413,6 +431,15 @@ case "sitemap-pages":
     env.DB,
     "pages"
   );
+
+case "sitemap-seo-pages":
+  return sitemapEngine.generate(
+    request,
+    env,
+    env.DB,
+    "seo-pages"
+  );
+
       case "robots":
         return robots(request, env);
 
