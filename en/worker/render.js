@@ -320,6 +320,17 @@ replaceVariablesbackups(template, data = {}) {
   // D1 query (batched by item id, no N+1) plus an array filter,
   // not a per-country cache entry.
   async loadPageNav() {
+    // PageNav is a public-page feature only. Admin/dashboard pages
+    // share the same layout/base.html, but must never get a
+    // .pagenav element — pagenav-ajax.js attaches a global
+    // `popstate` listener the moment .pagenav exists anywhere on
+    // the page, which would hijack the dashboard's own history
+    // navigation (e.g. Settings' internal tab switching) and
+    // overwrite #mainContent with public-page partial content.
+    if (this.getNormalizedPath().startsWith("/en/dashboard")) {
+      return "";
+    }
+
     const { getNavItems, filterPageNavItemsByGeo } = await import("./database/nav.js");
     const { getCached, setCached, CACHE_KEYS } = await import("./cache.js");
     const { geoEngine } = await import("./geo.js");
@@ -374,6 +385,7 @@ replaceVariablesbackups(template, data = {}) {
     if (this.request.method && this.request.method !== "GET") return false;
     try {
       const url = new URL(this.request.url);
+      if (url.pathname.startsWith("/en/dashboard")) return false;
       return url.searchParams.get("partial") === "1";
     } catch {
       return false;
