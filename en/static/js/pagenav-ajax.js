@@ -23,19 +23,6 @@
 (function () {
   "use strict";
 
-  const pathname = window.location.pathname;
-
-  // Public PageNav must never run in the dashboard.
-  if (/\/dashboard(?:\/|$)/.test(pathname)) {
-    return;
-  }
-
-  // Existing PageNav code continues below...
-})();
-
-(function () {
-  "use strict";
-
   const MAIN_CONTENT_ID = "mainContent";
   let activeController = null; // AbortController for the in-flight navigation
 
