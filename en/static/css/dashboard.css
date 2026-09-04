@@ -2048,3 +2048,17 @@ textarea[data-rich-editor] {
         justify-content: center;
     }
 }
+
+/* SEO landing pages (Country Pages / Category Countries) — additive only */
+.admin-autocomplete {
+    border: 1px solid var(--border-color, #333);
+    border-radius: 6px;
+    margin-top: -8px;
+    margin-bottom: 12px;
+    max-height: 200px;
+    overflow-y: auto;
+    background: var(--panel-bg, #1a1a1a);
+}
+.admin-autocomplete div:hover {
+    background: rgba(255,255,255,0.06);
+}

@@ -37,6 +37,8 @@ import {
   renderDashboardReviews,
   renderDashboardNews,
   renderDashboardUpdates,
+  renderDashboardCountryPages,
+  renderDashboardCategoryCountries,
   renderDashboardPages,
   renderDashboardSettings,
   renderDashboardAI,
@@ -270,6 +272,12 @@ if (
         return renderDashboardNews(request, env);
       case "dashboardUpdates":
         return renderDashboardUpdates(request, env);
+
+      case "dashboardCountryPages":
+        return renderDashboardCountryPages(request, env);
+
+      case "dashboardCategoryCountries":
+        return renderDashboardCategoryCountries(request, env);
       case "dashboardPages":
         return renderDashboardPages(request, env);
       case "dashboardSettings":

@@ -29,7 +29,8 @@ const RESOURCE_REGISTRY = {
   'news':              { table: 'news',             idColumn: 'id', slugColumn: 'slug', ownerColumn: 'created_by' },
   'pages':             { table: 'pages',            idColumn: 'id', slugColumn: 'slug', ownerColumn: 'created_by' },
   'platform-updates':  { table: 'platform_updates', idColumn: 'id', slugColumn: 'slug', ownerColumn: 'created_by' },
-  'media':             { table: 'media_library',    idColumn: 'id', slugColumn: null,   ownerColumn: 'uploaded_by' }
+  'media':             { table: 'media_library',    idColumn: 'id', slugColumn: null,   ownerColumn: 'uploaded_by' },
+  'seo_pages':         { table: 'seo_pages',         idColumn: 'id', slugColumn: null,   ownerColumn: 'created_by' }
 };
 
 const VALID_SCOPES = ['none', 'own', 'all', 'assigned'];

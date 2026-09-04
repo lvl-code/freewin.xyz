@@ -4792,3 +4792,617 @@ document.addEventListener('DOMContentLoaded', function() {
 
   loadAdRules();
 });
+
+/* =========================================================
+SEO LANDING PAGES (Country Pages / Category Countries)
+========================================================= */
+
+const SEO_PAGE_SECTION_TYPES = ["rich_text", "heading", "image", "casino_grid", "casino_editorial", "faq", "cta", "internal_links"];
+const SEO_PAGE_FIELDS_BY_TYPE = {
+  rich_text: ["title", "subtitle", "body"],
+  heading: ["title"],
+  image: ["title", "image_url"],
+  casino_grid: ["title", "subtitle", "casino_ids"],
+  casino_editorial: ["title", "casino_id", "body"],
+  faq: ["title", "faq_json"],
+  cta: ["title", "body", "cta_url", "cta_label", "background"],
+  internal_links: ["title", "links_json"]
+};
+const SEO_PAGE_FIELD_LABELS = {
+  title: "Title", subtitle: "Subtitle", body: "Body (HTML allowed)",
+  image_url: "Image URL", casino_ids: "Casino IDs (comma-separated)",
+  casino_id: "Casino ID", faq_json: 'FAQ items JSON — e.g. [{"q":"...","a":"..."}]',
+  cta_url: "Button URL", cta_label: "Button label", background: "Background (CSS color, optional)",
+  links_json: 'Links JSON — e.g. [{"label":"...","url":"..."}]'
+};
+
+// State per page type, so Country Pages and Category Countries can
+// share all this logic without colliding.
+const seoPageState = {
+  country_page: { selectedCasinos: [], sections: [], eligibleCasinos: [], countryCode: "", categorySlug: null, editingId: null },
+  category_country: { selectedCasinos: [], sections: [], eligibleCasinos: [], countryCode: "", categorySlug: null, editingId: null }
+};
+
+function seoSectionRowHtml(section, index, prefix) {
+  const type = section.type || "rich_text";
+  const fields = SEO_PAGE_FIELDS_BY_TYPE[type] || [];
+  let html = '<div class="admin-card" data-section-row="' + index + '" style="border:1px solid var(--border-color,#333);border-radius:8px;padding:14px;margin-bottom:10px;">' +
+    '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">' +
+    '<select data-section-type>' + SEO_PAGE_SECTION_TYPES.map((t) => '<option value="' + t + '" ' + (t === type ? "selected" : "") + '>' + t + '</option>').join("") + '</select>' +
+    '<label class="muted" style="white-space:nowrap;">Pos <input type="number" data-section-position value="' + (section.position ?? index) + '" style="width:55px;" /></label>' +
+    '<button type="button" class="btn btn--ghost" data-remove-section style="margin-left:auto;">Remove</button>' +
+    '</div>';
+  fields.forEach((f) => {
+    const val = (section[f] !== undefined && section[f] !== null) ? (typeof section[f] === "object" ? JSON.stringify(section[f]) : section[f]) : "";
+    if (f === "body" || f === "faq_json" || f === "links_json") {
+      html += '<label>' + SEO_PAGE_FIELD_LABELS[f] + '</label><textarea data-section-field="' + f + '" rows="3">' + escapeHtml(val) + '</textarea>';
+    } else {
+      html += '<label>' + SEO_PAGE_FIELD_LABELS[f] + '</label><input type="text" data-section-field="' + f + '" value="' + escapeHtml(val) + '" />';
+    }
+  });
+  return html + '</div>';
+}
+
+function renderSeoSections(prefix) {
+  const state = seoPageState[prefix];
+  const root = document.getElementById(prefix === "country_page" ? "countryPageSections" : "categoryCountrySections");
+  if (!root) return;
+  root.innerHTML = state.sections.map((s, i) => seoSectionRowHtml(s, i, prefix)).join("");
+}
+
+function syncSeoSectionsFromDom(prefix) {
+  const state = seoPageState[prefix];
+  const root = document.getElementById(prefix === "country_page" ? "countryPageSections" : "categoryCountrySections");
+  if (!root) return;
+  const rows = Array.from(root.querySelectorAll("[data-section-row]"));
+  state.sections = rows.map((row) => {
+    const i = Number(row.dataset.sectionRow);
+    const existing = state.sections[i] || {};
+    const type = row.querySelector("[data-section-type]").value;
+    const position = Number(row.querySelector("[data-section-position]").value) || 0;
+    const section = { id: existing.id || ("s" + Date.now() + i), type, position };
+    row.querySelectorAll("[data-section-field]").forEach((el) => {
+      const key = el.dataset.sectionField;
+      const val = el.value;
+      if (key === "casino_ids") section.casino_ids = val.split(",").map((v) => Number(v.trim())).filter(Boolean);
+      else if (key === "casino_id") section.casino_id = Number(val) || null;
+      else if (key === "faq_json") { try { section.items = val.trim() ? JSON.parse(val) : []; } catch (e) { section.items = []; } }
+      else if (key === "links_json") { try { section.links = val.trim() ? JSON.parse(val) : []; } catch (e) { section.links = []; } }
+      else if (key === "cta_url") section.url = val;
+      else if (key === "cta_label") section.label = val;
+      else section[key] = val;
+    });
+    return section;
+  }).sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+}
+
+function renderSeoCasinoAddOptions(prefix) {
+  const state = seoPageState[prefix];
+  const select = document.getElementById(prefix === "country_page" ? "countryPageCasinoAdd" : "categoryCountryCasinoAdd");
+  if (!select) return;
+  const selectedIds = new Set(state.selectedCasinos.map((c) => c.casino_id));
+  select.innerHTML = '<option value="">Add a casino…</option>' +
+    state.eligibleCasinos.filter((c) => !selectedIds.has(c.id)).map((c) =>
+      '<option value="' + c.id + '" data-name="' + escapeHtml(c.name) + '">' + escapeHtml(c.name) + '</option>'
+    ).join("");
+}
+
+function renderSeoCasinoSelected(prefix) {
+  const state = seoPageState[prefix];
+  const list = document.getElementById(prefix === "country_page" ? "countryPageCasinoSelected" : "categoryCountryCasinoSelected");
+  if (!list) return;
+  if (state.selectedCasinos.length === 0) {
+    list.innerHTML = '<p class="muted">No casinos selected yet.</p>';
+    return;
+  }
+  list.innerHTML = state.selectedCasinos.map((c, i) => {
+    const known = state.eligibleCasinos.find((e) => e.id === c.casino_id);
+    const name = known ? known.name : (c.name || ("#" + c.casino_id));
+    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-color,#333);" data-casino-row="' + i + '">' +
+      '<span style="flex:1;">' + escapeHtml(name) + '</span>' +
+      '<label class="muted" style="display:flex;align-items:center;gap:4px;"><input type="checkbox" data-featured ' + (c.is_featured ? "checked" : "") + ' /> Featured</label>' +
+      '<input type="text" data-custom-label placeholder="Custom label" value="' + escapeHtml(c.custom_label || "") + '" style="width:140px;" />' +
+      '<button type="button" class="btn btn--ghost" data-remove-casino>✕</button>' +
+      '</div>';
+  }).join("");
+}
+
+async function loadSeoEligibleCasinos(prefix) {
+  const state = seoPageState[prefix];
+  if (!state.countryCode) return;
+  let url = "/en/api/v1/seo-pages/eligible-casinos?country_code=" + encodeURIComponent(state.countryCode);
+  if (prefix === "category_country" && state.categorySlug) url += "&category_slug=" + encodeURIComponent(state.categorySlug);
+  const res = await fetch(url);
+  const data = await res.json().catch(() => ({}));
+  state.eligibleCasinos = data.casinos || [];
+  renderSeoCasinoAddOptions(prefix);
+  renderSeoCasinoSelected(prefix);
+}
+
+function updateSeoUrlPreview(prefix) {
+  const state = seoPageState[prefix];
+  if (prefix === "country_page") {
+    const preview = document.getElementById("countryPageUrlPreview");
+    const slug = document.getElementById("countryPageSlug").value || "{slug}";
+    if (preview) preview.textContent = "URL: /en/country/" + (state.countryCode || "{code}") + "/" + slug;
+  } else {
+    const preview = document.getElementById("categoryCountryUrlPreview");
+    if (preview) preview.textContent = "URL: /en/category/" + (state.categorySlug || "{category}") + "/" + (state.countryCode || "{code}");
+  }
+}
+
+function wireSeoCountrySearch(prefix, searchId, resultsId, hiddenId) {
+  const search = document.getElementById(searchId);
+  const results = document.getElementById(resultsId);
+  const hidden = document.getElementById(hiddenId);
+  if (!search) return;
+  let timer;
+  search.addEventListener("input", () => {
+    clearTimeout(timer);
+    const q = search.value.trim();
+    if (!q) { results.style.display = "none"; return; }
+    timer = setTimeout(async () => {
+      const res = await fetch("/en/api/v1/seo-pages/countries-search?q=" + encodeURIComponent(q));
+      const data = await res.json().catch(() => ({}));
+      const items = data.countries || [];
+      if (!items.length) { results.style.display = "none"; return; }
+      results.innerHTML = items.map((c) =>
+        '<div data-code="' + c.code + '" data-name="' + escapeHtml(c.name) + '" style="padding:8px 12px;cursor:pointer;">' + escapeHtml(c.name) + ' (' + c.code + ')</div>'
+      ).join("");
+      results.style.display = "block";
+    }, 250);
+  });
+  results.addEventListener("click", (e) => {
+    const item = e.target.closest("[data-code]");
+    if (!item) return;
+    seoPageState[prefix].countryCode = item.dataset.code;
+    hidden.value = item.dataset.code;
+    search.value = item.dataset.name + " (" + item.dataset.code + ")";
+    results.style.display = "none";
+    updateSeoUrlPreview(prefix);
+    loadSeoEligibleCasinos(prefix);
+  });
+}
+
+function wireSeoCasinoPicker(prefix, addSelectId, addBtnId, selectedListId) {
+  const addSelect = document.getElementById(addSelectId);
+  const addBtn = document.getElementById(addBtnId);
+  const selectedList = document.getElementById(selectedListId);
+  if (addBtn) {
+    addBtn.addEventListener("click", () => {
+      const id = Number(addSelect.value);
+      if (!id) return;
+      const opt = addSelect.options[addSelect.selectedIndex];
+      seoPageState[prefix].selectedCasinos.push({ casino_id: id, name: opt.dataset.name, is_featured: false, custom_label: null });
+      renderSeoCasinoAddOptions(prefix);
+      renderSeoCasinoSelected(prefix);
+    });
+  }
+  if (selectedList) {
+    selectedList.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-remove-casino]");
+      if (!btn) return;
+      const row = btn.closest("[data-casino-row]");
+      seoPageState[prefix].selectedCasinos.splice(Number(row.dataset.casinoRow), 1);
+      renderSeoCasinoAddOptions(prefix);
+      renderSeoCasinoSelected(prefix);
+    });
+    selectedList.addEventListener("change", (e) => {
+      const row = e.target.closest("[data-casino-row]");
+      if (!row) return;
+      const i = Number(row.dataset.casinoRow);
+      if (e.target.matches("[data-featured]")) seoPageState[prefix].selectedCasinos[i].is_featured = e.target.checked;
+    });
+    selectedList.addEventListener("input", (e) => {
+      const row = e.target.closest("[data-casino-row]");
+      if (!row) return;
+      const i = Number(row.dataset.casinoRow);
+      if (e.target.matches("[data-custom-label]")) seoPageState[prefix].selectedCasinos[i].custom_label = e.target.value;
+    });
+  }
+}
+
+function wireSeoSectionBuilder(prefix, rootId, addBtnId) {
+  const root = document.getElementById(rootId);
+  const addBtn = document.getElementById(addBtnId);
+  if (!root) return;
+  if (addBtn) {
+    addBtn.addEventListener("click", () => {
+      seoPageState[prefix].sections.push({ id: "s" + Date.now(), type: "rich_text", position: seoPageState[prefix].sections.length, title: "", body: "" });
+      renderSeoSections(prefix);
+    });
+  }
+  root.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-remove-section]");
+    if (!btn) return;
+    syncSeoSectionsFromDom(prefix);
+    const row = btn.closest("[data-section-row]");
+    seoPageState[prefix].sections.splice(Number(row.dataset.sectionRow), 1);
+    renderSeoSections(prefix);
+  });
+  root.addEventListener("change", (e) => {
+    if (!e.target.matches("[data-section-type]")) return;
+    syncSeoSectionsFromDom(prefix);
+    renderSeoSections(prefix);
+  });
+}
+
+async function loadSeoAuthorsInto(selectId) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+  try {
+    const res = await fetch("/en/api/v1/authors/list");
+    const data = await res.json().catch(() => ({}));
+    const authorsList = data.authors || [];
+    authorsList.forEach((a) => {
+      const opt = document.createElement("option");
+      opt.value = a.id;
+      opt.textContent = a.name;
+      select.appendChild(opt);
+    });
+  } catch (e) { /* non-fatal */ }
+}
+
+/* ---------------- COUNTRY PAGES ---------------- */
+
+async function loadCountryPagesTable() {
+  const tbody = document.getElementById("countryPagesTableBody");
+  if (!tbody) return;
+  try {
+    const res = await fetch("/en/api/v1/seo-pages/list?page_type=country_custom");
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.error || "Failed to load.");
+    const pages = data.pages || [];
+    if (!pages.length) { tbody.innerHTML = '<tr><td colspan="6" class="muted">No country pages yet.</td></tr>'; return; }
+    tbody.innerHTML = pages.map((p) => `
+      <tr>
+        <td><strong>${escapeHtml(p.title)}</strong></td>
+        <td>${escapeHtml(p.country_code)}</td>
+        <td class="muted">/en/country/${escapeHtml(p.country_code)}/${escapeHtml(p.slug)}</td>
+        <td>${p.published ? "Published" : escapeHtml(p.status)}</td>
+        <td class="muted">${(p.robots || "").includes("noindex") ? "noindex" : "index"}</td>
+        <td>
+          <button type="button" class="btn btn--ghost btn--sm" onclick="editCountryPage(${p.id})">Edit</button>
+          <button type="button" class="btn btn--ghost btn--sm" onclick="deleteCountryPage(${p.id})">Delete</button>
+        </td>
+      </tr>`).join("");
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="6" class="muted">Could not load: ' + escapeHtml(e.message) + '</td></tr>';
+  }
+}
+
+async function editCountryPage(id) {
+  const res = await fetch("/en/api/v1/seo-pages/get?id=" + id);
+  const data = await res.json().catch(() => ({}));
+  if (!data.success) { alert("Could not load page."); return; }
+  const p = data.page;
+  const state = seoPageState.country_page;
+  state.editingId = id;
+  state.countryCode = p.country_code;
+  state.selectedCasinos = (p.casino_selections || []).map((c) => ({ casino_id: c.id, name: c.name, is_featured: !!c.is_featured, custom_label: c.custom_label }));
+  let content = {};
+  try { content = typeof p.content_json === "string" ? JSON.parse(p.content_json) : (p.content_json || {}); } catch (e) {}
+  state.sections = Array.isArray(content.sections) ? content.sections : [];
+
+  document.getElementById("countryPageId").value = id;
+  document.getElementById("countryPageSearch").value = p.country_code;
+  document.getElementById("countryPageCodeHidden").value = p.country_code;
+  document.getElementById("countryPageSlug").value = p.slug;
+  document.getElementById("countryPageTitle").value = p.title || "";
+  document.getElementById("countryPageSeoTitle").value = p.seo_title || "";
+  document.getElementById("countryPageSeoDescription").value = p.seo_description || "";
+  document.getElementById("countryPageOgImage").value = p.og_image || "";
+  document.getElementById("countryPageFeaturedImage").value = p.featured_image || "";
+  document.getElementById("countryPageCanonical").value = p.canonical_url || "";
+  document.getElementById("countryPageRobots").value = p.robots || "index,follow";
+  document.getElementById("countryPageAuthorSelect").value = p.author_id || "";
+  document.getElementById("countryPageCasinoMode").value = p.casino_mode || "auto_priority";
+  document.getElementById("countryPageStatus").value = p.status || "draft";
+  document.getElementById("countryPagePublished").value = p.published ? "1" : "0";
+  document.getElementById("countryPageSitemap").value = p.sitemap_enabled === false ? "0" : "1";
+  if (window.RichEditor) window.RichEditor.set ? window.RichEditor.set("country-page-intro", content.intro || "") : null;
+  const introTextarea = document.getElementById("countryPageIntro");
+  if (introTextarea) introTextarea.value = content.intro || "";
+
+  renderSeoSections("country_page");
+  updateSeoUrlPreview("country_page");
+  loadSeoEligibleCasinos("country_page");
+
+  document.getElementById("countryPageFormTitle").textContent = "Edit Country Page";
+  document.getElementById("countryPageSubmitBtn").textContent = "Save Changes";
+  document.getElementById("countryPageCancelBtn").style.display = "";
+  document.getElementById("countryPageForm").scrollIntoView({ behavior: "smooth" });
+}
+
+function cancelCountryPageEdit() {
+  resetCountryPageForm();
+}
+
+function resetCountryPageForm() {
+  const state = seoPageState.country_page;
+  state.editingId = null;
+  state.selectedCasinos = [];
+  state.sections = [];
+  state.countryCode = "";
+  document.getElementById("countryPageForm").reset();
+  document.getElementById("countryPageId").value = "";
+  renderSeoSections("country_page");
+  renderSeoCasinoSelected("country_page");
+  document.getElementById("countryPageFormTitle").textContent = "Add Country Page";
+  document.getElementById("countryPageSubmitBtn").textContent = "Create Page";
+  document.getElementById("countryPageCancelBtn").style.display = "none";
+}
+
+async function deleteCountryPage(id) {
+  if (!confirm("Delete this page?")) return;
+  const res = await fetch("/en/api/v1/seo-pages/delete", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (data.success) loadCountryPagesTable();
+  else alert("Delete failed: " + (data.error || "unknown error"));
+}
+
+function initCountryPageForm() {
+  const form = document.getElementById("countryPageForm");
+  if (!form) return;
+  loadSeoAuthorsInto("countryPageAuthorSelect");
+  wireSeoCountrySearch("country_page", "countryPageSearch", "countryPageResults", "countryPageCodeHidden");
+  wireSeoCasinoPicker("country_page", "countryPageCasinoAdd", "countryPageCasinoAddBtn", "countryPageCasinoSelected");
+  wireSeoSectionBuilder("country_page", "countryPageSections", "countryPageAddSectionBtn");
+  document.getElementById("countryPageSlug").addEventListener("input", () => updateSeoUrlPreview("country_page"));
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    syncSeoSectionsFromDom("country_page");
+    const state = seoPageState.country_page;
+    const introEl = document.getElementById("countryPageIntro");
+    const payload = {
+      page_type: "country_custom",
+      slug: document.getElementById("countryPageSlug").value,
+      country_code: state.countryCode || document.getElementById("countryPageCodeHidden").value,
+      title: document.getElementById("countryPageTitle").value,
+      seo_title: document.getElementById("countryPageSeoTitle").value,
+      seo_description: document.getElementById("countryPageSeoDescription").value,
+      og_image: document.getElementById("countryPageOgImage").value,
+      featured_image: document.getElementById("countryPageFeaturedImage").value,
+      canonical_url: document.getElementById("countryPageCanonical").value,
+      robots: document.getElementById("countryPageRobots").value,
+      author_id: document.getElementById("countryPageAuthorSelect").value || null,
+      casino_mode: document.getElementById("countryPageCasinoMode").value,
+      status: document.getElementById("countryPageStatus").value,
+      published: document.getElementById("countryPagePublished").value === "1",
+      sitemap_enabled: document.getElementById("countryPageSitemap").value === "1",
+      content_json: { intro: introEl ? introEl.value : "", sections: state.sections },
+      casino_selections: state.selectedCasinos.map((c, i) => ({ casino_id: c.casino_id, position: i, display_mode: "card", custom_label: c.custom_label || null, is_featured: !!c.is_featured }))
+    };
+    if (state.editingId) payload.id = state.editingId;
+
+    const alertEl = document.getElementById("countryPageFormAlert");
+    try {
+      const res = await fetch(state.editingId ? "/en/api/v1/seo-pages/update" : "/en/api/v1/seo-pages/create", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || "Save failed.");
+      resetCountryPageForm();
+      loadCountryPagesTable();
+      alertEl.style.display = "none";
+    } catch (err) {
+      alertEl.textContent = err.message;
+      alertEl.style.display = "block";
+    }
+  });
+}
+
+/* ---------------- CATEGORY COUNTRIES ---------------- */
+
+async function loadCategoryCountryGroups() {
+  const root = document.getElementById("categoryCountryGroups");
+  if (!root) return;
+  try {
+    const res = await fetch("/en/api/v1/seo-pages/discover?min=1");
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.error || "Failed to load.");
+    const combos = data.combos || [];
+    if (!combos.length) { root.innerHTML = '<p class="muted">No eligible combinations found yet.</p>'; return; }
+    const byCategory = {};
+    combos.forEach((c) => {
+      if (!byCategory[c.category_slug]) byCategory[c.category_slug] = { name: c.category_name, rows: [] };
+      byCategory[c.category_slug].rows.push(c);
+    });
+    root.innerHTML = Object.entries(byCategory).map(([slug, group]) => `
+      <div class="admin-card" style="margin-bottom:14px;padding:14px;border:1px solid var(--border-color,#333);border-radius:8px;">
+        <h3 style="margin-top:0;">${escapeHtml(group.name)}</h3>
+        <table class="admin-table">
+          <thead><tr><th>Country</th><th>Casinos</th><th>Status</th><th>URL</th><th></th></tr></thead>
+          <tbody>
+            ${group.rows.map((r) => `
+              <tr>
+                <td>${escapeHtml(r.country_name)} (${escapeHtml(r.country_code)})</td>
+                <td>${r.casino_count}</td>
+                <td>${r.published ? "Published" : escapeHtml(r.status)}</td>
+                <td class="muted">/en/category/${escapeHtml(slug)}/${escapeHtml(r.country_code)}</td>
+                <td>
+                  ${r.seo_page_id
+                    ? `<button type="button" class="btn btn--ghost btn--sm" onclick="editCategoryCountry(${r.seo_page_id})">Edit</button>`
+                    : `<button type="button" class="btn btn--ghost btn--sm" onclick="generateCategoryCountryDraft(${r.category_id}, '${slug}', '${escapeHtml(group.name).replace(/'/g, "\\'")}', '${r.country_code}', '${escapeHtml(r.country_name).replace(/'/g, "\\'")}')">Generate draft</button>`}
+                </td>
+              </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>`).join("");
+  } catch (e) {
+    root.innerHTML = '<p class="muted">Could not load: ' + escapeHtml(e.message) + '</p>';
+  }
+}
+
+async function generateCategoryCountryDraft(categoryId, categorySlug, categoryName, countryCode, countryName) {
+  const res = await fetch("/en/api/v1/seo-pages/generate-draft", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ category_id: categoryId, category_slug: categorySlug, category_name: categoryName, country_code: countryCode, country_name: countryName })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (data.success) {
+    await loadCategoryCountryGroups();
+    editCategoryCountry(data.id);
+  } else {
+    alert("Could not generate: " + (data.error || "unknown error"));
+  }
+}
+
+async function editCategoryCountry(id) {
+  const res = await fetch("/en/api/v1/seo-pages/get?id=" + id);
+  const data = await res.json().catch(() => ({}));
+  if (!data.success) { alert("Could not load page."); return; }
+  const p = data.page;
+  const state = seoPageState.category_country;
+  state.editingId = id;
+  state.countryCode = p.country_code;
+  state.selectedCasinos = (p.casino_selections || []).map((c) => ({ casino_id: c.id, name: c.name, is_featured: !!c.is_featured, custom_label: c.custom_label }));
+  let content = {};
+  try { content = typeof p.content_json === "string" ? JSON.parse(p.content_json) : (p.content_json || {}); } catch (e) {}
+  state.sections = Array.isArray(content.sections) ? content.sections : [];
+
+  document.getElementById("categoryCountryId").value = id;
+  const catSelect = document.getElementById("categoryCountryCategorySelect");
+  if (catSelect) catSelect.value = p.category_id || "";
+  const selectedOpt = catSelect ? catSelect.options[catSelect.selectedIndex] : null;
+  state.categorySlug = selectedOpt ? selectedOpt.dataset.slug : null;
+  document.getElementById("categoryCountrySearch").value = p.country_code;
+  document.getElementById("categoryCountryCodeHidden").value = p.country_code;
+  document.getElementById("categoryCountryTitle").value = p.title || "";
+  document.getElementById("categoryCountrySeoTitle").value = p.seo_title || "";
+  document.getElementById("categoryCountrySeoDescription").value = p.seo_description || "";
+  document.getElementById("categoryCountryOgImage").value = p.og_image || "";
+  document.getElementById("categoryCountryCanonical").value = p.canonical_url || "";
+  document.getElementById("categoryCountryRobots").value = p.robots || "index,follow";
+  document.getElementById("categoryCountryMinCasinos").value = p.min_casino_count ?? 1;
+  document.getElementById("categoryCountryAuthorSelect").value = p.author_id || "";
+  document.getElementById("categoryCountryCasinoMode").value = p.casino_mode || "auto_priority";
+  document.getElementById("categoryCountryStatus").value = p.status || "draft";
+  document.getElementById("categoryCountryPublished").value = p.published ? "1" : "0";
+  document.getElementById("categoryCountrySitemap").value = p.sitemap_enabled === false ? "0" : "1";
+  const introTextarea = document.getElementById("categoryCountryIntro");
+  if (introTextarea) introTextarea.value = content.intro || "";
+
+  renderSeoSections("category_country");
+  updateSeoUrlPreview("category_country");
+  loadSeoEligibleCasinos("category_country");
+
+  document.getElementById("categoryCountryFormTitle").textContent = "Edit Category Country Page";
+  document.getElementById("categoryCountrySubmitBtn").textContent = "Save Changes";
+  document.getElementById("categoryCountryCancelBtn").style.display = "";
+  document.getElementById("categoryCountryForm").scrollIntoView({ behavior: "smooth" });
+}
+
+function cancelCategoryCountryEdit() {
+  resetCategoryCountryForm();
+}
+
+function resetCategoryCountryForm() {
+  const state = seoPageState.category_country;
+  state.editingId = null;
+  state.selectedCasinos = [];
+  state.sections = [];
+  state.countryCode = "";
+  state.categorySlug = null;
+  document.getElementById("categoryCountryForm").reset();
+  document.getElementById("categoryCountryId").value = "";
+  renderSeoSections("category_country");
+  renderSeoCasinoSelected("category_country");
+  document.getElementById("categoryCountryFormTitle").textContent = "Create Category Country Page";
+  document.getElementById("categoryCountrySubmitBtn").textContent = "Create Page";
+  document.getElementById("categoryCountryCancelBtn").style.display = "none";
+}
+
+async function loadCategoriesInto(selectId) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+  try {
+    const res = await fetch("/en/api/v1/categories/list");
+    const data = await res.json().catch(() => ({}));
+    const cats = data.categories || [];
+    cats.forEach((c) => {
+      const opt = document.createElement("option");
+      opt.value = c.id;
+      opt.dataset.slug = c.slug;
+      opt.dataset.name = c.name;
+      opt.textContent = c.name;
+      select.appendChild(opt);
+    });
+  } catch (e) { /* non-fatal */ }
+}
+
+function initCategoryCountryForm() {
+  const form = document.getElementById("categoryCountryForm");
+  if (!form) return;
+  loadSeoAuthorsInto("categoryCountryAuthorSelect");
+  loadCategoriesInto("categoryCountryCategorySelect");
+  wireSeoCountrySearch("category_country", "categoryCountrySearch", "categoryCountryResults", "categoryCountryCodeHidden");
+  wireSeoCasinoPicker("category_country", "categoryCountryCasinoAdd", "categoryCountryCasinoAddBtn", "categoryCountryCasinoSelected");
+  wireSeoSectionBuilder("category_country", "categoryCountrySections", "categoryCountryAddSectionBtn");
+
+  document.getElementById("categoryCountryCategorySelect").addEventListener("change", (e) => {
+    const opt = e.target.options[e.target.selectedIndex];
+    seoPageState.category_country.categorySlug = opt.dataset.slug || null;
+    updateSeoUrlPreview("category_country");
+    loadSeoEligibleCasinos("category_country");
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    syncSeoSectionsFromDom("category_country");
+    const state = seoPageState.category_country;
+    const catSelect = document.getElementById("categoryCountryCategorySelect");
+    const catOpt = catSelect.options[catSelect.selectedIndex];
+    const introEl = document.getElementById("categoryCountryIntro");
+    const payload = {
+      page_type: "category_country",
+      slug: catOpt ? catOpt.dataset.slug : "",
+      category_id: Number(catSelect.value),
+      country_code: state.countryCode || document.getElementById("categoryCountryCodeHidden").value,
+      title: document.getElementById("categoryCountryTitle").value,
+      seo_title: document.getElementById("categoryCountrySeoTitle").value,
+      seo_description: document.getElementById("categoryCountrySeoDescription").value,
+      og_image: document.getElementById("categoryCountryOgImage").value,
+      canonical_url: document.getElementById("categoryCountryCanonical").value,
+      robots: document.getElementById("categoryCountryRobots").value,
+      min_casino_count: Number(document.getElementById("categoryCountryMinCasinos").value) || 1,
+      author_id: document.getElementById("categoryCountryAuthorSelect").value || null,
+      casino_mode: document.getElementById("categoryCountryCasinoMode").value,
+      status: document.getElementById("categoryCountryStatus").value,
+      published: document.getElementById("categoryCountryPublished").value === "1",
+      sitemap_enabled: document.getElementById("categoryCountrySitemap").value === "1",
+      content_json: { intro: introEl ? introEl.value : "", sections: state.sections },
+      casino_selections: state.selectedCasinos.map((c, i) => ({ casino_id: c.casino_id, position: i, display_mode: "card", custom_label: c.custom_label || null, is_featured: !!c.is_featured }))
+    };
+    if (state.editingId) payload.id = state.editingId;
+
+    const alertEl = document.getElementById("categoryCountryFormAlert");
+    try {
+      const res = await fetch(state.editingId ? "/en/api/v1/seo-pages/update" : "/en/api/v1/seo-pages/create", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || "Save failed.");
+      resetCategoryCountryForm();
+      loadCategoryCountryGroups();
+      alertEl.style.display = "none";
+    } catch (err) {
+      alertEl.textContent = err.message;
+      alertEl.style.display = "block";
+    }
+  });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  if (document.getElementById("countryPageForm")) {
+    initCountryPageForm();
+    loadCountryPagesTable();
+  }
+  if (document.getElementById("categoryCountryForm")) {
+    initCategoryCountryForm();
+    loadCategoryCountryGroups();
+  }
+});

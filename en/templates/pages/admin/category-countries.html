@@ -1,0 +1,162 @@
+<div class="admin-wrapper">
+  {{admin_nav}}
+  <div class="admin-content">
+    <div class="admin-header">
+      <div>
+        <h1>Category Countries</h1>
+        <p class="muted">
+          Category &times; country landing pages — e.g. /en/category/crypto-casinos/ca. Eligible combinations
+          are discovered automatically from real casino data; generate a draft or create one manually.
+        </p>
+      </div>
+    </div>
+
+    <section class="admin-section">
+      <div class="admin-section__header">
+        <h2>Eligible Combinations</h2>
+      </div>
+      <div id="categoryCountryGroups">
+        <p class="muted">Loading eligibility data...</p>
+      </div>
+    </section>
+
+    <section class="admin-section" style="margin-top:40px">
+      <div class="admin-section__header">
+        <div>
+          <h2 id="categoryCountryFormTitle">Create Category Country Page</h2>
+          <p class="muted">Casinos shown are always pulled live from the current casino database.</p>
+        </div>
+      </div>
+
+      <form id="categoryCountryForm" class="admin-form" data-id="">
+        <input type="hidden" name="id" id="categoryCountryId" value="">
+
+        <!-- TARGET -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="categoryCountryCategorySelect">Category *</label>
+            <select id="categoryCountryCategorySelect" required>
+              <option value="">Select a category…</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="categoryCountrySearch">Country *</label>
+            <input type="text" id="categoryCountrySearch" placeholder="Type a code or name — e.g. CA or Canada" autocomplete="off">
+            <div id="categoryCountryResults" class="admin-autocomplete" style="display:none;"></div>
+            <input type="hidden" id="categoryCountryCodeHidden" value="">
+          </div>
+        </div>
+        <p class="muted" id="categoryCountryUrlPreview">URL: /en/category/{category}/{code}</p>
+
+        <!-- METADATA -->
+        <div class="form-group">
+          <label for="categoryCountryTitle">Page title *</label>
+          <input type="text" id="categoryCountryTitle" name="title" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="categoryCountrySeoTitle">SEO title</label>
+            <input type="text" id="categoryCountrySeoTitle" name="seo_title">
+          </div>
+          <div class="form-group">
+            <label for="categoryCountryAuthorSelect">Author</label>
+            <select id="categoryCountryAuthorSelect" name="author_id">
+              <option value="">No author assigned</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="categoryCountrySeoDescription">SEO description</label>
+          <textarea id="categoryCountrySeoDescription" name="seo_description" rows="2"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="categoryCountryOgImage">OG image URL</label>
+            <input type="text" id="categoryCountryOgImage" name="og_image">
+          </div>
+          <div class="form-group">
+            <label for="categoryCountryCanonical">Canonical URL</label>
+            <input type="text" id="categoryCountryCanonical" name="canonical_url">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="categoryCountryRobots">Robots</label>
+            <select id="categoryCountryRobots" name="robots">
+              <option value="index,follow">index,follow</option>
+              <option value="noindex,follow">noindex,follow</option>
+              <option value="index,nofollow">index,nofollow</option>
+              <option value="noindex,nofollow">noindex,nofollow</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="categoryCountryMinCasinos">Minimum casino count</label>
+            <input type="number" id="categoryCountryMinCasinos" name="min_casino_count" value="1" style="max-width:100px;">
+          </div>
+        </div>
+
+        <!-- CASINOS -->
+        <div class="form-group">
+          <label>Casino selection</label>
+          <select id="categoryCountryCasinoMode" name="casino_mode" style="max-width:340px;">
+            <option value="manual">Manual — only what I select</option>
+            <option value="auto">Automatic — fully database-driven</option>
+            <option value="auto_priority" selected>Automatic + editorial priority</option>
+          </select>
+          <small class="muted">Pick category + country above first — eligible casinos load automatically.</small>
+          <div id="categoryCountryCasinoSelected" style="margin:10px 0;"></div>
+          <div style="display:flex;gap:10px;">
+            <select id="categoryCountryCasinoAdd" style="flex:1;"><option value="">Load category + country first…</option></select>
+            <button type="button" class="btn btn--ghost" id="categoryCountryCasinoAddBtn">Add</button>
+          </div>
+        </div>
+
+        <!-- INTRO -->
+        <div class="form-group">
+          <label for="categoryCountryIntro">Intro content</label>
+          <textarea name="intro" id="categoryCountryIntro" rows="10" data-rich-editor data-editor-id="category-country-intro" data-editor-folder="seo-pages"></textarea>
+        </div>
+
+        <!-- SECTIONS -->
+        <div class="form-group">
+          <label>Content sections</label>
+          <div id="categoryCountrySections"></div>
+          <button type="button" class="btn btn--ghost" id="categoryCountryAddSectionBtn">+ Add section</button>
+        </div>
+
+        <!-- PUBLISHING -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="categoryCountryStatus">Status</label>
+            <select id="categoryCountryStatus" name="status">
+              <option value="draft">Draft</option>
+              <option value="reviewed">Reviewed</option>
+              <option value="published">Published</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="categoryCountryPublished">Live on site</label>
+            <select id="categoryCountryPublished" name="published">
+              <option value="0">No</option>
+              <option value="1">Yes</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="categoryCountrySitemap">Include in sitemap</label>
+            <select id="categoryCountrySitemap" name="sitemap_enabled">
+              <option value="1">Yes</option>
+              <option value="0">No</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="categoryCountryFormAlert" class="alert" style="display:none"></div>
+
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:20px;">
+          <button type="submit" class="btn btn--primary btn--lg" id="categoryCountrySubmitBtn">Create Page</button>
+          <button type="button" class="btn btn--ghost btn--lg" id="categoryCountryCancelBtn" style="display:none" onclick="cancelCategoryCountryEdit()">Cancel Edit</button>
+        </div>
+      </form>
+    </section>
+  </div>
+</div>

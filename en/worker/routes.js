@@ -214,6 +214,8 @@ export function getRoute(request) {
   if (path === "/en/dashboard/reviews") return { type: "dashboardReviews" };
   if (path === "/en/dashboard/news") return { type: "dashboardNews" };
   if (path === "/en/dashboard/updates")  return { type: "dashboardUpdates" };
+  if (path === "/en/dashboard/country-pages") return { type: "dashboardCountryPages" };
+  if (path === "/en/dashboard/category-countries") return { type: "dashboardCategoryCountries" };
   if (path === "/en/dashboard/pages") return { type: "dashboardPages" };
   if (path === "/en/dashboard/settings") return { type: "dashboardSettings" };
   if (path === "/en/dashboard/ai") return { type: "dashboardAI" };

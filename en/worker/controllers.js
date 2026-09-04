@@ -3263,6 +3263,12 @@ export async function renderDashboardNews(request, env) {
 export async function renderDashboardUpdates(request, env) {
   return renderAdminPage(request, env, "admin/updates.html");
 }
+export async function renderDashboardCountryPages(request, env) {
+  return renderAdminPage(request, env, "admin/country-pages.html");
+}
+export async function renderDashboardCategoryCountries(request, env) {
+  return renderAdminPage(request, env, "admin/category-countries.html");
+}
 export async function renderDashboardPages(request, env) {
   return renderAdminPage(request, env, "admin/pages.html");
 }

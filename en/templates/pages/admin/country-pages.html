@@ -1,0 +1,175 @@
+<div class="admin-wrapper">
+  {{admin_nav}}
+  <div class="admin-content">
+    <div class="admin-header">
+      <div>
+        <h1>Country Pages</h1>
+        <p class="muted">
+          Custom SEO landing pages under a country hub — e.g. /en/country/ca/best-easy-to-use-casinos.
+          The slug doesn't need to match an existing category.
+        </p>
+      </div>
+    </div>
+
+    <section class="admin-section">
+      <div class="admin-section__header">
+        <h2>All Country Pages</h2>
+      </div>
+      <div class="admin-table-wrapper">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Country</th>
+              <th>URL</th>
+              <th>Status</th>
+              <th>Robots</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="countryPagesTableBody">
+            <tr><td colspan="6" class="muted">Loading country pages...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="admin-section" style="margin-top:40px">
+      <div class="admin-section__header">
+        <div>
+          <h2 id="countryPageFormTitle">Add Country Page</h2>
+          <p class="muted">Casinos shown are always pulled live from the current casino database — this form only stores which ones to show and how.</p>
+        </div>
+      </div>
+
+      <form id="countryPageForm" class="admin-form" data-id="">
+        <input type="hidden" name="id" id="countryPageId" value="">
+
+        <!-- TARGET -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="countryPageSearch">Country *</label>
+            <input type="text" id="countryPageSearch" placeholder="Type a code or name — e.g. CA or Canada" autocomplete="off">
+            <div id="countryPageResults" class="admin-autocomplete" style="display:none;"></div>
+            <input type="hidden" id="countryPageCodeHidden" name="country_code" value="">
+          </div>
+          <div class="form-group">
+            <label for="countryPageSlug">Custom slug *</label>
+            <input type="text" id="countryPageSlug" name="slug" placeholder="best-easy-to-use-casinos" required>
+            <small class="muted" id="countryPageUrlPreview">URL: /en/country/{code}/{slug}</small>
+          </div>
+        </div>
+
+        <!-- METADATA -->
+        <div class="form-group">
+          <label for="countryPageTitle">Page title *</label>
+          <input type="text" id="countryPageTitle" name="title" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="countryPageSeoTitle">SEO title</label>
+            <input type="text" id="countryPageSeoTitle" name="seo_title">
+          </div>
+          <div class="form-group">
+            <label for="countryPageAuthorSelect">Author</label>
+            <select id="countryPageAuthorSelect" name="author_id">
+              <option value="">No author assigned</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="countryPageSeoDescription">SEO description</label>
+          <textarea id="countryPageSeoDescription" name="seo_description" rows="2"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="countryPageOgImage">OG image URL</label>
+            <input type="text" id="countryPageOgImage" name="og_image">
+          </div>
+          <div class="form-group">
+            <label for="countryPageFeaturedImage">Featured image URL</label>
+            <input type="text" id="countryPageFeaturedImage" name="featured_image">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="countryPageCanonical">Canonical URL</label>
+            <input type="text" id="countryPageCanonical" name="canonical_url" placeholder="leave blank to use the default">
+          </div>
+          <div class="form-group">
+            <label for="countryPageRobots">Robots</label>
+            <select id="countryPageRobots" name="robots">
+              <option value="index,follow">index,follow</option>
+              <option value="noindex,follow">noindex,follow</option>
+              <option value="index,nofollow">index,nofollow</option>
+              <option value="noindex,nofollow">noindex,nofollow</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- CASINOS -->
+        <div class="form-group">
+          <label>Casino selection</label>
+          <select id="countryPageCasinoMode" name="casino_mode" style="max-width:340px;">
+            <option value="manual">Manual — only what I select</option>
+            <option value="auto">Automatic — fully database-driven</option>
+            <option value="auto_priority" selected>Automatic + editorial priority</option>
+          </select>
+          <small class="muted">Pick the country above first — eligible casinos load automatically.</small>
+          <div id="countryPageCasinoSelected" style="margin:10px 0;"></div>
+          <div style="display:flex;gap:10px;">
+            <select id="countryPageCasinoAdd" style="flex:1;"><option value="">Load a country first…</option></select>
+            <button type="button" class="btn btn--ghost" id="countryPageCasinoAddBtn">Add</button>
+          </div>
+        </div>
+
+        <!-- INTRO -->
+        <div class="form-group">
+          <label for="countryPageIntro">Intro / hero content</label>
+          <textarea name="intro" id="countryPageIntro" rows="10" data-rich-editor data-editor-id="country-page-intro" data-editor-folder="seo-pages"></textarea>
+        </div>
+
+        <!-- SECTIONS -->
+        <div class="form-group">
+          <label>Content sections</label>
+          <small class="muted">Reorderable via position. Only fields relevant to the chosen type are used when the page renders.</small>
+          <div id="countryPageSections"></div>
+          <button type="button" class="btn btn--ghost" id="countryPageAddSectionBtn">+ Add section</button>
+        </div>
+
+        <!-- PUBLISHING -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="countryPageStatus">Status</label>
+            <select id="countryPageStatus" name="status">
+              <option value="draft">Draft</option>
+              <option value="reviewed">Reviewed</option>
+              <option value="published">Published</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="countryPagePublished">Live on site</label>
+            <select id="countryPagePublished" name="published">
+              <option value="0">No</option>
+              <option value="1">Yes</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="countryPageSitemap">Include in sitemap</label>
+            <select id="countryPageSitemap" name="sitemap_enabled">
+              <option value="1">Yes</option>
+              <option value="0">No</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="countryPageFormAlert" class="alert" style="display:none"></div>
+
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:20px;">
+          <button type="submit" class="btn btn--primary btn--lg" id="countryPageSubmitBtn">Create Page</button>
+          <button type="button" class="btn btn--ghost btn--lg" id="countryPageCancelBtn" style="display:none" onclick="cancelCountryPageEdit()">Cancel Edit</button>
+        </div>
+      </form>
+    </section>
+  </div>
+</div>
