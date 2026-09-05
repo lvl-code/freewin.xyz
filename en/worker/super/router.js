@@ -138,6 +138,11 @@ const ROUTES = [
   ["GET", "/en/api/super/seo-pages-discover", h.handleDiscoverCategoryCountryCombos, "seo_pages"],
   ["GET", "/en/api/super/seo-pages-countries-search", h.handleSearchCountriesForSeoPages, "seo_pages"],
   ["GET", "/en/api/super/seo-pages-eligible-casinos", h.handleGetEligibleCasinosForSeoPage, "seo_pages"],
+  // Base category hub pages have no country context (unlike
+  // seo-pages' category_country combo pages) — this returns every
+  // casino already in the category, matching what the category
+  // page's own automatic grid shows.
+  ["GET", "/en/api/super/category-eligible-casinos", h.handleGetEligibleCasinosForCategory, "categories"],
   ["GET", "/en/api/super/seo-pages", h.handleListSeoPages, "seo_pages"],
   ["GET", "/en/api/super/seo-pages/:id", h.handleGetSeoPage, "seo_pages"],
   ["POST", "/en/api/super/seo-pages", h.handleCreateSeoPage, "seo_pages"],

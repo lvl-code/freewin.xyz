@@ -3018,7 +3018,7 @@ async function loadCategoriesTable() {
     const data = await res.json();
     const cats = data.categories || [];
     if (cats.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" class="muted">No categories yet.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="muted">No categories yet.</td></tr>';
       return;
     }
     tbody.innerHTML = cats.map(c => `
@@ -3026,6 +3026,7 @@ async function loadCategoriesTable() {
         <td><strong>${c.name}</strong></td>
         <td>${c.slug}</td>
         <td>${c.description || ""}</td>
+        <td>${c.status === "draft" || c.published === 0 ? '<span class="badge-dim">Draft</span>' : '<span class="badge-ok">Published</span>'}</td>
         <td class="table-actions">
           <button class="btn btn--ghost btn--sm" onclick="editCategory(${c.id})">Edit</button>
           <button class="btn btn--danger btn--sm" onclick="deleteCategory('${c.slug}')">Delete</button>
@@ -3034,7 +3035,7 @@ async function loadCategoriesTable() {
       </tr>
     `).join("");
   } catch {
-    tbody.innerHTML = '<tr><td colspan="4" class="muted">Failed to load.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="muted">Failed to load.</td></tr>';
   }
 }
 
@@ -3055,11 +3056,14 @@ async function deleteCategory(slug) {
 function initCategoryForm() {
   const form = document.getElementById("categoryForm");
   if (!form) return;
+  wireSeoSectionBuilder("category", "categoryFormSections", "categoryFormAddSectionBtn");
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const alertEl = document.getElementById("categoryFormAlert");
     if (alertEl) alertEl.style.display = "none";
     const formData = new FormData(form);
+    syncSeoSectionsFromDom("category");
+    const introEl = document.getElementById("categoryFormIntro");
     const isEdit = formData.get("id") ? true : false;
     const endpoint = isEdit ? "/en/api/v1/category/update" : "/en/api/v1/category/create";
     const payload = {
@@ -3069,6 +3073,10 @@ function initCategoryForm() {
       description: formData.get("description") || null,
       seo_title: formData.get("seo_title") || null,
       seo_description: formData.get("seo_description") || null,
+      content_json: { intro: introEl ? introEl.value : "", sections: seoPageState.category.sections },
+      robots: formData.get("robots") || "index,follow",
+      status: formData.get("status") || "published",
+      published: formData.get("published") === "0" ? 0 : 1,
     };
 
     try {
@@ -3088,6 +3096,9 @@ function initCategoryForm() {
         form.querySelector("[name='id']").value = "";
         document.getElementById("categorySubmitBtn").textContent = "Create Category";
         document.getElementById("categoryCancelEdit").style.display = "none";
+        seoPageState.category.sections = [];
+        seoPageState.category.categorySlug = null;
+        renderSeoSections("category");
         loadCategoriesTable();
       } else {
         if (alertEl) { alertEl.className = "alert alert--error"; alertEl.textContent = data.error || "Failed"; alertEl.style.display = "block"; }
@@ -3096,6 +3107,23 @@ function initCategoryForm() {
       if (alertEl) { alertEl.className = "alert alert--error"; alertEl.textContent = "Network error"; alertEl.style.display = "block"; }
     }
   });
+}
+
+// Base category hub pages have no country context at all (unlike
+// category_country combo pages), so their section-level casino
+// pickers pull from every casino in the category, matching exactly
+// what already shows in the page's own automatic casino grid.
+async function loadCategoryFormEligibleCasinos(slug) {
+  if (!slug) return;
+  try {
+    const res = await fetch("/en/api/v1/category/eligible-casinos?slug=" + encodeURIComponent(slug));
+    const data = await res.json().catch(() => ({}));
+    seoPageState.category.eligibleCasinos = data.casinos || [];
+  } catch (e) {
+    seoPageState.category.eligibleCasinos = [];
+  }
+  syncSeoSectionsFromDom("category");
+  renderSeoSections("category");
 }
 
 // ============================================
@@ -3110,7 +3138,7 @@ async function loadCountriesTable() {
     const data = await res.json();
     const countriesList = data.countries || [];
     if (countriesList.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="muted">No countries yet.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="muted">No countries yet.</td></tr>';
       return;
     }
     tbody.innerHTML = countriesList.map(c => `
@@ -3119,6 +3147,7 @@ async function loadCountriesTable() {
         <td>${c.name}</td>
         <td>${c.currency || "—"}</td>
         <td>${c.legal_status || "—"}</td>
+        <td>${c.status === "draft" || c.published === 0 ? '<span class="badge-dim">Draft</span>' : '<span class="badge-ok">Published</span>'}</td>
         <td class="table-actions">
           <button class="btn btn--ghost btn--sm" onclick="editCountry('${c.code}')">Edit</button>
           <button class="btn btn--danger btn--sm" onclick="deleteCountry('${c.code}')">Delete</button>
@@ -3127,7 +3156,7 @@ async function loadCountriesTable() {
       </tr>
     `).join("");
   } catch {
-    tbody.innerHTML = '<tr><td colspan="5" class="muted">Failed to load.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="muted">Failed to load.</td></tr>';
   }
 }
 
@@ -3148,11 +3177,14 @@ async function deleteCountry(code) {
 function initCountryForm() {
   const form = document.getElementById("countryForm");
   if (!form) return;
+  wireSeoSectionBuilder("country", "countryFormSections", "countryFormAddSectionBtn");
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const alertEl = document.getElementById("countryFormAlert");
     if (alertEl) alertEl.style.display = "none";
     const formData = new FormData(form);
+    syncSeoSectionsFromDom("country");
+    const introEl = document.getElementById("countryFormIntro");
 
     const isEdit = form.dataset.editMode === "true";
     const endpoint = isEdit ? "/en/api/v1/country/update" : "/en/api/v1/country/create";
@@ -3164,6 +3196,10 @@ function initCountryForm() {
       legal_status: formData.get("legal_status") || null,
       seo_title: formData.get("seo_title") || null,
       seo_description: formData.get("seo_description") || null,
+      content_json: { intro: introEl ? introEl.value : "", sections: seoPageState.country.sections },
+      robots: formData.get("robots") || "index,follow",
+      status: formData.get("status") || "published",
+      published: formData.get("published") === "0" ? 0 : 1,
     };
 
     try {
@@ -3185,6 +3221,9 @@ function initCountryForm() {
         delete form.dataset.editMode;
         document.getElementById("countrySubmitBtn").textContent = "Create Country";
         document.getElementById("countryCancelEdit").style.display = "none";
+        seoPageState.country.sections = [];
+        seoPageState.country.countryCode = "";
+        renderSeoSections("country");
         loadCountriesTable();
       } else {
         if (alertEl) { alertEl.className = "alert alert--error"; alertEl.textContent = data.error || "Failed"; alertEl.style.display = "block"; }
@@ -3681,6 +3720,20 @@ async function editCategory(id) {
     }, 300);
     form.querySelector("[name='seo_title']").value = c.seo_title || "";
     form.querySelector("[name='seo_description']").value = c.seo_description || "";
+    form.querySelector("[name='robots']").value = c.robots || "index,follow";
+    form.querySelector("[name='status']").value = c.status || "published";
+    form.querySelector("[name='published']").value = c.published === 0 ? "0" : "1";
+
+    let content = {};
+    try { content = typeof c.content_json === "string" ? JSON.parse(c.content_json) : (c.content_json || {}); } catch (e) {}
+    const state = seoPageState.category;
+    state.sections = Array.isArray(content.sections) ? content.sections : [];
+    state.categorySlug = c.slug;
+    const introEl = document.getElementById("categoryFormIntro");
+    if (introEl) introEl.value = content.intro || "";
+    renderSeoSections("category");
+    loadCategoryFormEligibleCasinos(c.slug);
+
     document.getElementById("categorySubmitBtn").textContent = "Update Category";
     document.getElementById("categoryCancelEdit").style.display = "";
     window.scrollTo({ top: form.offsetTop - 100, behavior: "smooth" });
@@ -3694,6 +3747,10 @@ function cancelCategoryEdit() {
   document.getElementById("categorySubmitBtn").textContent = "Create Category";
   document.getElementById("categoryCancelEdit").style.display = "none";
   RichEditor.set("category-description", "");
+  const state = seoPageState.category;
+  state.sections = [];
+  state.categorySlug = null;
+  renderSeoSections("category");
 }
 
 // ── Country Edit ──
@@ -3712,6 +3769,20 @@ async function editCountry(code) {
     form.querySelector("[name='legal_status']").value = c.legal_status || "";
     form.querySelector("[name='seo_title']").value = c.seo_title || "";
     form.querySelector("[name='seo_description']").value = c.seo_description || "";
+    form.querySelector("[name='robots']").value = c.robots || "index,follow";
+    form.querySelector("[name='status']").value = c.status || "published";
+    form.querySelector("[name='published']").value = c.published === 0 ? "0" : "1";
+
+    let content = {};
+    try { content = typeof c.content_json === "string" ? JSON.parse(c.content_json) : (c.content_json || {}); } catch (e) {}
+    const state = seoPageState.country;
+    state.sections = Array.isArray(content.sections) ? content.sections : [];
+    state.countryCode = c.code;
+    const introEl = document.getElementById("countryFormIntro");
+    if (introEl) introEl.value = content.intro || "";
+    renderSeoSections("country");
+    loadSeoEligibleCasinos("country");
+
     document.getElementById("countrySubmitBtn").textContent = "Update Country";
     document.getElementById("countryCancelEdit").style.display = "";
     form.dataset.editMode = "true";
@@ -3725,6 +3796,10 @@ function cancelCountryEdit() {
   delete form.dataset.editMode;
   document.getElementById("countrySubmitBtn").textContent = "Create Country";
   document.getElementById("countryCancelEdit").style.display = "none";
+  const state = seoPageState.country;
+  state.sections = [];
+  state.countryCode = "";
+  renderSeoSections("country");
 }
 
 
@@ -4840,7 +4915,13 @@ const SEO_PAGE_DEFAULT_FAQ_ITEMS = [
 // share all this logic without colliding.
 const seoPageState = {
   country_page: { selectedCasinos: [], sections: [], eligibleCasinos: [], countryCode: "", categorySlug: null, editingId: null },
-  category_country: { selectedCasinos: [], sections: [], eligibleCasinos: [], countryCode: "", categorySlug: null, editingId: null }
+  category_country: { selectedCasinos: [], sections: [], eligibleCasinos: [], countryCode: "", categorySlug: null, editingId: null },
+  // Base hub pages (countries.js/categories.js content_json) — no
+  // casino_mode/selectedCasinos concept here (the hub page already
+  // lists its casinos automatically; these sections are extra
+  // editorial content), so only sections + eligibleCasinos matter.
+  country: { selectedCasinos: [], sections: [], eligibleCasinos: [], countryCode: "", categorySlug: null, editingId: null },
+  category: { selectedCasinos: [], sections: [], eligibleCasinos: [], countryCode: "", categorySlug: null, editingId: null }
 };
 
 function seoCasinoPickerOptionsHtml(prefix, selectedIds) {
@@ -4920,16 +5001,29 @@ function seoSectionRowHtml(section, index, prefix) {
   return html + '</div>';
 }
 
+// Section-builder root element IDs, keyed by state prefix. Started
+// as a two-way ternary (country_page/category_country only); this
+// map is what lets the same builder power the BASE country/category
+// hub pages too ("country"/"category" prefixes, added alongside the
+// countries.js/categories.js content_json fields) without touching
+// the seo_pages-specific prefixes' behavior at all.
+const SEO_SECTION_ROOT_IDS = {
+  country_page: "countryPageSections",
+  category_country: "categoryCountrySections",
+  country: "countryFormSections",
+  category: "categoryFormSections"
+};
+
 function renderSeoSections(prefix) {
   const state = seoPageState[prefix];
-  const root = document.getElementById(prefix === "country_page" ? "countryPageSections" : "categoryCountrySections");
+  const root = document.getElementById(SEO_SECTION_ROOT_IDS[prefix]);
   if (!root) return;
   root.innerHTML = state.sections.map((s, i) => seoSectionRowHtml(s, i, prefix)).join("");
 }
 
 function syncSeoSectionsFromDom(prefix) {
   const state = seoPageState[prefix];
-  const root = document.getElementById(prefix === "country_page" ? "countryPageSections" : "categoryCountrySections");
+  const root = document.getElementById(SEO_SECTION_ROOT_IDS[prefix]);
   if (!root) return;
   const rows = Array.from(root.querySelectorAll("[data-section-row]"));
   state.sections = rows.map((row) => {

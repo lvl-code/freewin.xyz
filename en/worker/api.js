@@ -968,6 +968,7 @@ if (path === "/api/v1/ai/chat/clear" && request.method === "POST") {
       validate(body, ["slug", "name"]);
       await categories.createCategory(env.DB, body);
       await invalidateCategories(env);
+      await invalidateNav(env);
       return success();
     }
 
@@ -977,6 +978,7 @@ if (path === "/api/v1/ai/chat/clear" && request.method === "POST") {
       const { updateCategory } = await import("./database/categories.js");
       await updateCategory(env.DB, body.slug, body);
       await invalidateCategories(env);
+      await invalidateNav(env);
       return success();
     }
     if (path === "/api/v1/category/delete" && request.method === "POST") {
@@ -985,7 +987,21 @@ if (path === "/api/v1/ai/chat/clear" && request.method === "POST") {
       const { deleteCategory } = await import("./database/categories.js");
       await deleteCategory(env.DB, body.slug);
       await invalidateCategories(env);
+      await invalidateNav(env);
       return success();
+    }
+
+    // Section-level casino pickers on the base category hub page
+    // (countries.html/categories.html "Content sections" builder)
+    // have no country context, unlike seo-pages' eligible-casinos —
+    // they pull every casino already in this category, matching
+    // exactly what the category page's own automatic grid shows.
+    if (path === "/api/v1/category/eligible-casinos" && request.method === "GET") {
+      const urlObj = new URL(request.url);
+      const slug = urlObj.searchParams.get("slug");
+      if (!slug) return failure("slug is required", 422);
+      const rows = await categories.getCategoryCasinos(env.DB, slug);
+      return json({ success: true, casinos: rows });
     }
 
 
@@ -999,6 +1015,7 @@ if (path === "/api/v1/ai/chat/clear" && request.method === "POST") {
       const { createCountry } = await import("./database/countries.js");
       await createCountry(env.DB, body);
       await invalidateCountries(env);
+      await invalidateNav(env);
       return success();
     }
 
@@ -1008,6 +1025,7 @@ if (path === "/api/v1/ai/chat/clear" && request.method === "POST") {
       const { updateCountry } = await import("./database/countries.js");
       await updateCountry(env.DB, body.code, body);
       await invalidateCountries(env);
+      await invalidateNav(env);
       return success();
     }
 
@@ -1017,6 +1035,7 @@ if (path === "/api/v1/ai/chat/clear" && request.method === "POST") {
       const { deleteCountry } = await import("./database/countries.js");
       await deleteCountry(env.DB, body.code);
       await invalidateCountries(env);
+      await invalidateNav(env);
       return success();
     }
 
@@ -2626,6 +2645,7 @@ async function createSeoPageEndpoint(request, env, user) {
     if (Array.isArray(body.casino_selections)) {
       await seoPages.setSeoPageCasinos(env.DB, id, body.casino_selections);
     }
+    await invalidateNav(env);
     return success({ id });
   } catch (error) {
     return failure(error.message || "Could not create SEO page.", 422);
@@ -2648,6 +2668,7 @@ async function updateSeoPageEndpoint(request, env, user) {
     if (Array.isArray(body.casino_selections)) {
       await seoPages.setSeoPageCasinos(env.DB, body.id, body.casino_selections);
     }
+    await invalidateNav(env);
     return success();
   } catch (error) {
     return failure(error.message || "Could not update SEO page.", 422);
@@ -2665,6 +2686,7 @@ async function deleteSeoPageEndpoint(request, env, user) {
   if (!canDelete) return failure("SEO page not found.", 404);
 
   await seoPages.deleteSeoPage(env.DB, body.id);
+  await invalidateNav(env);
   return success();
 }
 

@@ -3,8 +3,8 @@
   <div class="admin-content">
     <div class="admin-header"><h1>Countries</h1></div>
     <table class="admin-table">
-      <thead><tr><th>Code</th><th>Name</th><th>Currency</th><th>Legal Status</th><th>Actions</th></tr></thead>
-      <tbody id="countriesTableBody"><tr><td colspan="5" class="muted">Loading...</td></tr></tbody>
+      <thead><tr><th>Code</th><th>Name</th><th>Currency</th><th>Legal Status</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody id="countriesTableBody"><tr><td colspan="6" class="muted">Loading...</td></tr></tbody>
     </table>
     <h2 style="margin-top:30px">Add Country</h2>
     <form id="countryForm" class="admin-form">
@@ -21,6 +21,47 @@
         <div class="form-group"><label>SEO Title</label><input type="text" name="seo_title"></div>
         <div class="form-group"><label>SEO Description</label><input type="text" name="seo_description"></div>
       </div>
+
+      <!-- INTRO -->
+      <div class="form-group">
+        <label for="countryFormIntro">Intro / hero content</label>
+        <textarea name="intro" id="countryFormIntro" rows="6" data-rich-editor data-editor-id="country-form-intro" data-editor-folder="countries"></textarea>
+      </div>
+
+      <!-- SECTIONS — same builder/section types as Country Pages -->
+      <div class="form-group">
+        <label>Content sections</label>
+        <small class="muted">rich_text, heading, image, casino_grid, casino_editorial, casino_spotlights, faq, cta, internal_links. Reorderable via position. Casino pickers here are limited to casinos already allowed in this country.</small>
+        <div id="countryFormSections"></div>
+        <button type="button" class="btn btn--ghost" id="countryFormAddSectionBtn">+ Add section</button>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Robots</label>
+          <select name="robots">
+            <option value="index,follow">Index, Follow</option>
+            <option value="noindex,follow">Noindex, Follow</option>
+            <option value="index,nofollow">Index, Nofollow</option>
+            <option value="noindex,nofollow">Noindex, Nofollow</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select name="status">
+            <option value="published">Published</option>
+            <option value="draft">Draft</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Published (live on site)</label>
+          <select name="published">
+            <option value="1">Yes</option>
+            <option value="0">No</option>
+          </select>
+        </div>
+      </div>
+      <p class="muted" style="font-size:12px">A published country page automatically gets a Page Navigation link — manage/rename/hide it any time from the <a href="/en/dashboard/nav">Navigation</a> page.</p>
       <div id="countryFormAlert" class="alert" style="display:none"></div>
       <div style="display:flex;gap:12px">
         <button type="submit" class="btn btn--primary btn--lg" id="countrySubmitBtn">Create Country</button>

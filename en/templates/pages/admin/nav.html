@@ -17,6 +17,8 @@
           <option value="footer_legal">Footer — Legal</option>
           <option value="mobile">Mobile Bottom Nav</option>
           <option value="page">Page Navigation</option>
+          <option value="country_subnav">Country Hub Sub-nav</option>
+          <option value="category_subnav">Category Hub Sub-nav</option>
         </select>
       </div>
     </div>
@@ -54,14 +56,32 @@
             <option value="footer_legal">Footer — Legal</option>
             <option value="mobile">Mobile Bottom Nav</option>
             <option value="page">Page Navigation</option>
+            <option value="country_subnav">Country Hub Sub-nav</option>
+            <option value="category_subnav">Category Hub Sub-nav</option>
           </select>
           <p class="muted" id="pageNavHint" style="display:none;margin-top:6px;font-size:12px">
             Page Navigation items are the contextual horizontal navigation rendered on individual pages (e.g. Crypto Casinos, Live Dealer). They are separate from the site header and footer.
+          </p>
+          <p class="muted" id="hubSubNavHint" style="display:none;margin-top:6px;font-size:12px">
+            Shown only on the one country/category hub page you set below (scrollable bar at the top of that page's content). Sub-pages you publish there get one of these automatically — this is only for adding an extra manual link into that same bar.
           </p>
         </div>
         <div class="form-group">
           <label>Position (lower = first)</label>
           <input type="number" name="position" value="0">
+        </div>
+      </div>
+      <div class="form-row" id="navScopeRow" style="display:none">
+        <div class="form-group">
+          <label>Scope Type</label>
+          <select name="scope_type">
+            <option value="country">Country</option>
+            <option value="category">Category</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Scope Ref (country code or category slug)</label>
+          <input type="text" name="scope_ref" placeholder="CA or crypto">
         </div>
       </div>
       <div class="form-row">

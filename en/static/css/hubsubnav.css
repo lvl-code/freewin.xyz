@@ -1,0 +1,125 @@
+/* =====================================================
+   HUB SUB-PAGE NAV — {{hub_subnav_html}}
+   =====================================================
+   Contextual, scrollable link bar shown at the top of a
+   country hub page (/en/country/:code) or category hub page
+   (/en/category/:slug) content, listing that specific hub's
+   published seo_pages sub-pages (country_custom /
+   category_country — migration 0019), auto-populated via
+   0021_hub_subpage_nav.sql and manually manageable from the
+   Navigation admin screen afterwards.
+
+   Deliberately a separate component/class namespace from
+   .pagenav (the global, site-wide Page Navigation in
+   pagenav.css) — this bar is scoped to one specific hub page
+   only and does not participate in pagenav-ajax.js. Same
+   visual language (theme tokens, scroll mechanics) for
+   consistency, on purpose.
+   ===================================================== */
+
+.hubsubnav {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0 0 var(--space-6);
+  padding: var(--space-2);
+  box-sizing: border-box;
+
+  background: linear-gradient(180deg, var(--dark-2), var(--surface-dark));
+  border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--light-gray));
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Only this inner element scrolls horizontally — the outer
+   .hubsubnav (and therefore the page) never overflows. */
+.hubsubnav__scroll {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--primary) 60%, transparent) transparent;
+  min-width: 0;
+}
+
+.hubsubnav__scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.hubsubnav__scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.hubsubnav__scroll::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--primary) 55%, transparent);
+  border-radius: 999px;
+}
+
+.hubsubnav__link {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: var(--space-3) var(--space-5);
+  min-height: 44px;
+
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+
+  color: var(--white);
+  background: color-mix(in srgb, var(--dark-2) 85%, black);
+  border: 1px solid color-mix(in srgb, var(--primary) 45%, transparent);
+  border-radius: var(--btn-radius);
+
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease, transform 0.15s ease;
+}
+
+.hubsubnav__link:hover,
+.hubsubnav__link:focus-visible {
+  color: var(--surface-dark);
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.hubsubnav__link:active {
+  transform: translateY(1px);
+}
+
+.hubsubnav__link:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 768px) {
+  .hubsubnav {
+    padding: var(--space-1) var(--space-2);
+    border-radius: calc(var(--radius) * 0.75);
+  }
+
+  .hubsubnav__link {
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-xs);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hubsubnav__scroll {
+    scroll-behavior: auto;
+  }
+
+  .hubsubnav__link {
+    transition: none;
+  }
+}

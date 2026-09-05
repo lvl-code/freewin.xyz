@@ -1837,6 +1837,13 @@ Sitemap: ${site.url("/en/sitemap-pages.xml")}`,
 export async function renderCountry(request, env, slug) {
   const code = slug.toUpperCase();
   const country = await countries.getCountry(env.DB, code);
+
+  // A country with no DB row at all still renders (existing
+  // behavior, unchanged) — draft gating only applies to a real,
+  // explicitly-drafted row.
+  if (country && country.published === 0) return render404(request, env);
+  if (country && country.status === "draft") return render404(request, env);
+
   const countryData = country || {
     code, name: code, seo_title: null, seo_description: null
   };
@@ -1859,6 +1866,21 @@ export async function renderCountry(request, env, slug) {
     }))
   };
 
+  let countryContent = {};
+  try {
+    countryContent = typeof countryData.content_json === "string"
+      ? JSON.parse(countryData.content_json)
+      : countryData.content_json || {};
+  } catch {
+    countryContent = {};
+  }
+  const casinoLookupById = {};
+  for (const c of casinoList) casinoLookupById[c.id] = c;
+  const sectionsHtml = renderSeoPageSections(countryContent, casinoLookupById, {}, geoData);
+  const faqSchema = seoPageFaqSchema(countryContent);
+  const subNavItems = await nav.getScopedNavItems(env.DB, "country_subnav", "country", code);
+  const hubSubNavHtml = buildHubSubNavHtml(subNavItems);
+
   const allComponents = await renderer.renderAllComponents("country", code);
   const dynamicSeo = await renderer.loadDynamicSeo("country", code);
   const html = await renderer.render("country.html", {
@@ -1871,8 +1893,11 @@ export async function renderCountry(request, env, slug) {
     seo_title: dynamicSeo.seo_title || countryData.seo_title || countryData.name + " Online Casinos",
     seo_description: dynamicSeo.seo_description || countryData.seo_description || "",
     canonical: dynamicSeo.canonical || site.url(`/en/country/${code}`),
+    robots: countryData.robots || "index,follow",
+    sections_html: sectionsHtml,
+    hub_subnav_html: hubSubNavHtml,
     casino_cards: buildCasinoCards(casinoList, geoData),
-  }, countrySchema, buildBreadcrumbs("country", { name: countryData.name }));
+  }, [countrySchema, faqSchema].filter(Boolean), buildBreadcrumbs("country", { name: countryData.name }));
   return new Response(html, {
     headers: cacheHeaders()
   });
@@ -1882,6 +1907,8 @@ export async function renderCountry(request, env, slug) {
 export async function renderCategory(request, env, slug) {
   const category = await categories.getCategory(env.DB, slug);
   if (!category) return render404(request, env);
+  if (category.published === 0) return render404(request, env);
+  if (category.status === "draft") return render404(request, env);
 
   const casinoList = await categories.getCategoryCasinos(env.DB, slug);
   const geoData = await prepareGeoData(env, request, casinoList);
@@ -1900,6 +1927,21 @@ export async function renderCategory(request, env, slug) {
     }))
   };
 
+  let categoryContent = {};
+  try {
+    categoryContent = typeof category.content_json === "string"
+      ? JSON.parse(category.content_json)
+      : category.content_json || {};
+  } catch {
+    categoryContent = {};
+  }
+  const casinoLookupById = {};
+  for (const c of sortedCasinos) casinoLookupById[c.id] = c;
+  const sectionsHtml = renderSeoPageSections(categoryContent, casinoLookupById, {}, geoData);
+  const faqSchema = seoPageFaqSchema(categoryContent);
+  const subNavItems = await nav.getScopedNavItems(env.DB, "category_subnav", "category", slug);
+  const hubSubNavHtml = buildHubSubNavHtml(subNavItems);
+
   const allComponents = await renderer.renderAllComponents("category", slug);
   const dynamicSeo = await renderer.loadDynamicSeo("category", slug);
   const html = await renderer.render("category.html", {
@@ -1912,10 +1954,13 @@ export async function renderCategory(request, env, slug) {
     seo_title: dynamicSeo.seo_title || category.seo_title || category.name + " Casinos",
     seo_description: dynamicSeo.seo_description || category.seo_description || "",
     canonical: dynamicSeo.canonical || site.url(`/en/category/${slug}`),
+    robots: category.robots || "index,follow",
+    sections_html: sectionsHtml,
+    hub_subnav_html: hubSubNavHtml,
     category: category.name,
     description: category.description,
     casino_cards: buildCasinoCards(sortedCasinos, geoData),
-  }, categorySchema, buildBreadcrumbs("category", { category: category.name }));
+  }, [categorySchema, faqSchema].filter(Boolean), buildBreadcrumbs("category", { category: category.name }));
 
   return new Response(html, {
     headers: cacheHeaders()
@@ -2093,6 +2138,40 @@ function seoPageFaqSchema(content) {
         "acceptedAnswer": { "@type": "Answer", "text": i.a }
       }))
   };
+}
+
+// Renders the contextual, scrollable sub-page nav bar shown at
+// the top of a country/category hub page's content — every
+// published seo_pages sub-page under this specific hub (auto
+// via 0021_hub_subpage_nav.sql), plus any manual entries an
+// admin has added with the same scope. Deliberately a separate
+// component from {{{pagenav}}} (the global site-wide Page
+// Navigation) — this one only ever appears on its one matching
+// hub page. Returns "" (renders nothing) when there are no items,
+// so hubs with no sub-pages yet show no empty bar.
+function escapeHubNavHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function buildHubSubNavHtml(items) {
+  if (!items || items.length === 0) return "";
+  const links = items.map((item) => {
+    const href = escapeHubNavHtml(item.url);
+    const label = escapeHubNavHtml(item.label);
+    const external = item.is_external ? ' target="_blank" rel="noopener"' : "";
+    return `<a class="hubsubnav__link" href="${href}"${external}>${label}</a>`;
+  }).join("");
+
+  return `
+<div class="hubsubnav">
+  <div class="hubsubnav__scroll">
+    ${links}
+  </div>
+</div>`;
 }
 
 export async function renderCountryCustomPage(request, env, countryCode, slug) {

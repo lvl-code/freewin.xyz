@@ -1077,6 +1077,19 @@ export async function handleGetEligibleCasinosForSeoPage(request, env) {
   return ok({ data: rows });
 }
 
+// GET ?slug=crypto — every casino already in this category, with
+// no country filter at all. Used by the base category hub page's
+// own content-section casino pickers (Lummet's /content/categories
+// editor), which have no country context, unlike seo-pages'
+// category_country combo pages.
+export async function handleGetEligibleCasinosForCategory(request, env) {
+  const url = new URL(request.url);
+  const slug = url.searchParams.get("slug");
+  if (!slug) return fail("slug_required", 422);
+  const rows = await categoriesDB.getCategoryCasinos(env.DB, slug);
+  return ok({ data: rows });
+}
+
 // GET ?min=1 — discovers every category x country combination that
 // clears the minimum casino count, cross-referenced with any
 // existing seo_pages rows so the admin can show eligible / draft /

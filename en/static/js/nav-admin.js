@@ -12,8 +12,14 @@ const NAV_LOCATION_LABELS = {
   footer_support: "Footer — Support",
   footer_legal: "Footer — Legal",
   mobile: "Mobile Bottom Nav",
-  page: "Page Navigation"
+  page: "Page Navigation",
+  country_subnav: "Country Hub Sub-nav",
+  category_subnav: "Category Hub Sub-nav"
 };
+
+// Locations that are scoped to one specific hub page (see
+// 0021_hub_subpage_nav.sql) rather than shown site-wide.
+const SCOPED_NAV_LOCATIONS = ["country_subnav", "category_subnav"];
 
 document.addEventListener("DOMContentLoaded", () => {
   loadNavTable();
@@ -24,10 +30,15 @@ document.addEventListener("DOMContentLoaded", () => {
 function initLocationHint() {
   const locationSelect = document.querySelector("#navForm [name='location']");
   const hint = document.getElementById("pageNavHint");
+  const hubHint = document.getElementById("hubSubNavHint");
+  const scopeRow = document.getElementById("navScopeRow");
   if (!locationSelect || !hint) return;
 
   const toggleHint = () => {
+    const isScoped = SCOPED_NAV_LOCATIONS.includes(locationSelect.value);
     hint.style.display = locationSelect.value === "page" ? "block" : "none";
+    if (hubHint) hubHint.style.display = isScoped ? "block" : "none";
+    if (scopeRow) scopeRow.style.display = isScoped ? "grid" : "none";
   };
 
   locationSelect.addEventListener("change", toggleHint);
@@ -57,7 +68,7 @@ async function loadNavTable() {
       <tr>
         <td><strong>${n.icon ? n.icon + " " : ""}${n.label}</strong></td>
         <td><a href="${n.url}" target="_blank">${n.url}</a></td>
-        <td>${NAV_LOCATION_LABELS[n.location] || n.location}</td>
+        <td>${NAV_LOCATION_LABELS[n.location] || n.location}${n.scope_ref ? ` <span class="muted">(${n.scope_type}: ${n.scope_ref})</span>` : ""}</td>
         <td>${n.position}</td>
         <td>${n.is_external ? "✓" : "—"}</td>
         <td>${n.enabled ? '<span class="status-badge status-published">Yes</span>' : '<span class="status-badge status-draft">No</span>'}</td>
@@ -93,6 +104,8 @@ function initNavForm() {
       is_external: formData.get("is_external") === "1",
       enabled: formData.get("enabled") === "1",
       icon: formData.get("icon") || null,
+      scope_type: SCOPED_NAV_LOCATIONS.includes(formData.get("location")) ? (formData.get("scope_type") || null) : null,
+      scope_ref: SCOPED_NAV_LOCATIONS.includes(formData.get("location")) ? (formData.get("scope_ref") || null) : null,
     };
 
     try {
@@ -138,11 +151,19 @@ async function editNavItem(id) {
     form.querySelector("[name='is_external']").value = item.is_external ? "1" : "0";
     form.querySelector("[name='enabled']").value = item.enabled ? "1" : "0";
     form.querySelector("[name='icon']").value = item.icon || "";
+    if (form.querySelector("[name='scope_type']")) form.querySelector("[name='scope_type']").value = item.scope_type || "country";
+    if (form.querySelector("[name='scope_ref']")) form.querySelector("[name='scope_ref']").value = item.scope_ref || "";
     document.getElementById("navSubmitBtn").textContent = "Update Nav Item";
     document.getElementById("navCancelEdit").style.display = "";
 
     const hint = document.getElementById("pageNavHint");
     if (hint) hint.style.display = item.location === "page" ? "block" : "none";
+
+    const hubHint = document.getElementById("hubSubNavHint");
+    const scopeRow = document.getElementById("navScopeRow");
+    const isScoped = SCOPED_NAV_LOCATIONS.includes(item.location);
+    if (hubHint) hubHint.style.display = isScoped ? "block" : "none";
+    if (scopeRow) scopeRow.style.display = isScoped ? "grid" : "none";
 
     if (item.location === "page") {
       showPageNavGeoSection(item.id, item.label);
@@ -163,6 +184,11 @@ function cancelNavEdit() {
 
   const hint = document.getElementById("pageNavHint");
   if (hint) hint.style.display = "none";
+
+  const hubHint = document.getElementById("hubSubNavHint");
+  if (hubHint) hubHint.style.display = "none";
+  const scopeRow = document.getElementById("navScopeRow");
+  if (scopeRow) scopeRow.style.display = "none";
 
   hidePageNavGeoSection();
 }

@@ -6,6 +6,61 @@
 // See migrations/0019_seo_landing_pages.sql for schema/rationale.
 // =====================================================
 
+import * as nav from "./nav.js";
+
+// Every published seo_page automatically gets a slot in its
+// parent hub's scrollable sub-page nav (0021_hub_subpage_nav.sql)
+// — country_custom under its country's /en/country/:code page,
+// category_country under its category's /en/category/:slug page
+// (its own parent_url, same as renderCategoryCountryPage's
+// breadcrumb — category_country's slug is always the category's
+// own slug, so no extra lookup is needed). Fully admin-manageable
+// afterwards through the same nav_items row, same as the base
+// country/category auto-links added in 0020.
+function subNavParamsFor(page) {
+  if (page.page_type === "country_custom") {
+    const code = page.country_code.toUpperCase();
+    return {
+      sourceType: "country_custom_page",
+      location: "country_subnav",
+      scopeType: "country",
+      scopeRef: code,
+      url: `/en/country/${code.toLowerCase()}/${page.slug}`
+    };
+  }
+  // category_country
+  return {
+    sourceType: "category_country_page",
+    location: "category_subnav",
+    scopeType: "category",
+    scopeRef: page.slug,
+    url: `/en/category/${page.slug}/${page.country_code.toLowerCase()}`
+  };
+}
+
+async function syncSeoPageNav(db, id, page) {
+  try {
+    const { sourceType, location, scopeType, scopeRef, url } = subNavParamsFor(page);
+    const sourceRef = String(id);
+
+    if (page.published) {
+      await nav.syncAutoNavItem(db, {
+        sourceType,
+        sourceRef,
+        label: page.title,
+        url,
+        location,
+        scopeType,
+        scopeRef
+      });
+    } else {
+      await nav.disableAutoNavItem(db, sourceType, sourceRef);
+    }
+  } catch (e) {
+    console.error("SEO page nav sync failed:", e.message);
+  }
+}
+
 export async function getSeoPageById(db, id) {
   return db.prepare(`SELECT * FROM seo_pages WHERE id = ?`).bind(id).first();
 }
@@ -77,7 +132,16 @@ export async function createSeoPage(db, data) {
     )
     .run();
 
-  return result.meta?.last_row_id;
+  const newId = result.meta?.last_row_id;
+  await syncSeoPageNav(db, newId, {
+    page_type: data.page_type,
+    country_code: data.country_code.toUpperCase(),
+    slug: data.slug,
+    title: data.title,
+    published: data.published ? 1 : 0
+  });
+
+  return newId;
 }
 
 export async function updateSeoPage(db, id, data) {
@@ -118,10 +182,30 @@ export async function updateSeoPage(db, id, data) {
       id
     )
     .run();
+
+  await syncSeoPageNav(db, id, {
+    page_type: existing.page_type,
+    country_code: existing.country_code,
+    slug: data.slug ?? existing.slug,
+    title: data.title ?? existing.title,
+    published: data.published != null ? (data.published ? 1 : 0) : existing.published
+  });
 }
 
 export async function deleteSeoPage(db, id) {
-  return db.prepare(`DELETE FROM seo_pages WHERE id = ?`).bind(id).run();
+  const existing = await getSeoPageById(db, id);
+  const result = await db.prepare(`DELETE FROM seo_pages WHERE id = ?`).bind(id).run();
+
+  if (existing) {
+    try {
+      const { sourceType } = subNavParamsFor(existing);
+      await nav.deleteAutoNavItemsForSource(db, sourceType, String(id));
+    } catch (e) {
+      console.error("SEO page nav cleanup failed:", e.message);
+    }
+  }
+
+  return result;
 }
 
 // -----------------------------------------------------

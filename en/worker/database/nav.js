@@ -7,10 +7,6 @@ export async function getNavItems(db, location) {
   return result.results || [];
 }
 
-export async function getNavItem(db, id) {
-  return await db.prepare(`SELECT * FROM nav_items WHERE id = ?`).bind(id).first();
-}
-
 export async function getAllNavItems(db) {
   const result = await db.prepare(`
     SELECT * FROM nav_items ORDER BY location, position ASC
@@ -18,10 +14,14 @@ export async function getAllNavItems(db) {
   return result.results || [];
 }
 
+export async function getNavItem(db, id) {
+  return await db.prepare(`SELECT * FROM nav_items WHERE id = ?`).bind(id).first();
+}
+
 export async function createNavItem(db, data) {
   const result = await db.prepare(`
-    INSERT INTO nav_items (label, url, parent_id, position, location, is_external, icon, enabled)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO nav_items (label, url, parent_id, position, location, is_external, icon, enabled, scope_type, scope_ref)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     data.label,
     data.url,
@@ -30,7 +30,9 @@ export async function createNavItem(db, data) {
     data.location || "header",
     data.is_external ? 1 : 0,
     data.icon || null,
-    data.enabled !== undefined ? (data.enabled ? 1 : 0) : 1
+    data.enabled !== undefined ? (data.enabled ? 1 : 0) : 1,
+    data.scope_type || null,
+    data.scope_ref || null
   ).run();
   return result.meta.last_row_id;
 }
@@ -39,7 +41,8 @@ export async function updateNavItem(db, id, data) {
   return await db.prepare(`
     UPDATE nav_items SET
       label = ?, url = ?, parent_id = ?, position = ?,
-      location = ?, is_external = ?, icon = ?, enabled = ?
+      location = ?, is_external = ?, icon = ?, enabled = ?,
+      scope_type = ?, scope_ref = ?
     WHERE id = ?
   `).bind(
     data.label,
@@ -50,6 +53,8 @@ export async function updateNavItem(db, id, data) {
     data.is_external ? 1 : 0,
     data.icon || null,
     data.enabled !== undefined ? (data.enabled ? 1 : 0) : 1,
+    data.scope_type || null,
+    data.scope_ref || null,
     id
   ).run();
 }
@@ -217,4 +222,105 @@ export async function deletePageNavGeoRulesForItem(db, navItemId) {
   return await db.prepare(`
     DELETE FROM page_nav_geo_rules WHERE nav_item_id = ?
   `).bind(navItemId).run();
+}
+
+// =====================================================
+// AUTO-LINKED NAV ITEMS (countries / categories)
+// Added in migration 0020_country_category_seo_nav.sql.
+//
+// Every function here operates on completely ordinary
+// nav_items rows — the only thing that makes a row "auto"
+// is that source_type/source_ref are set. Once created, an
+// admin can rename, move, disable, or delete it through the
+// exact same nav CRUD used for manual items (in either the
+// tenant dashboard or the Lummet control plane) — syncing
+// only ever creates the row once, and afterwards only
+// flips `enabled` to track the country/category's own
+// published state. It never overwrites a label/url an admin
+// has since edited.
+// =====================================================
+
+/**
+ * Create-or-enable the auto nav link for a published country
+ * or category. If a row for this (source_type, source_ref)
+ * already exists (e.g. it was previously unpublished, or an
+ * admin has since edited it), it is simply re-enabled — its
+ * label/url/location are left exactly as they are, so admin
+ * edits are never clobbered. Only a brand-new link gets the
+ * default label/url/location below.
+ */
+export async function syncAutoNavItem(db, { sourceType, sourceRef, label, url, location = "page", scopeType = null, scopeRef = null }) {
+  const existing = await db.prepare(`
+    SELECT id FROM nav_items WHERE source_type = ? AND source_ref = ?
+  `).bind(sourceType, sourceRef).first();
+
+  if (existing) {
+    return await db.prepare(`
+      UPDATE nav_items SET enabled = 1 WHERE id = ?
+    `).bind(existing.id).run();
+  }
+
+  const posRow = await db.prepare(`
+    SELECT COALESCE(MAX(position), 0) AS maxPos FROM nav_items WHERE location = ?
+  `).bind(location).first();
+
+  return await db.prepare(`
+    INSERT INTO nav_items
+      (label, url, parent_id, position, location, is_external, icon, enabled, auto_generated, source_type, source_ref, scope_type, scope_ref)
+    VALUES (?, ?, NULL, ?, ?, 0, NULL, 1, 1, ?, ?, ?, ?)
+  `).bind(
+    label,
+    url,
+    (posRow?.maxPos || 0) + 1,
+    location,
+    sourceType,
+    sourceRef,
+    scopeType,
+    scopeRef
+  ).run();
+}
+
+/**
+ * Disable (never delete) the auto nav link for a country or
+ * category that has moved out of "published" state. Leaves the
+ * row in place so re-publishing can simply re-enable it via
+ * syncAutoNavItem, and so an admin who has since customized the
+ * row doesn't lose that customization.
+ */
+export async function disableAutoNavItem(db, sourceType, sourceRef) {
+  return await db.prepare(`
+    UPDATE nav_items SET enabled = 0 WHERE source_type = ? AND source_ref = ?
+  `).bind(sourceType, sourceRef).run();
+}
+
+/**
+ * Remove the auto nav link entirely. Called when the underlying
+ * country/category itself is deleted (not merely unpublished) —
+ * at that point the target page no longer exists, so keeping a
+ * disabled link around would only be dead weight.
+ */
+export async function deleteAutoNavItemsForSource(db, sourceType, sourceRef) {
+  return await db.prepare(`
+    DELETE FROM nav_items WHERE source_type = ? AND source_ref = ?
+  `).bind(sourceType, sourceRef).run();
+}
+
+/**
+ * Enabled nav_items scoped to one specific hub page — e.g. the
+ * sub-page nav bar on /en/country/CA (location='country_subnav',
+ * scopeType='country', scopeRef='CA') or /en/category/crypto
+ * (location='category_subnav', scopeType='category',
+ * scopeRef='crypto'). Distinct from getNavItems()/getPageNavItems(),
+ * which serve the global, site-wide header/footer/PageNav — a
+ * scoped item here is only ever relevant on its one matching hub
+ * page, auto-linked (via syncAutoNavItem) or added manually by an
+ * admin with the same scope.
+ */
+export async function getScopedNavItems(db, location, scopeType, scopeRef) {
+  const result = await db.prepare(`
+    SELECT * FROM nav_items
+    WHERE location = ? AND scope_type = ? AND scope_ref = ? AND enabled = 1
+    ORDER BY position ASC
+  `).bind(location, scopeType, scopeRef).all();
+  return result.results || [];
 }
