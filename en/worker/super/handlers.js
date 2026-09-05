@@ -906,6 +906,12 @@ export async function handleListNavItems(request, env) {
   return ok({ data: rows });
 }
 
+export async function handleGetNavItem(request, env, id) {
+  const row = await navDB.getNavItem(env.DB, id);
+  if (!row) return fail("not_found", 404);
+  return ok({ data: row });
+}
+
 export async function handleCreateNavItem(request, env, _id, bodyText) {
   const body = await readJsonBody(request, bodyText);
   const id = await navDB.createNavItem(env.DB, body);

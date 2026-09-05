@@ -114,6 +114,7 @@ const ROUTES = [
   ["DELETE", "/en/api/super/ad-rules/:id", h.handleDeleteAdRule, "ad_rules"],
 
   ["GET", "/en/api/super/nav-items", h.handleListNavItems, "nav_items"],
+  ["GET", "/en/api/super/nav-items/:id", h.handleGetNavItem, "nav_items"],
   ["POST", "/en/api/super/nav-items", h.handleCreateNavItem, "nav_items"],
   ["PUT", "/en/api/super/nav-items/:id", h.handleUpdateNavItem, "nav_items"],
   ["DELETE", "/en/api/super/nav-items/:id", h.handleDeleteNavItem, "nav_items"],

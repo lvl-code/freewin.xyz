@@ -7,6 +7,10 @@ export async function getNavItems(db, location) {
   return result.results || [];
 }
 
+export async function getNavItem(db, id) {
+  return await db.prepare(`SELECT * FROM nav_items WHERE id = ?`).bind(id).first();
+}
+
 export async function getAllNavItems(db) {
   const result = await db.prepare(`
     SELECT * FROM nav_items ORDER BY location, position ASC
