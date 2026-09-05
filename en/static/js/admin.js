@@ -4797,13 +4797,14 @@ document.addEventListener('DOMContentLoaded', function() {
 SEO LANDING PAGES (Country Pages / Category Countries)
 ========================================================= */
 
-const SEO_PAGE_SECTION_TYPES = ["rich_text", "heading", "image", "casino_grid", "casino_editorial", "faq", "cta", "internal_links"];
+const SEO_PAGE_SECTION_TYPES = ["rich_text", "heading", "image", "casino_grid", "casino_editorial", "casino_spotlights", "faq", "cta", "internal_links"];
 const SEO_PAGE_FIELDS_BY_TYPE = {
   rich_text: ["title", "subtitle", "body"],
   heading: ["title"],
   image: ["title", "image_url"],
   casino_grid: ["title", "subtitle", "casino_ids"],
   casino_editorial: ["title", "casino_id", "body"],
+  casino_spotlights: ["title", "subtitle", "spotlights"],
   faq: ["title", "faq_json"],
   cta: ["title", "body", "cta_url", "cta_label", "background"],
   internal_links: ["title", "links_json"]
@@ -4813,7 +4814,8 @@ const SEO_PAGE_FIELD_LABELS = {
   image_url: "Image URL", casino_ids: "Casinos (select one or more — type to search)",
   casino_id: "Casino (type to search)", faq_json: "FAQ items (pre-filled with common questions — edit freely, or edit as JSON)",
   cta_url: "Button URL", cta_label: "Button label", background: "Background (CSS color, optional)",
-  links_json: 'Links JSON — e.g. [{"label":"...","url":"..."}]'
+  links_json: 'Links JSON — e.g. [{"label":"...","url":"..."}]',
+  spotlights: "Casino spotlights — add one or more casinos, each with its own write-up"
 };
 
 // Section data is stored under different keys than the form fields that edit
@@ -4878,6 +4880,30 @@ function seoSectionRowHtml(section, index, prefix) {
         '<p class="muted" style="margin:4px 0 10px;">Ctrl/Cmd-click (or long-press on mobile) to select multiple. Type a letter to jump to a casino by name.</p>';
       return;
     }
+    // casino_spotlights: several independent {casino_id, body} pairs
+    // inside one section — unlike casino_editorial (always exactly
+    // one casino) this is a repeatable list the editor builds up
+    // with its own add/remove controls, wired in wireSeoSectionBuilder.
+    if (f === "spotlights") {
+      const spotlights = Array.isArray(section.spotlights) ? section.spotlights : [];
+      const rows = spotlights.map((sp, j) => {
+        const selId = sp.casino_id ? Number(sp.casino_id) : null;
+        return '<div class="admin-card" data-spotlight-row="' + j + '" style="border:1px dashed var(--border-color,#333);border-radius:6px;padding:10px;margin-bottom:8px;">' +
+          '<div style="display:flex;gap:8px;align-items:center;">' +
+            '<select data-spotlight-field="casino_id" style="flex:1;"><option value="">— Select a casino —</option>' +
+              seoCasinoPickerOptionsHtml(prefix, new Set(selId ? [selId] : [])) +
+            '</select>' +
+            '<button type="button" class="btn btn--ghost" data-remove-spotlight>Remove</button>' +
+          '</div>' +
+          '<label style="margin-top:6px;">Write-up for this casino</label>' +
+          '<textarea data-spotlight-field="body" rows="4">' + escapeHtml(sp.body || "") + '</textarea>' +
+        '</div>';
+      }).join("");
+      html += '<label>' + SEO_PAGE_FIELD_LABELS[f] + '</label>' +
+        '<div data-spotlights-container>' + rows + '</div>' +
+        '<button type="button" class="btn btn--ghost" data-add-spotlight>+ Add casino spotlight</button>';
+      return;
+    }
     const dataKey = SEO_SECTION_FIELD_TO_DATA_KEY[f] || f;
     let raw = section[dataKey];
     // FAQ sections start pre-filled with common starter questions instead of
@@ -4926,6 +4952,21 @@ function syncSeoSectionsFromDom(prefix) {
       else if (key === "cta_label") section.label = val;
       else section[key] = val;
     });
+    // casino_spotlights: repeatable {casino_id, body} rows live in their
+    // own container (data-spotlights-container / data-spotlight-row),
+    // outside the generic data-section-field loop above, since each row
+    // needs two paired values rather than one field = one value.
+    const spotlightsContainer = row.querySelector("[data-spotlights-container]");
+    if (spotlightsContainer) {
+      section.spotlights = Array.from(spotlightsContainer.querySelectorAll("[data-spotlight-row]")).map((sRow) => {
+        const casinoSel = sRow.querySelector("[data-spotlight-field='casino_id']");
+        const bodyEl = sRow.querySelector("[data-spotlight-field='body']");
+        return {
+          casino_id: casinoSel && casinoSel.value ? Number(casinoSel.value) : null,
+          body: bodyEl ? bodyEl.value : ""
+        };
+      });
+    }
     return section;
   }).sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
 }
@@ -5073,6 +5114,30 @@ function wireSeoSectionBuilder(prefix, rootId, addBtnId) {
     });
   }
   root.addEventListener("click", (e) => {
+    // casino_spotlights add/remove — checked before data-remove-section
+    // since a spotlight row also sits inside a [data-section-row], and
+    // its own remove button must not be mistaken for removing the
+    // whole section.
+    const addSpotlightBtn = e.target.closest("[data-add-spotlight]");
+    if (addSpotlightBtn) {
+      syncSeoSectionsFromDom(prefix);
+      const sectionRow = addSpotlightBtn.closest("[data-section-row]");
+      const section = seoPageState[prefix].sections[Number(sectionRow.dataset.sectionRow)];
+      if (!Array.isArray(section.spotlights)) section.spotlights = [];
+      section.spotlights.push({ casino_id: null, body: "" });
+      renderSeoSections(prefix);
+      return;
+    }
+    const removeSpotlightBtn = e.target.closest("[data-remove-spotlight]");
+    if (removeSpotlightBtn) {
+      syncSeoSectionsFromDom(prefix);
+      const sectionRow = removeSpotlightBtn.closest("[data-section-row]");
+      const spotlightRow = removeSpotlightBtn.closest("[data-spotlight-row]");
+      const section = seoPageState[prefix].sections[Number(sectionRow.dataset.sectionRow)];
+      section.spotlights.splice(Number(spotlightRow.dataset.spotlightRow), 1);
+      renderSeoSections(prefix);
+      return;
+    }
     const btn = e.target.closest("[data-remove-section]");
     if (!btn) return;
     syncSeoSectionsFromDom(prefix);

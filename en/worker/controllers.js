@@ -1962,8 +1962,9 @@ async function resolveSeoPageCasinos(env, page, eligibleCasinos) {
 
 // Renders content_json.sections into HTML. Supports the section
 // types actually built out this pass: rich_text, casino_grid,
-// casino_editorial, faq, cta. Unknown types are skipped rather than
-// erroring, so older/partial content never breaks a page.
+// casino_editorial, casino_spotlights, faq, cta. Unknown types are
+// skipped rather than erroring, so older/partial content never
+// breaks a page.
 function renderSeoPageSections(content, casinoLookupById, editorialByKey, geoData) {
   const sections = Array.isArray(content?.sections) ? content.sections : [];
 
@@ -2007,6 +2008,30 @@ function renderSeoPageSections(content, casinoLookupById, editorialByKey, geoDat
               <div class="casino-grid">${buildCasinoCards([casino], geoData)}</div>
               ${body ? `<div class="seo-section__body">${body}</div>` : ""}
             </section>`;
+        }
+
+        // casino_spotlights: like casino_editorial but for several
+        // casinos at once, each with its own independent write-up —
+        // {casino_id, body} pairs stored on the section itself
+        // (section.spotlights), not tied to seo_page_casinos. Use
+        // this instead of stacking multiple casino_editorial
+        // sections when several casinos share one heading/intro.
+        case "casino_spotlights": {
+          const spotlights = Array.isArray(section.spotlights) ? section.spotlights : [];
+          const cards = spotlights
+            .map((sp) => {
+              const casino = casinoLookupById[sp.casino_id];
+              if (!casino) return "";
+              return `
+                <div class="seo-section__casino-spotlight">
+                  <div class="casino-grid">${buildCasinoCards([casino], geoData)}</div>
+                  ${sp.body ? `<div class="seo-section__body">${sp.body}</div>` : ""}
+                </div>`;
+            })
+            .filter(Boolean)
+            .join("");
+          if (!cards) return "";
+          return `<section class="seo-section seo-section--casino-spotlights">${heading}${cards}</section>`;
         }
 
         case "faq": {
