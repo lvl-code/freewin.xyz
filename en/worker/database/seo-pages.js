@@ -47,7 +47,7 @@ async function syncSeoPageNav(db, id, page) {
       await nav.syncAutoNavItem(db, {
         sourceType,
         sourceRef,
-        label: page.title,
+        label: page.nav_label || page.title || page.slug,
         url,
         location,
         scopeType,
@@ -100,12 +100,12 @@ export async function createSeoPage(db, data) {
   const result = await db
     .prepare(`
       INSERT INTO seo_pages (
-        page_type, slug, country_code, category_id, title, seo_title, seo_description,
+        page_type, slug, country_code, category_id, title, nav_label, seo_title, seo_description,
         og_image, featured_image, canonical_url, robots, author_id, content_json,
         casino_mode, min_casino_count, status, published, sitemap_enabled,
         auto_generated, created_by, updated_by
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
     .bind(
       data.page_type,
@@ -113,6 +113,7 @@ export async function createSeoPage(db, data) {
       data.country_code.toUpperCase(),
       data.category_id || null,
       data.title,
+      data.nav_label || null,
       data.seo_title || null,
       data.seo_description || null,
       data.og_image || null,
@@ -138,6 +139,7 @@ export async function createSeoPage(db, data) {
     country_code: data.country_code.toUpperCase(),
     slug: data.slug,
     title: data.title,
+    nav_label: data.nav_label || null,
     published: data.published ? 1 : 0
   });
 
@@ -151,7 +153,7 @@ export async function updateSeoPage(db, id, data) {
   await db
     .prepare(`
       UPDATE seo_pages SET
-        slug = ?, title = ?, seo_title = ?, seo_description = ?,
+        slug = ?, title = ?, nav_label = ?, seo_title = ?, seo_description = ?,
         og_image = ?, featured_image = ?, canonical_url = ?, robots = ?,
         author_id = ?, content_json = ?, casino_mode = ?, min_casino_count = ?,
         status = ?, published = ?, sitemap_enabled = ?, updated_by = ?,
@@ -161,6 +163,7 @@ export async function updateSeoPage(db, id, data) {
     .bind(
       data.slug ?? existing.slug,
       data.title ?? existing.title,
+      data.nav_label !== undefined ? (data.nav_label || null) : existing.nav_label,
       data.seo_title ?? existing.seo_title,
       data.seo_description ?? existing.seo_description,
       data.og_image ?? existing.og_image,
@@ -188,6 +191,7 @@ export async function updateSeoPage(db, id, data) {
     country_code: existing.country_code,
     slug: data.slug ?? existing.slug,
     title: data.title ?? existing.title,
+    nav_label: data.nav_label !== undefined ? (data.nav_label || null) : existing.nav_label,
     published: data.published != null ? (data.published ? 1 : 0) : existing.published
   });
 }

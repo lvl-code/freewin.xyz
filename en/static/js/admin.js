@@ -3731,6 +3731,9 @@ async function editCategory(id) {
     state.categorySlug = c.slug;
     const introEl = document.getElementById("categoryFormIntro");
     if (introEl) introEl.value = content.intro || "";
+    if (window.RichEditor && typeof RichEditor.set === "function") {
+      setTimeout(() => RichEditor.set("category-form-intro", content.intro || ""), 300);
+    }
     renderSeoSections("category");
     loadCategoryFormEligibleCasinos(c.slug);
 
@@ -3780,6 +3783,9 @@ async function editCountry(code) {
     state.countryCode = c.code;
     const introEl = document.getElementById("countryFormIntro");
     if (introEl) introEl.value = content.intro || "";
+    if (window.RichEditor && typeof RichEditor.set === "function") {
+      setTimeout(() => RichEditor.set("country-form-intro", content.intro || ""), 300);
+    }
     renderSeoSections("country");
     loadSeoEligibleCasinos("country");
 
@@ -5308,6 +5314,7 @@ async function editCountryPage(id) {
   document.getElementById("countryPageCodeHidden").value = p.country_code;
   document.getElementById("countryPageSlug").value = p.slug;
   document.getElementById("countryPageTitle").value = p.title || "";
+  document.getElementById("countryPageNavLabel").value = p.nav_label || "";
   document.getElementById("countryPageSeoTitle").value = p.seo_title || "";
   document.getElementById("countryPageSeoDescription").value = p.seo_description || "";
   document.getElementById("countryPageOgImage").value = p.og_image || "";
@@ -5381,6 +5388,7 @@ function initCountryPageForm() {
       slug: document.getElementById("countryPageSlug").value,
       country_code: state.countryCode || document.getElementById("countryPageCodeHidden").value,
       title: document.getElementById("countryPageTitle").value,
+      nav_label: document.getElementById("countryPageNavLabel").value || null,
       seo_title: document.getElementById("countryPageSeoTitle").value,
       seo_description: document.getElementById("countryPageSeoDescription").value,
       og_image: document.getElementById("countryPageOgImage").value,
@@ -5491,6 +5499,7 @@ async function editCategoryCountry(id) {
   document.getElementById("categoryCountrySearch").value = p.country_code;
   document.getElementById("categoryCountryCodeHidden").value = p.country_code;
   document.getElementById("categoryCountryTitle").value = p.title || "";
+  document.getElementById("categoryCountryNavLabel").value = p.nav_label || "";
   document.getElementById("categoryCountrySeoTitle").value = p.seo_title || "";
   document.getElementById("categoryCountrySeoDescription").value = p.seo_description || "";
   document.getElementById("categoryCountryOgImage").value = p.og_image || "";
@@ -5582,6 +5591,7 @@ function initCategoryCountryForm() {
       category_id: Number(catSelect.value),
       country_code: state.countryCode || document.getElementById("categoryCountryCodeHidden").value,
       title: document.getElementById("categoryCountryTitle").value,
+      nav_label: document.getElementById("categoryCountryNavLabel").value || null,
       seo_title: document.getElementById("categoryCountrySeoTitle").value,
       seo_description: document.getElementById("categoryCountrySeoDescription").value,
       og_image: document.getElementById("categoryCountryOgImage").value,
