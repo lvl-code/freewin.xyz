@@ -3063,7 +3063,6 @@ function initCategoryForm() {
     if (alertEl) alertEl.style.display = "none";
     const formData = new FormData(form);
     syncSeoSectionsFromDom("category");
-    const introEl = document.getElementById("categoryFormIntro");
     const isEdit = formData.get("id") ? true : false;
     const endpoint = isEdit ? "/en/api/v1/category/update" : "/en/api/v1/category/create";
     const payload = {
@@ -3073,7 +3072,7 @@ function initCategoryForm() {
       description: formData.get("description") || null,
       seo_title: formData.get("seo_title") || null,
       seo_description: formData.get("seo_description") || null,
-      content_json: { intro: introEl ? introEl.value : "", sections: seoPageState.category.sections },
+      content_json: { sections: seoPageState.category.sections },
       robots: formData.get("robots") || "index,follow",
       status: formData.get("status") || "published",
       published: formData.get("published") === "0" ? 0 : 1,
@@ -3184,7 +3183,6 @@ function initCountryForm() {
     if (alertEl) alertEl.style.display = "none";
     const formData = new FormData(form);
     syncSeoSectionsFromDom("country");
-    const introEl = document.getElementById("countryFormIntro");
 
     const isEdit = form.dataset.editMode === "true";
     const endpoint = isEdit ? "/en/api/v1/country/update" : "/en/api/v1/country/create";
@@ -3196,7 +3194,7 @@ function initCountryForm() {
       legal_status: formData.get("legal_status") || null,
       seo_title: formData.get("seo_title") || null,
       seo_description: formData.get("seo_description") || null,
-      content_json: { intro: introEl ? introEl.value : "", sections: seoPageState.country.sections },
+      content_json: { sections: seoPageState.country.sections },
       robots: formData.get("robots") || "index,follow",
       status: formData.get("status") || "published",
       published: formData.get("published") === "0" ? 0 : 1,
@@ -3729,11 +3727,6 @@ async function editCategory(id) {
     const state = seoPageState.category;
     state.sections = Array.isArray(content.sections) ? content.sections : [];
     state.categorySlug = c.slug;
-    const introEl = document.getElementById("categoryFormIntro");
-    if (introEl) introEl.value = content.intro || "";
-    if (window.RichEditor && typeof RichEditor.set === "function") {
-      setTimeout(() => RichEditor.set("category-form-intro", content.intro || ""), 300);
-    }
     renderSeoSections("category");
     loadCategoryFormEligibleCasinos(c.slug);
 
@@ -3781,11 +3774,6 @@ async function editCountry(code) {
     const state = seoPageState.country;
     state.sections = Array.isArray(content.sections) ? content.sections : [];
     state.countryCode = c.code;
-    const introEl = document.getElementById("countryFormIntro");
-    if (introEl) introEl.value = content.intro || "";
-    if (window.RichEditor && typeof RichEditor.set === "function") {
-      setTimeout(() => RichEditor.set("country-form-intro", content.intro || ""), 300);
-    }
     renderSeoSections("country");
     loadSeoEligibleCasinos("country");
 

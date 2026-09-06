@@ -10,7 +10,11 @@
     <div class="casino-grid">
       {{casino_cards}}
     </div>
-    {{sections_html}}
+    {{#if sections_html}}
+    <div class="seo-landing__sections">
+      {{sections_html}}
+    </div>
+    {{/if}}
     {{components_content_bottom}}
     {{components_bottom}}
   </div>
