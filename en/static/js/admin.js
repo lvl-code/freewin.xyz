@@ -5501,6 +5501,7 @@ async function editCategoryCountry(id) {
   document.getElementById("categoryCountrySitemap").value = p.sitemap_enabled === false ? "0" : "1";
   const introTextarea = document.getElementById("categoryCountryIntro");
   if (introTextarea) introTextarea.value = content.intro || "";
+  if (window.RichEditor) window.RichEditor.set ? window.RichEditor.set("category-country-intro", content.intro || "") : null;
 
   renderSeoSections("category_country");
   updateSeoUrlPreview("category_country");
