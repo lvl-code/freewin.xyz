@@ -111,3 +111,77 @@ export async function resolveOfferForCasino(db, { casinoId = null, casinoSlug = 
 
   return { offer: null, geoBlocked: false, geoRule };
 }
+
+/**
+ * Batched sibling of resolveOfferForCasino() for LIST/GRID contexts
+ * (homepage, casino directory, country/category pages, SEO landing
+ * pages). resolveOfferForCasino() does 2 queries per casino; calling
+ * it in a loop for a page with 30-50 casinos means 60-100+ sequential
+ * round-trips to D1 before the page can render, which is measurably
+ * slow in production. This function does the SAME eligibility
+ * computation (isOfferGeoEligible/isOfferDateEligible/geoEngine, the
+ * exact functions above -- nothing is reimplemented) but with exactly
+ * 2 queries total, regardless of how many casinos are in the list.
+ *
+ * Returns a plain object keyed by casino.id, each value shaped
+ * identically to a single resolveOfferForCasino() result:
+ *   { [casinoId]: { offer, geoBlocked, geoRule } }
+ *
+ * casinos: array of casino rows, each needing at least {id, slug}.
+ */
+export async function resolveOffersForCasinos(db, casinos, countryCode, { now = new Date() } = {}) {
+  const results = {};
+  if (!casinos || !casinos.length) return results;
+
+  const casinoIds = casinos.map(c => c.id).filter(id => id != null);
+  const casinoSlugs = casinos.map(c => c.slug).filter(Boolean);
+  if (!casinoIds.length) return results;
+
+  // ── Query 1: every geo_rules row for these casinos + this country, in one shot ──
+  const geoRuleBySlug = {};
+  if (casinoSlugs.length) {
+    const placeholders = casinoSlugs.map(() => '?').join(',');
+    const geoRulesResult = await db.prepare(`
+      SELECT * FROM geo_rules WHERE casino_slug IN (${placeholders}) AND country_code = ?
+    `).bind(...casinoSlugs, countryCode).all();
+    for (const rule of geoRulesResult.results || []) {
+      geoRuleBySlug[rule.casino_slug] = rule;
+    }
+  }
+
+  // ── Query 2: every active offer for these casinos, in one shot ──
+  const offersByCasinoId = {};
+  const placeholders = casinoIds.map(() => '?').join(',');
+  const offersResult = await db.prepare(`
+    SELECT * FROM offers WHERE casino_id IN (${placeholders}) AND status = 'active'
+    ORDER BY priority DESC, id ASC
+  `).bind(...casinoIds).all();
+  for (const offer of offersResult.results || []) {
+    (offersByCasinoId[offer.casino_id] ||= []).push(offer);
+  }
+
+  // ── Pure in-memory eligibility pass, per casino -- same logic as resolveOfferForCasino() ──
+  for (const casino of casinos) {
+    if (casino.id == null) continue;
+
+    const geoRule = casino.slug ? geoRuleBySlug[casino.slug] || null : null;
+    const geoAccess = geoEngine.evaluateAccess(
+      geoRule ? [{ country: geoRule.country_code, status: geoRule.status, bonus_override: geoRule.bonus_override, notes: geoRule.notes }] : [],
+      countryCode
+    );
+
+    if (geoAccess.status === 'blocked') {
+      results[casino.id] = { offer: null, geoBlocked: true, geoRule };
+      continue;
+    }
+
+    const candidates = offersByCasinoId[casino.id] || [];
+    const eligible = candidates.filter(o => isOfferDateEligible(o, now) && isOfferGeoEligible(o, countryCode));
+
+    results[casino.id] = eligible.length
+      ? { offer: eligible[0], geoBlocked: false, geoRule }
+      : { offer: null, geoBlocked: false, geoRule };
+  }
+
+  return results;
+}

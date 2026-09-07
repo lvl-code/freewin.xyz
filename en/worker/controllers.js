@@ -19,7 +19,7 @@ import {
 import { getGeoRule } from "./database/geo.js";
 import { geoEngine } from "./geo.js";
 import { resolveRedirectTarget } from "./tracking/redirect.js";
-import { resolveOfferForCasino } from "./offers/selection.js";
+import { resolveOfferForCasino, resolveOffersForCasinos } from "./offers/selection.js";
 import * as componentsDB from "./database/components.js";
 import * as seoMetaDB from "./database/seo_meta.js";
 import * as nav from "./database/nav.js";
@@ -323,43 +323,68 @@ async function resolveBonusDisplay(env, casino, countryCode) {
 
   try {
     const result = await resolveOfferForCasino(env.DB, { casinoId: casino.id, countryCode });
-
-    if (result.offer) {
-      return {
-        bonus_title: OFFER_TYPE_LABELS[result.offer.offer_type] || fallback.bonus_title,
-        bonus_value: result.offer.public_headline || fallback.bonus_value,
-      };
-    }
-    if (!result.geoBlocked && result.geoRule?.bonus_override) {
-      return {
-        bonus_title: fallback.bonus_title,
-        bonus_value: result.geoRule.bonus_override,
-      };
-    }
+    return bonusDisplayFromResult(result, fallback);
   } catch (err) {
     console.error("Offer resolution failed, falling back to legacy bonus fields:", err.message);
+    return fallback;
   }
+}
 
+/**
+ * Pure mapping from a resolveOfferForCasino()/resolveOffersForCasinos()
+ * result to the two fields the templates actually render. Factored out
+ * so the single-casino and batched-list paths can never drift from
+ * each other's display logic.
+ */
+function bonusDisplayFromResult(result, fallback) {
+  if (result.offer) {
+    return {
+      bonus_title: OFFER_TYPE_LABELS[result.offer.offer_type] || fallback.bonus_title,
+      bonus_value: result.offer.public_headline || fallback.bonus_value,
+    };
+  }
+  if (!result.geoBlocked && result.geoRule?.bonus_override) {
+    return {
+      bonus_title: fallback.bonus_title,
+      bonus_value: result.geoRule.bonus_override,
+    };
+  }
   return fallback;
 }
 
 /**
  * Batched version of resolveBonusDisplay() for list/grid contexts
- * (buildCasinoCards/buildReviewCasinoCards). Deliberately still calls
- * the SAME single-casino resolveOfferForCasino() service per casino
- * rather than a parallel bulk-query implementation -- the brief is
- * explicit that offer-selection logic must not be duplicated, and a
- * second GEO/eligibility algorithm here would risk drifting from the
- * canonical one used by the casino detail page and the redirect
- * route. For typical listing sizes this is an acceptable number of
- * indexed lookups; if a very large listing page ever needs it, a
- * batched query is a targeted future optimization, not a rewrite.
+ * (buildCasinoCards/buildReviewCasinoCards). Calls
+ * resolveOffersForCasinos() -- the batched sibling of
+ * resolveOfferForCasino() living in the SAME canonical selection
+ * module, sharing its exact eligibility logic -- so this does 2 D1
+ * queries total for the whole list instead of ~2 queries PER casino.
+ * That per-casino loop was the primary cause of slow list-page loads
+ * in production; this is the fix, not a rewrite of the eligibility
+ * rules themselves.
  */
 async function resolveBonusOverridesForList(env, casinoList, countryCode) {
   const overrides = {};
-  for (const casino of casinoList) {
-    if (!casino.id) continue;
-    overrides[casino.id] = await resolveBonusDisplay(env, casino, countryCode);
+  try {
+    const results = await resolveOffersForCasinos(env.DB, casinoList, countryCode);
+    for (const casino of casinoList) {
+      if (!casino.id) continue;
+      const fallback = {
+        bonus_title: casino.bonus_title || "Welcome Bonus",
+        bonus_value: casino.bonus_value || "",
+      };
+      const result = results[casino.id] || { offer: null, geoBlocked: false, geoRule: null };
+      overrides[casino.id] = bonusDisplayFromResult(result, fallback);
+    }
+  } catch (err) {
+    console.error("Batched offer resolution failed, falling back to legacy bonus fields for the whole list:", err.message);
+    for (const casino of casinoList) {
+      if (!casino.id) continue;
+      overrides[casino.id] = {
+        bonus_title: casino.bonus_title || "Welcome Bonus",
+        bonus_value: casino.bonus_value || "",
+      };
+    }
   }
   return overrides;
 }
