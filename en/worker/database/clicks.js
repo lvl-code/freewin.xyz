@@ -4,7 +4,8 @@ export async function logClick(
   country,
   city,
   ipHash,
-  userAgent
+  userAgent,
+  { trackingLinkId = null, offerId = null } = {}
 ) {
 
   return await db
@@ -14,16 +15,20 @@ export async function logClick(
         country_code,
         city,
         ip_hash,
-        user_agent
+        user_agent,
+        tracking_link_id,
+        offer_id
       )
-      VALUES (?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `)
     .bind(
       casinoSlug,
       country,
       city,
       ipHash,
-      userAgent
+      userAgent,
+      trackingLinkId,
+      offerId
     )
     .run();
 }

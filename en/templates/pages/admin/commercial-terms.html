@@ -1,0 +1,105 @@
+<div class="admin-wrapper">
+  {{admin_nav}}
+  <div class="admin-content">
+    <div class="admin-header">
+      <h1>Commercial Terms</h1>
+    </div>
+    <p class="muted">Terms are versioned history, never overwritten. Precedence when multiple terms could apply: an account-scoped term always outranks a program-only term; within that, more specific (casino + GEO) always outranks less specific.</p>
+
+    <div class="form-row" style="margin-bottom:16px">
+      <div class="form-group">
+        <label>Program *</label>
+        <select id="termsProgramFilter"><option value="">Select a program...</option></select>
+      </div>
+      <div class="form-group">
+        <label>Casino (optional filter)</label>
+        <select id="termsCasinoFilter"><option value="">All casinos</option></select>
+      </div>
+    </div>
+
+    <table class="admin-table">
+      <thead>
+        <tr><th>Scope</th><th>Type</th><th>Rate</th><th>Effective</th><th>Expires</th><th>Status</th><th>Actions</th></tr>
+      </thead>
+      <tbody id="termsTableBody">
+        <tr><td colspan="7" class="muted">Select a program to view its commercial term history.</td></tr>
+      </tbody>
+    </table>
+
+    <h2 style="margin-top:30px">Add Commercial Term</h2>
+    <form id="termForm" class="admin-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Program *</label>
+          <select name="program_id" id="termProgramSelect" required></select>
+        </div>
+        <div class="form-group">
+          <label>Account (optional — leave blank for program-wide)</label>
+          <select name="account_id" id="termAccountSelect"><option value="">Program-wide</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Casino (optional — leave blank for all casinos in this program)</label>
+          <select name="casino_id" id="termCasinoSelect"><option value="">All casinos</option></select>
+        </div>
+        <div class="form-group">
+          <label>GEO (optional — ISO country code, e.g. CA)</label>
+          <input type="text" name="geo_code" maxlength="2" placeholder="CA">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Term Type *</label>
+          <select name="term_type" id="termTypeSelect" required>
+            <option value="cpa">CPA</option>
+            <option value="revshare">Revenue Share</option>
+            <option value="hybrid">Hybrid</option>
+            <option value="fixed_fee">Fixed Fee</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Currency</label>
+          <input type="text" name="currency" value="USD" maxlength="3">
+        </div>
+      </div>
+
+      <div class="form-row term-fields" data-for="cpa">
+        <div class="form-group"><label>CPA Amount</label><input type="number" step="0.01" name="cpa_amount"></div>
+      </div>
+      <div class="form-row term-fields" data-for="revshare" style="display:none">
+        <div class="form-group"><label>Revenue Share %</label><input type="number" step="0.01" name="revshare_percent"></div>
+      </div>
+      <div class="form-row term-fields" data-for="hybrid" style="display:none">
+        <div class="form-group"><label>Hybrid CPA Amount</label><input type="number" step="0.01" name="hybrid_cpa_amount"></div>
+        <div class="form-group"><label>Hybrid Revenue Share %</label><input type="number" step="0.01" name="hybrid_revshare_percent"></div>
+      </div>
+      <div class="form-row term-fields" data-for="fixed_fee" style="display:none">
+        <div class="form-group"><label>Fixed Fee Amount</label><input type="number" step="0.01" name="fixed_fee_amount"></div>
+      </div>
+      <div class="form-group term-fields" data-for="custom" style="display:none">
+        <label>Custom Terms (JSON)</label>
+        <textarea name="custom_terms_json" placeholder='{"notes": "describe the custom arrangement"}'></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Effective Date *</label>
+          <input type="date" name="effective_date" required>
+        </div>
+        <div class="form-group">
+          <label>Expiry Date (leave blank = open-ended)</label>
+          <input type="date" name="expiry_date">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea name="notes"></textarea>
+      </div>
+      <div id="termFormAlert" class="alert" style="display:none"></div>
+      <button type="submit" class="btn btn--primary btn--lg">Create Term</button>
+      <p class="muted" style="margin-top:8px">If this conflicts with an existing active term covering the exact same scope and an overlapping date range, you'll need to supersede that term first (use the "Supersede" action in the table above).</p>
+    </form>
+  </div>
+</div>

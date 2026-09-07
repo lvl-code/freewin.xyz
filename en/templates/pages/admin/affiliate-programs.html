@@ -1,0 +1,83 @@
+<div class="admin-wrapper">
+  {{admin_nav}}
+  <div class="admin-content">
+    <div class="admin-header">
+      <h1>Affiliate Programs</h1>
+    </div>
+
+    <div class="form-row" style="margin-bottom:16px">
+      <div class="form-group">
+        <label>Filter by Partner</label>
+        <select id="programPartnerFilter"><option value="">All Partners</option></select>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="programStatusFilter">
+          <option value="">All</option>
+          <option value="active">Active</option>
+          <option value="paused">Paused</option>
+          <option value="ended">Ended</option>
+          <option value="archived">Archived</option>
+        </select>
+      </div>
+    </div>
+
+    <table class="admin-table">
+      <thead>
+        <tr><th>Program</th><th>Partner</th><th>Status</th><th>Casinos Covered</th><th>Actions</th></tr>
+      </thead>
+      <tbody id="programsTableBody">
+        <tr><td colspan="5" class="muted">Loading...</td></tr>
+      </tbody>
+    </table>
+
+    <h2 style="margin-top:30px">Add / Edit Program</h2>
+    <p class="muted">A program can cover multiple casinos, and a casino can sit under multiple programs at once — this is deliberate.</p>
+    <form id="programForm" class="admin-form">
+      <input type="hidden" name="id" id="programId" value="">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Partner *</label>
+          <select name="partner_id" id="programPartnerSelect" required></select>
+        </div>
+        <div class="form-group">
+          <label>Program Name *</label>
+          <input type="text" name="name" required placeholder="Standard CPA Program">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Status</label>
+          <select name="status">
+            <option value="active">Active</option>
+            <option value="paused">Paused</option>
+            <option value="ended">Ended</option>
+            <option value="archived">Archived</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Portal URL</label>
+          <input type="text" name="portal_url" placeholder="https://partner.example.com/portal">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Covered Casinos</label>
+        <select name="casino_ids" id="programCasinoSelect" multiple size="8"></select>
+        <p class="muted" style="margin-top:4px">Hold Ctrl/Cmd to select multiple. A casino can appear under several programs.</p>
+      </div>
+      <div class="form-group">
+        <label>Reporting Notes</label>
+        <textarea name="reporting_notes" placeholder="How to pull reports, reporting delays, etc."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea name="notes"></textarea>
+      </div>
+      <div id="programFormAlert" class="alert" style="display:none"></div>
+      <div style="display:flex;gap:12px">
+        <button type="submit" class="btn btn--primary btn--lg" id="programSubmitBtn">Create Program</button>
+        <button type="button" class="btn btn--ghost btn--lg" id="programCancelEdit" style="display:none" onclick="cancelProgramEdit()">Cancel Edit</button>
+      </div>
+    </form>
+  </div>
+</div>

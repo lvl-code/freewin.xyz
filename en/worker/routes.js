@@ -233,6 +233,12 @@ export function getRoute(request) {
   if (path === "/en/dashboard/submissions") return { type: "dashboardSubmissions" };
   if (path === "/en/dashboard/notifications") return { type: "dashboardNotifications" };
   if (path === "/en/dashboard/banners") return { type: "dashboardBanners" };
+  if (path === "/en/dashboard/affiliate-partners") return { type: "dashboardAffiliatePartners" };
+  if (path === "/en/dashboard/affiliate-programs") return { type: "dashboardAffiliatePrograms" };
+  if (path === "/en/dashboard/affiliate-accounts") return { type: "dashboardAffiliateAccounts" };
+  if (path === "/en/dashboard/commercial-terms") return { type: "dashboardCommercialTerms" };
+  if (path === "/en/dashboard/offers") return { type: "dashboardOffers" };
+  if (path === "/en/dashboard/tracking-links") return { type: "dashboardTrackingLinks" };
 
   const casinoEditMatch = path.match(/^\/en\/dashboard\/casino\/edit\/([^/]+)$/);
   if (casinoEditMatch) return { type: "dashboardCasinoEdit", slug: casinoEditMatch[1] };

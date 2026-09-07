@@ -18,6 +18,8 @@ import {
 } from "./auth.js";
 import { getGeoRule } from "./database/geo.js";
 import { geoEngine } from "./geo.js";
+import { resolveRedirectTarget } from "./tracking/redirect.js";
+import { resolveOfferForCasino } from "./offers/selection.js";
 import * as componentsDB from "./database/components.js";
 import * as seoMetaDB from "./database/seo_meta.js";
 import * as nav from "./database/nav.js";
@@ -205,6 +207,7 @@ export async function renderHome(request, env) {
   const others = sortedCasinos.filter(c =>
     geoData.statuses[c.slug] === "blocked" || geoData.statuses[c.slug] === "restricted"
   );
+  const bonusOverrides = await resolveBonusOverridesForList(env, casinoList, geoData.country);
 
   const allComponents = await renderer.renderAllComponents("homepage", "homepage");
   const dynamicSeo = await renderer.loadDynamicSeo("homepage", "homepage");
@@ -261,9 +264,9 @@ export async function renderHome(request, env) {
     seo_description: dynamicSeo.seo_description || "Expert casino reviews, exclusive bonuses, and real player data for casinos worldwide.",
     canonical: dynamicSeo.canonical || site.url("/en"),
     og_image: dynamicSeo.og_image || "",
-    casino_cards: buildCasinoCards(available, geoData),
+    casino_cards: buildCasinoCards(available, geoData, bonusOverrides),
     casino_count: casinoList.length,
-    hidden_casino_cards: buildCasinoCards(others, geoData),
+    hidden_casino_cards: buildCasinoCards(others, geoData, bonusOverrides),
     has_hidden: others.length > 0,
     hidden_count: others.length,
     components_top: allComponents.top,
@@ -284,6 +287,82 @@ export async function renderHome(request, env) {
   });
 }
 
+
+// System 2 (Offers) integration: maps an offer_type to the short
+// label the existing bonus_title/bonus_value template slots expect
+// (e.g. "Welcome Bonus", matching the style of the legacy
+// casinos.bonus_title values already in use). Kept local to this file
+// since it's purely a display concern, not a data-layer one.
+const OFFER_TYPE_LABELS = {
+  welcome: "Welcome Bonus",
+  deposit: "Deposit Bonus",
+  no_deposit: "No Deposit Bonus",
+  free_spins: "Free Spins",
+  cashback: "Cashback",
+  reload: "Reload Bonus",
+  vip: "VIP Offer",
+  tournament: "Tournament Offer",
+  custom: "Special Offer",
+};
+
+/**
+ * Resolves the bonus_title/bonus_value shown on a casino page/card,
+ * per the three-rung fallback chain documented in
+ * migrations/0024_offers.sql:
+ *   1. An active, GEO-eligible Offer for this casino
+ *   2. geo_rules.bonus_override for the visitor's country (pre-existing)
+ *   3. casinos.bonus_title / casinos.bonus_value (pre-existing, legacy)
+ * Never throws -- a failure anywhere in offer resolution falls back
+ * to the casino's own legacy fields rather than breaking the page.
+ */
+async function resolveBonusDisplay(env, casino, countryCode) {
+  const fallback = {
+    bonus_title: casino.bonus_title || "Welcome Bonus",
+    bonus_value: casino.bonus_value || "",
+  };
+
+  try {
+    const result = await resolveOfferForCasino(env.DB, { casinoId: casino.id, countryCode });
+
+    if (result.offer) {
+      return {
+        bonus_title: OFFER_TYPE_LABELS[result.offer.offer_type] || fallback.bonus_title,
+        bonus_value: result.offer.public_headline || fallback.bonus_value,
+      };
+    }
+    if (!result.geoBlocked && result.geoRule?.bonus_override) {
+      return {
+        bonus_title: fallback.bonus_title,
+        bonus_value: result.geoRule.bonus_override,
+      };
+    }
+  } catch (err) {
+    console.error("Offer resolution failed, falling back to legacy bonus fields:", err.message);
+  }
+
+  return fallback;
+}
+
+/**
+ * Batched version of resolveBonusDisplay() for list/grid contexts
+ * (buildCasinoCards/buildReviewCasinoCards). Deliberately still calls
+ * the SAME single-casino resolveOfferForCasino() service per casino
+ * rather than a parallel bulk-query implementation -- the brief is
+ * explicit that offer-selection logic must not be duplicated, and a
+ * second GEO/eligibility algorithm here would risk drifting from the
+ * canonical one used by the casino detail page and the redirect
+ * route. For typical listing sizes this is an acceptable number of
+ * indexed lookups; if a very large listing page ever needs it, a
+ * batched query is a targeted future optimization, not a rewrite.
+ */
+async function resolveBonusOverridesForList(env, casinoList, countryCode) {
+  const overrides = {};
+  for (const casino of casinoList) {
+    if (!casino.id) continue;
+    overrides[casino.id] = await resolveBonusDisplay(env, casino, countryCode);
+  }
+  return overrides;
+}
 
 export async function renderCasino(request, env, slug) {
   const casino = await casinos.getCasino(env.DB, slug);
@@ -360,6 +439,7 @@ export async function renderCasino(request, env, slug) {
 
   const allComponents = await renderer.renderAllComponents("casino", slug);
   const dynamicSeo = await renderer.loadDynamicSeo("casino", slug);
+  const bonusDisplay = await resolveBonusDisplay(env, casino, geoInfo.country);
 
   // ── Related Casinos ({{{related_casinos_html}}}) ──────────
   // Same pattern as related_news_html in renderNews(): compute
@@ -374,7 +454,8 @@ export async function renderCasino(request, env, slug) {
         country: geoInfo.country,
         statuses: Object.fromEntries(relatedCasinos.map(c => [c.slug, "allowed"]))
       };
-      relatedCasinosHtml = buildCasinoCards(relatedCasinos, relatedGeoData);
+      const relatedBonusOverrides = await resolveBonusOverridesForList(env, relatedCasinos, geoInfo.country);
+      relatedCasinosHtml = buildCasinoCards(relatedCasinos, relatedGeoData, relatedBonusOverrides);
     }
   } catch (e) {
     console.error("Related casinos failed to load:", e.message);
@@ -393,8 +474,8 @@ export async function renderCasino(request, env, slug) {
     canonical: dynamicSeo.canonical || site.url(`/en/casino/${slug}`),
     rating_display: ratingDisplay,
     features_html: featuresHtml,
-    bonus_title: casino.bonus_title || "Welcome Bonus",
-    bonus_value: casino.bonus_value || "",
+    bonus_title: bonusDisplay.bonus_title,
+    bonus_value: bonusDisplay.bonus_value,
     website_url: casino.website_url || "",
     status: casino.status || "published",
     geo: geoInfo,
@@ -500,10 +581,14 @@ function sortCasinosByGeo(casinoList, geoData) {
   return [...allowed, ...blocked];
 }
 
-function buildCasinoCards(casinoList, geoData = null) {
+function buildCasinoCards(casinoList, geoData = null, bonusOverrides = {}) {
   return casinoList.map(casino => {
     const flag = geoData ? countryToFlag(geoData.country) : "";
     const geoStatus = geoData ? (geoData.statuses[casino.slug] || "unknown") : "unknown";
+    const bonusDisplay = bonusOverrides[casino.id] || {
+      bonus_title: casino.bonus_title || "Welcome Bonus",
+      bonus_value: casino.bonus_value || "",
+    };
  //   const geoIcon = geoStatus === "allowed" ? "✓" : "✕";
  //   const geoClass = geoStatus === "allowed" ? "geo-badge--allowed" : "geo-badge--blocked";
 
@@ -567,8 +652,8 @@ function buildCasinoCards(casinoList, geoData = null) {
 </div>
 <div class="casino-card__body">
   <div class="casino-card__bonus">
-    <span class="bonus-title">${casino.bonus_title || 'Welcome Bonus'}</span>
-    <span class="bonus-value">${casino.bonus_value || ''}</span>
+    <span class="bonus-title">${bonusDisplay.bonus_title}</span>
+    <span class="bonus-value">${bonusDisplay.bonus_value}</span>
   </div>
   ${geoStatusText}
   ${complianceHtml}
@@ -582,10 +667,14 @@ function buildCasinoCards(casinoList, geoData = null) {
   }).join('');
 }
 
-function buildReviewCasinoCards(casinoList, geoData = null) {
+function buildReviewCasinoCards(casinoList, geoData = null, bonusOverrides = {}) {
   return casinoList.map(casino => {
     const flag = geoData ? countryToFlag(geoData.country) : "";
     const geoStatus = geoData ? (geoData.statuses[casino.slug] || "unknown") : "unknown";
+    const bonusDisplay = bonusOverrides[casino.id] || {
+      bonus_title: casino.bonus_title || "Welcome Bonus",
+      bonus_value: casino.bonus_value || "",
+    };
  //   const geoIcon = geoStatus === "allowed" ? "✓" : "✕";
  //   const geoClass = geoStatus === "allowed" ? "geo-badge--allowed" : "geo-badge--blocked";
 
@@ -653,8 +742,8 @@ function buildReviewCasinoCards(casinoList, geoData = null) {
 </div>
 <div class="casino-card__body">
   <div class="casino-card__bonus">
-    <span class="bonus-title">${casino.bonus_title || 'Welcome Bonus'}</span>
-    <span class="bonus-value">${casino.bonus_value || ''}</span>
+    <span class="bonus-title">${bonusDisplay.bonus_title}</span>
+    <span class="bonus-value">${bonusDisplay.bonus_value}</span>
   </div>
   ${geoStatusText}
   ${complianceHtml}
@@ -743,6 +832,7 @@ if (review.casino_slug) {
   const casino = await casinos.getCasino(env.DB, review.casino_slug);
 
   if (casino) {
+    const reviewBonusOverrides = await resolveBonusOverridesForList(env, [casino], geoCountry);
     casinoCardHtml = buildReviewCasinoCards(
       [casino],
       {
@@ -750,7 +840,8 @@ if (review.casino_slug) {
         statuses: {
           [casino.slug]: geoStatus
         }
-      }
+      },
+      reviewBonusOverrides
     );
   }
 }
@@ -841,7 +932,8 @@ if (review.casino_slug) {
           country: geoCountry,
           statuses: Object.fromEntries(relatedCasinos.map(c => [c.slug, "allowed"]))
         };
-        relatedCasinosHtml = buildCasinoCards(relatedCasinos, relatedGeoData);
+        const relatedBonusOverrides = await resolveBonusOverridesForList(env, relatedCasinos, geoCountry);
+        relatedCasinosHtml = buildCasinoCards(relatedCasinos, relatedGeoData, relatedBonusOverrides);
       }
     } catch (e) {
       console.error("Related casinos failed to load:", e.message);
@@ -1708,16 +1800,21 @@ export async function
 handleAffiliateRedirect(
   request,
   env,
-  slug
+  identifier
 ){
 
-  const casino =
-    await casinos.getCasino(
-      env.DB,
-      slug
-    );
+  const edgeGeo = {
+    country: request.cf?.country || null,
+    city: request.cf?.city || "Unknown"
+  };
+  const geoInfo = geoEngine.process(request, edgeGeo);
 
-  if (!casino) {
+  const result = await resolveRedirectTarget(env.DB, {
+    identifier,
+    countryCode: geoInfo.country
+  });
+
+  if (result.type === "not_found") {
     return render404(request, env);
   }
 
@@ -1727,19 +1824,58 @@ handleAffiliateRedirect(
       "CF-Connecting-IP"
     )
   );
+  const userAgent = request.headers.get("user-agent");
 
-await logClick(
-  env.DB,
-  slug,
-  request.cf?.country || null,
-  request.cf?.city || "",
-  ipHash,
-  request.headers.get(
-    "user-agent"
-  )
-);
+  // A known link that isn't redirectable right now (health-broken or
+  // GEO-ineligible for this visitor's country). Falls back to the
+  // casino's own legacy URL when available -- a RELATED fallback, not
+  // the "unrelated fallback casino" the brief explicitly warns
+  // against. With no fallback at all, show the same not-found
+  // experience rather than a raw error -- the visitor doesn't need to
+  // know the technical distinction between "doesn't exist" and
+  // "temporarily broken."
+  if (result.type === "unavailable") {
+    if (result.fallbackUrl) {
+      await logClick(
+        env.DB,
+        result.casino?.slug || identifier,
+        geoInfo.country,
+        geoInfo.city,
+        ipHash,
+        userAgent,
+        { trackingLinkId: result.trackingLink.id, offerId: result.trackingLink.offer_id }
+      );
+      return Response.redirect(result.fallbackUrl, 302);
+    }
+    return render404(request, env);
+  }
+
+  if (result.type === "tracking_link") {
+    await logClick(
+      env.DB,
+      result.casino?.slug || identifier,
+      geoInfo.country,
+      geoInfo.city,
+      ipHash,
+      userAgent,
+      { trackingLinkId: result.trackingLink.id, offerId: result.trackingLink.offer_id }
+    );
+    return Response.redirect(result.destinationUrl, 302);
+  }
+
+  // result.type === "legacy_casino" -- identical behavior to before
+  // this system existed, for any link not yet migrated to a tracking link.
+  await logClick(
+    env.DB,
+    result.casino.slug,
+    geoInfo.country,
+    geoInfo.city,
+    ipHash,
+    userAgent,
+    {}
+  );
   return Response.redirect(
-    casino.affiliate_url,
+    result.destinationUrl,
     302
   );
 }
@@ -1853,6 +1989,7 @@ export async function renderCountry(request, env, slug) {
   casinoList.sort((a, b) => (b.rating || 0) - (a.rating || 0));
   
   const geoData = await prepareGeoData(env, request, casinoList);
+  const bonusOverrides = await resolveBonusOverridesForList(env, casinoList, geoData.country);
   const renderer = new Renderer(env, request);
   const site = await getSiteContext(request, env);
   const countrySchema = {
@@ -1876,7 +2013,7 @@ export async function renderCountry(request, env, slug) {
   }
   const casinoLookupById = {};
   for (const c of casinoList) casinoLookupById[c.id] = c;
-  const sectionsHtml = renderSeoPageSections(countryContent, casinoLookupById, {}, geoData);
+  const sectionsHtml = renderSeoPageSections(countryContent, casinoLookupById, {}, geoData, bonusOverrides);
   const faqSchema = seoPageFaqSchema(countryContent);
   const subNavItems = await nav.getScopedNavItems(env.DB, "country_subnav", "country", code);
   const hubSubNavHtml = buildHubSubNavHtml(subNavItems);
@@ -1896,7 +2033,7 @@ export async function renderCountry(request, env, slug) {
     robots: countryData.robots || "index,follow",
     sections_html: sectionsHtml,
     hub_subnav_html: hubSubNavHtml,
-    casino_cards: buildCasinoCards(casinoList, geoData),
+    casino_cards: buildCasinoCards(casinoList, geoData, bonusOverrides),
   }, [countrySchema, faqSchema].filter(Boolean), buildBreadcrumbs("country", { name: countryData.name }));
   return new Response(html, {
     headers: cacheHeaders()
@@ -1912,6 +2049,7 @@ export async function renderCategory(request, env, slug) {
 
   const casinoList = await categories.getCategoryCasinos(env.DB, slug);
   const geoData = await prepareGeoData(env, request, casinoList);
+  const bonusOverrides = await resolveBonusOverridesForList(env, casinoList, geoData.country);
   const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
 
   const renderer = new Renderer(env, request);
@@ -1937,7 +2075,7 @@ export async function renderCategory(request, env, slug) {
   }
   const casinoLookupById = {};
   for (const c of sortedCasinos) casinoLookupById[c.id] = c;
-  const sectionsHtml = renderSeoPageSections(categoryContent, casinoLookupById, {}, geoData);
+  const sectionsHtml = renderSeoPageSections(categoryContent, casinoLookupById, {}, geoData, bonusOverrides);
   const faqSchema = seoPageFaqSchema(categoryContent);
   const subNavItems = await nav.getScopedNavItems(env.DB, "category_subnav", "category", slug);
   const hubSubNavHtml = buildHubSubNavHtml(subNavItems);
@@ -1959,7 +2097,7 @@ export async function renderCategory(request, env, slug) {
     hub_subnav_html: hubSubNavHtml,
     category: category.name,
     description: category.description,
-    casino_cards: buildCasinoCards(sortedCasinos, geoData),
+    casino_cards: buildCasinoCards(sortedCasinos, geoData, bonusOverrides),
   }, [categorySchema, faqSchema].filter(Boolean), buildBreadcrumbs("category", { category: category.name }));
 
   return new Response(html, {
@@ -2010,7 +2148,7 @@ async function resolveSeoPageCasinos(env, page, eligibleCasinos) {
 // casino_editorial, casino_spotlights, faq, cta. Unknown types are
 // skipped rather than erroring, so older/partial content never
 // breaks a page.
-function renderSeoPageSections(content, casinoLookupById, editorialByKey, geoData) {
+function renderSeoPageSections(content, casinoLookupById, editorialByKey, geoData, bonusOverrides = {}) {
   const sections = Array.isArray(content?.sections) ? content.sections : [];
 
   return sections
@@ -2039,7 +2177,7 @@ function renderSeoPageSections(content, casinoLookupById, editorialByKey, geoDat
             ? ids.map((id) => casinoLookupById[id]).filter(Boolean)
             : Object.values(casinoLookupById);
           if (list.length === 0) return "";
-          return `<section class="seo-section seo-section--casinos">${heading}<div class="casino-grid">${buildCasinoCards(list, geoData)}</div></section>`;
+          return `<section class="seo-section seo-section--casinos">${heading}<div class="casino-grid">${buildCasinoCards(list, geoData, bonusOverrides)}</div></section>`;
         }
 
         case "casino_editorial": {
@@ -2050,7 +2188,7 @@ function renderSeoPageSections(content, casinoLookupById, editorialByKey, geoDat
           return `
             <section class="seo-section seo-section--casino-editorial">
               ${heading}
-              <div class="casino-grid">${buildCasinoCards([casino], geoData)}</div>
+              <div class="casino-grid">${buildCasinoCards([casino], geoData, bonusOverrides)}</div>
               ${body ? `<div class="seo-section__body">${body}</div>` : ""}
             </section>`;
         }
@@ -2069,7 +2207,7 @@ function renderSeoPageSections(content, casinoLookupById, editorialByKey, geoDat
               if (!casino) return "";
               return `
                 <div class="seo-section__casino-spotlight">
-                  <div class="casino-grid">${buildCasinoCards([casino], geoData)}</div>
+                  <div class="casino-grid">${buildCasinoCards([casino], geoData, bonusOverrides)}</div>
                   ${sp.body ? `<div class="seo-section__body">${sp.body}</div>` : ""}
                 </div>`;
             })
@@ -2191,6 +2329,10 @@ export async function renderCountryCustomPage(request, env, countryCode, slug) {
   // Editorial sections can reference any eligible casino, even one
   // not in the main grid — make sure those resolve too.
   for (const c of eligibleCasinos) if (!casinoLookupById[c.id]) casinoLookupById[c.id] = c;
+  // One shared overrides map covers both the main grid AND any
+  // casino_grid/casino_editorial sections rendered below — every
+  // casino either could ever reference is already in casinoLookupById.
+  const bonusOverrides = await resolveBonusOverridesForList(env, Object.values(casinoLookupById), geoData.country);
 
   let content = {};
   try {
@@ -2227,8 +2369,8 @@ export async function renderCountryCustomPage(request, env, countryCode, slug) {
   const html = await renderer.render("seo-landing.html", {
     title: page.title,
     intro: content.intro || "",
-    sections_html: renderSeoPageSections(content, casinoLookupById, editorialByKey, geoData),
-    casino_cards: buildCasinoCards(mainList, geoData),
+    sections_html: renderSeoPageSections(content, casinoLookupById, editorialByKey, geoData, bonusOverrides),
+    casino_cards: buildCasinoCards(mainList, geoData, bonusOverrides),
     has_casinos: mainList.length > 0,
     country_name: country.name,
     country_code: code,
@@ -2294,6 +2436,7 @@ export async function renderCategoryCountryPage(request, env, categorySlug, coun
   const casinoLookupById = {};
   for (const c of mainList) casinoLookupById[c.id] = c;
   for (const c of eligibleCasinos) if (!casinoLookupById[c.id]) casinoLookupById[c.id] = c;
+  const bonusOverrides = await resolveBonusOverridesForList(env, Object.values(casinoLookupById), geoData.country);
 
   let content = {};
   try {
@@ -2322,8 +2465,8 @@ export async function renderCategoryCountryPage(request, env, categorySlug, coun
   const html = await renderer.render("seo-landing.html", {
     title: effectivePage.title,
     intro: content.intro || category.description || "",
-    sections_html: renderSeoPageSections(content, casinoLookupById, editorialByKey, geoData),
-    casino_cards: buildCasinoCards(mainList, geoData),
+    sections_html: renderSeoPageSections(content, casinoLookupById, editorialByKey, geoData, bonusOverrides),
+    casino_cards: buildCasinoCards(mainList, geoData, bonusOverrides),
     has_casinos: mainList.length > 0,
     country_name: country.name,
     country_code: code,
@@ -2517,6 +2660,7 @@ export async function renderCasinoList(request, env) {
   const casinoList = await casinos.getAllCasinos(env.DB);
   const geoData = await prepareGeoData(env, request, casinoList);
   const sortedCasinos = sortCasinosByGeo(casinoList, geoData);
+  const bonusOverrides = await resolveBonusOverridesForList(env, casinoList, geoData.country);
   const allComponents = await renderer.renderAllComponents("casino_list", "casino_list");
   const dynamicSeo = await renderer.loadDynamicSeo("casino_list", "casino_list");
 
@@ -2534,7 +2678,7 @@ export async function renderCasinoList(request, env) {
     canonical: dynamicSeo.canonical ||site.url("/en/casino"),
     category: "All Casinos",
     description: "Browse our complete directory of reviewed online casinos.",
-    casino_cards: buildCasinoCards(sortedCasinos, geoData),
+    casino_cards: buildCasinoCards(sortedCasinos, geoData, bonusOverrides),
     components_top: allComponents.top,
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
@@ -3917,6 +4061,30 @@ export async function renderDashboardNotifications(request, env) {
 
 export async function renderDashboardBanners(request, env) {
   return renderAdminPage(request, env, "admin/banners.html");
+}
+
+export async function renderDashboardAffiliatePartners(request, env) {
+  return renderAdminPage(request, env, "admin/affiliate-partners.html");
+}
+
+export async function renderDashboardAffiliatePrograms(request, env) {
+  return renderAdminPage(request, env, "admin/affiliate-programs.html");
+}
+
+export async function renderDashboardAffiliateAccounts(request, env) {
+  return renderAdminPage(request, env, "admin/affiliate-accounts.html");
+}
+
+export async function renderDashboardCommercialTerms(request, env) {
+  return renderAdminPage(request, env, "admin/commercial-terms.html");
+}
+
+export async function renderDashboardOffers(request, env) {
+  return renderAdminPage(request, env, "admin/offers.html");
+}
+
+export async function renderDashboardTrackingLinks(request, env) {
+  return renderAdminPage(request, env, "admin/tracking-links.html");
 }
 
 export async function renderSitemapPage(request, env) {

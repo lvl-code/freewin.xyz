@@ -1,0 +1,159 @@
+<div class="admin-wrapper">
+  {{admin_nav}}
+  <div class="admin-content">
+    <div class="admin-header">
+      <h1>Tracking Links</h1>
+    </div>
+    <p class="muted">Every affiliate destination should live here, not embedded in templates or casino records. Links are never deleted — disable or archive them instead.</p>
+
+    <div class="form-row" style="margin-bottom:16px">
+      <div class="form-group">
+        <label>Casino</label>
+        <select id="tlCasinoFilter"><option value="">All Casinos</option></select>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="tlStatusFilter">
+          <option value="">All</option>
+          <option value="active">Active</option>
+          <option value="disabled">Disabled</option>
+          <option value="archived">Archived</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Health</label>
+        <select id="tlHealthFilter">
+          <option value="">All</option>
+          <option value="healthy">Healthy</option>
+          <option value="warning">Warning</option>
+          <option value="broken">Broken</option>
+          <option value="restricted">Restricted</option>
+          <option value="timeout">Timeout</option>
+          <option value="unknown">Unknown</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Search</label>
+        <input type="text" id="tlSearch" placeholder="Search by name or code...">
+      </div>
+    </div>
+
+    <table class="admin-table">
+      <thead>
+        <tr><th>Name / Code</th><th>Casino</th><th>Destination</th><th>Status</th><th>Health</th><th>Actions</th></tr>
+      </thead>
+      <tbody id="tlTableBody">
+        <tr><td colspan="6" class="muted">Loading...</td></tr>
+      </tbody>
+    </table>
+
+    <div id="tlDetailSection" style="display:none;margin-top:20px">
+      <h3>GEO Destination Overrides — <span id="tlDetailName"></span></h3>
+      <table class="admin-table">
+        <thead><tr><th>Country</th><th>Override URL</th></tr></thead>
+        <tbody id="tlGeoDestBody"></tbody>
+      </table>
+      <form id="tlGeoDestForm" class="admin-form" style="margin-top:12px">
+        <div class="form-row">
+          <div class="form-group"><label>Country Code</label><input type="text" id="tlGeoDestCountry" maxlength="2" placeholder="CA"></div>
+          <div class="form-group"><label>Override Destination URL</label><input type="text" id="tlGeoDestUrl" placeholder="https://..."></div>
+        </div>
+        <button type="button" class="btn btn--secondary" onclick="addGeoDestination()">Add / Replace Override</button>
+      </form>
+
+      <h3 style="margin-top:24px">Health Check History</h3>
+      <table class="admin-table">
+        <thead><tr><th>Checked</th><th>Status</th><th>HTTP</th><th>Redirects</th><th>Response Time</th><th>Detail</th></tr></thead>
+        <tbody id="tlHealthHistoryBody"></tbody>
+      </table>
+    </div>
+
+    <h2 style="margin-top:30px">Add / Edit Tracking Link</h2>
+    <form id="tlForm" class="admin-form">
+      <input type="hidden" name="id" id="tlId" value="">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Internal Name *</label>
+          <input type="text" name="internal_name" required placeholder="CA Welcome Campaign — Program A">
+        </div>
+        <div class="form-group">
+          <label>Custom Tracking Code (optional — leave blank to auto-generate)</label>
+          <input type="text" name="tracking_code" placeholder="summer-promo-2026">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Destination URL *</label>
+        <input type="text" name="destination_url" required placeholder="https://real-casino.com/aff?id=42">
+        <p class="muted" style="margin-top:4px">Must be https:// and cannot point back at this site's own domain.</p>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Casino</label>
+          <select name="casino_id" id="tlCasinoSelect"><option value="">None</option></select>
+        </div>
+        <div class="form-group">
+          <label>Affiliate Partner</label>
+          <select name="partner_id" id="tlPartnerSelect"><option value="">None</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Affiliate Program</label>
+          <select name="program_id" id="tlProgramSelect"><option value="">None</option></select>
+        </div>
+        <div class="form-group">
+          <label>Offer</label>
+          <select name="offer_id" id="tlOfferSelect"><option value="">None</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Campaign</label><input type="text" name="campaign"></div>
+        <div class="form-group"><label>Source</label><input type="text" name="source"></div>
+        <div class="form-group"><label>Medium</label><input type="text" name="medium"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Allowed GEOs (comma-separated, optional)</label>
+          <input type="text" name="allowed_geos" placeholder="CA, DE — leave blank for no extra restriction">
+        </div>
+        <div class="form-group">
+          <label>Blocked GEOs (comma-separated, optional)</label>
+          <input type="text" name="blocked_geos" placeholder="US, FR">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Priority</label><input type="number" name="priority" value="0"></div>
+        <div class="form-group">
+          <label>Status</label>
+          <select name="status">
+            <option value="active">Active</option>
+            <option value="disabled">Disabled</option>
+            <option value="archived">Archived</option>
+          </select>
+        </div>
+      </div>
+      <div id="tlFormAlert" class="alert" style="display:none"></div>
+      <div style="display:flex;gap:12px">
+        <button type="submit" class="btn btn--primary btn--lg" id="tlSubmitBtn">Create Tracking Link</button>
+        <button type="button" class="btn btn--ghost btn--lg" id="tlCancelEdit" style="display:none" onclick="cancelTlEdit()">Cancel Edit</button>
+      </div>
+    </form>
+
+    <h2 style="margin-top:30px">Preview Redirect Resolution</h2>
+    <p class="muted">See exactly what /en/go/&lt;identifier&gt; would do for a given country — uses the real resolution service.</p>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Identifier (tracking code or casino slug)</label>
+        <input type="text" id="tlPreviewIdentifier" placeholder="trk-abc123 or casino-x">
+      </div>
+      <div class="form-group">
+        <label>Country Code</label>
+        <input type="text" id="tlPreviewCountry" maxlength="2" placeholder="CA">
+      </div>
+      <div class="form-group" style="display:flex;align-items:flex-end">
+        <button type="button" class="btn btn--secondary" onclick="runTlPreview()">Preview</button>
+      </div>
+    </div>
+    <div id="tlPreviewResult" class="alert" style="display:none"></div>
+  </div>
+</div>

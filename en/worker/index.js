@@ -31,6 +31,12 @@ import {
   renderDashboardSubmissions,
   renderDashboardNotifications,
   renderDashboardBanners,
+  renderDashboardAffiliatePartners,
+  renderDashboardAffiliatePrograms,
+  renderDashboardAffiliateAccounts,
+  renderDashboardCommercialTerms,
+  renderDashboardOffers,
+  renderDashboardTrackingLinks,
   renderDashboardSeo,
   renderDashboardCasinos,
   renderDashboardCasinoCreate,
@@ -79,6 +85,7 @@ import {
 }
 from "./auth.js";
 import { cleanupExpiredSessions } from "./cron.js";
+import { runScheduledHealthChecks } from "./tracking/health-check.js";
 
 import { cleanupExpiredConversations } from "./ai/memory.js";
 
@@ -313,6 +320,18 @@ if (
         return renderDashboardNotifications(request, env);
       case "dashboardBanners":
         return renderDashboardBanners(request, env);
+      case "dashboardAffiliatePartners":
+        return renderDashboardAffiliatePartners(request, env);
+      case "dashboardAffiliatePrograms":
+        return renderDashboardAffiliatePrograms(request, env);
+      case "dashboardAffiliateAccounts":
+        return renderDashboardAffiliateAccounts(request, env);
+      case "dashboardCommercialTerms":
+        return renderDashboardCommercialTerms(request, env);
+      case "dashboardOffers":
+        return renderDashboardOffers(request, env);
+      case "dashboardTrackingLinks":
+        return renderDashboardTrackingLinks(request, env);
 
       case "dashboardCasinoEdit":
         return renderDashboardCasinoEdit(request, env, route.slug);
@@ -470,6 +489,21 @@ case "sitemap-seo-pages":
 
         ctx.waitUntil(
             cleanupExpiredSessions(env)
+        );
+
+        // Link health monitoring (System 3) -- runScheduledHealthChecks()
+        // checks the system_settings feature flag itself and no-ops when
+        // it's off (the default), so this call is always safe to leave
+        // in place even before the flag is deliberately enabled for a
+        // given deployment. See migrations/0025_tracking_links.sql and
+        // worker/tracking/health-check.js for the full reasoning --
+        // this does NOT get activated just by this wiring existing; it
+        // also requires both this wrangler.jsonc's cron trigger to be
+        // uncommented AND the system_settings row to be set to 'true'.
+        ctx.waitUntil(
+            runScheduledHealthChecks(env.DB).catch(() => {
+                // Never let a health-check failure affect other scheduled tasks.
+            })
         );
 
     }

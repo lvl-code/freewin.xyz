@@ -30,7 +30,14 @@ const RESOURCE_REGISTRY = {
   'pages':             { table: 'pages',            idColumn: 'id', slugColumn: 'slug', ownerColumn: 'created_by' },
   'platform-updates':  { table: 'platform_updates', idColumn: 'id', slugColumn: 'slug', ownerColumn: 'created_by' },
   'media':             { table: 'media_library',    idColumn: 'id', slugColumn: null,   ownerColumn: 'uploaded_by' },
-  'seo_pages':         { table: 'seo_pages',         idColumn: 'id', slugColumn: null,   ownerColumn: 'created_by' }
+  'seo_pages':         { table: 'seo_pages',         idColumn: 'id', slugColumn: null,   ownerColumn: 'created_by' },
+  // Affiliate Partner & Program Management (System 1)
+  'affiliate_partners': { table: 'affiliate_partners',         idColumn: 'id', slugColumn: 'slug', ownerColumn: 'created_by' },
+  'affiliate_programs': { table: 'affiliate_programs',         idColumn: 'id', slugColumn: null,   ownerColumn: 'created_by' },
+  'affiliate_accounts': { table: 'affiliate_accounts',         idColumn: 'id', slugColumn: null,   ownerColumn: 'created_by' },
+  'commercial_terms':   { table: 'affiliate_commercial_terms', idColumn: 'id', slugColumn: null,   ownerColumn: 'created_by' },
+  'offers':             { table: 'offers',                     idColumn: 'id', slugColumn: null,   ownerColumn: 'created_by' },
+  'tracking_links':     { table: 'tracking_links',              idColumn: 'id', slugColumn: null,   ownerColumn: 'created_by' }
 };
 
 const VALID_SCOPES = ['none', 'own', 'all', 'assigned'];

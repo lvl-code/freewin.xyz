@@ -15,6 +15,19 @@ import * as platformUpdates from "./database/platform-updates.js";
 import * as seoPages from "./database/seo-pages.js";
 import * as adRulesDB from "./database/ad-rules.js";
 
+import * as affiliatePartners from "./database/affiliate-partners.js";
+import * as affiliatePrograms from "./database/affiliate-programs.js";
+import * as affiliateAccounts from "./database/affiliate-accounts.js";
+import * as commercialTerms from "./database/affiliate-commercial-terms.js";
+import * as offersDB from "./database/offers.js";
+import { resolveOfferForCasino, getCandidateOffers } from "./offers/selection.js";
+import * as trackingLinksDB from "./database/tracking-links.js";
+import { checkAndRecordLink } from "./tracking/health-check.js";
+import { resolveRedirectTarget } from "./tracking/redirect.js";
+import { logAudit } from "./database/audit.js";
+
+
+
 import * as itemAccess from "./database/item-access.js";
 import {
   handleGetUserItemAccess,
@@ -478,6 +491,36 @@ if (path === "/api/v1/public/countries/list") {
       "/api/v1/ad-rules/list": "ad-rules",
       // Banners
       "/api/v1/banners/list": "banners",
+      // Affiliate Partners (System 1 -- handlers land in Phase 3E)
+      "/api/v1/affiliate-partners/list": "affiliate_partners",
+      "/api/v1/affiliate-partner/get": "affiliate_partners",
+      "/api/v1/affiliate-partner/contacts": "affiliate_partners",
+      // Affiliate Programs
+      "/api/v1/affiliate-programs/list": "affiliate_programs",
+      "/api/v1/affiliate-program/get": "affiliate_programs",
+      "/api/v1/affiliate-program/casinos": "affiliate_programs",
+      "/api/v1/casino/affiliate-programs": "affiliate_programs",
+      // Affiliate Accounts
+      "/api/v1/affiliate-accounts/list": "affiliate_accounts",
+      "/api/v1/affiliate-account/get": "affiliate_accounts",
+      // Commercial Terms
+      "/api/v1/commercial-terms/list": "commercial_terms",
+      "/api/v1/commercial-terms/history": "commercial_terms",
+      "/api/v1/commercial-terms/resolve": "commercial_terms",
+      "/api/v1/commercial-term/get": "commercial_terms",
+      // Offers (System 2)
+      "/api/v1/offers/list": "offers",
+      "/api/v1/offer/get": "offers",
+      "/api/v1/offer/history": "offers",
+      "/api/v1/offer/as-of": "offers",
+      "/api/v1/offer/candidates": "offers",
+      "/api/v1/offer/resolve": "offers",
+      // Tracking Links (System 3)
+      "/api/v1/tracking-links/list": "tracking_links",
+      "/api/v1/tracking-link/get": "tracking_links",
+      "/api/v1/tracking-link/geo-destinations": "tracking_links",
+      "/api/v1/tracking-link/health-history": "tracking_links",
+      "/api/v1/tracking-link/resolve-preview": "tracking_links",
     };
 
     for (const [readPath, res] of Object.entries(readResourceMap)) {
@@ -520,6 +563,21 @@ if (path === "/api/v1/public/countries/list") {
       "/api/v1/nav": "nav",
       "/api/v1/platform-updates": "platform-updates",
       "/api/v1/ad-rules": "ad-rules",
+      // Affiliate Partner & Program Management (System 1 -- handlers land in Phase 3E)
+      "/api/v1/affiliate-partner": "affiliate_partners",
+      "/api/v1/affiliate-partners": "affiliate_partners",
+      "/api/v1/affiliate-program": "affiliate_programs",
+      "/api/v1/affiliate-programs": "affiliate_programs",
+      "/api/v1/affiliate-account": "affiliate_accounts",
+      "/api/v1/affiliate-accounts": "affiliate_accounts",
+      "/api/v1/commercial-term": "commercial_terms",
+      "/api/v1/commercial-terms": "commercial_terms",
+      // Offers (System 2) -- note: intentionally no delete endpoint, see migration 0021
+      "/api/v1/offer": "offers",
+      "/api/v1/offers": "offers",
+      // Tracking Links (System 3) -- note: intentionally no delete endpoint, see migration 0022
+      "/api/v1/tracking-link": "tracking_links",
+      "/api/v1/tracking-links": "tracking_links",
     };
 
     let resource = null;
@@ -2037,6 +2095,731 @@ async function requireAdAdmin(request, env) {
       }
       return success();
     }
+
+    // ==================================
+    // AFFILIATE PARTNERS
+    // ==================================
+
+    if (path === "/api/v1/affiliate-partners/list") {
+      const { condition, params } = await itemAccess.getAccessibleWhereClause(
+        env.DB, user, 'affiliate_partners', 'read', ''
+      );
+      const url = new URL(request.url);
+      const status = url.searchParams.get("status");
+      const search = url.searchParams.get("search");
+
+      const clauses = [];
+      const bindParams = [...params];
+      if (condition) clauses.push(condition);
+      if (status) { clauses.push("status = ?"); bindParams.push(status); }
+      if (search) { clauses.push("(name LIKE ? OR slug LIKE ?)"); bindParams.push(`%${search}%`, `%${search}%`); }
+
+      const whereClause = clauses.length ? `WHERE ${clauses.join(" AND ")}` : '';
+      const result = await env.DB.prepare(
+        `SELECT * FROM affiliate_partners ${whereClause} ORDER BY name ASC`
+      ).bind(...bindParams).all();
+
+      return json({ success: true, partners: result.results || [] });
+    }
+
+    if (path === "/api/v1/affiliate-partner/get") {
+      const url = new URL(request.url);
+      const id = Number(url.searchParams.get("id"));
+      if (!id) return failure("id is required");
+
+      const partner = await affiliatePartners.getPartnerById(env.DB, id);
+      if (!partner) return failure("Partner not found", 404);
+
+      const canAccess = await itemAccess.canAccessItem(env.DB, user, 'affiliate_partners', 'read', partner);
+      if (!canAccess) return failure("Partner not found", 404);
+
+      partner.contacts = await affiliatePartners.getPartnerContacts(env.DB, id);
+      return json({ success: true, partner });
+    }
+
+    if (path === "/api/v1/affiliate-partner/create" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["name"]);
+
+      body.slug = body.slug
+        ? body.slug
+        : await affiliatePartners.generateUniquePartnerSlug(env.DB, body.name);
+
+      // SECURITY: ownership set server-side, never trust body.created_by
+      body.created_by = user.user_id;
+      const id = await affiliatePartners.createPartner(env.DB, body);
+      await logAudit(env.DB, { userId: user.user_id, action: 'create', entityType: 'affiliate_partner', entityId: id, metadata: { name: body.name, status: body.status || 'active' } });
+      return success({ id });
+    }
+
+    if (path === "/api/v1/affiliate-partner/update" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id", "name"]);
+
+      const existing = await itemAccess.getItemById(env.DB, 'affiliate_partners', body.id);
+      if (!existing) return failure("Partner not found", 404);
+      const canUpdate = await itemAccess.canAccessItem(env.DB, user, 'affiliate_partners', 'update', existing);
+      if (!canUpdate) return failure("Partner not found", 404);
+
+      body.slug = body.slug || existing.slug;
+      body.updated_by = user.user_id;
+      await affiliatePartners.updatePartner(env.DB, body.id, body);
+      await logAudit(env.DB, { userId: user.user_id, action: 'update', entityType: 'affiliate_partner', entityId: body.id, metadata: { name: body.name, status: body.status, previous_status: existing.status } });
+      return success();
+    }
+
+    if (path === "/api/v1/affiliate-partner/delete" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id"]);
+
+      const existing = await itemAccess.getItemById(env.DB, 'affiliate_partners', body.id);
+      if (!existing) return failure("Partner not found", 404);
+      const canDelete = await itemAccess.canAccessItem(env.DB, user, 'affiliate_partners', 'delete', existing);
+      if (!canDelete) return failure("Partner not found", 404);
+
+      const dependents = await affiliatePartners.getPartnerDependents(env.DB, body.id);
+      if (dependents) {
+        return failure(
+          `Cannot delete: this partner has ${dependents.programs} affiliate program(s) attached. ` +
+          `Archive the partner instead, or remove the programs first.`,
+          409
+        );
+      }
+      const trackingDependents = await trackingLinksDB.getPartnerTrackingLinkDependents(env.DB, body.id);
+      if (trackingDependents) {
+        return failure(
+          `Cannot delete: this partner has ${trackingDependents.tracking_links} tracking link(s) directly attached. ` +
+          `Archive the partner instead, or remove those tracking links first.`,
+          409
+        );
+      }
+
+      await affiliatePartners.deletePartner(env.DB, body.id);
+      await logAudit(env.DB, { userId: user.user_id, action: 'delete', entityType: 'affiliate_partner', entityId: body.id, metadata: { name: existing.name } });
+      return success();
+    }
+
+    if (path === "/api/v1/affiliate-partner/contact/add" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["partner_id", "name"]);
+
+      const existing = await itemAccess.getItemById(env.DB, 'affiliate_partners', body.partner_id);
+      if (!existing) return failure("Partner not found", 404);
+      const canUpdate = await itemAccess.canAccessItem(env.DB, user, 'affiliate_partners', 'update', existing);
+      if (!canUpdate) return failure("Partner not found", 404);
+
+      const contactId = await affiliatePartners.addPartnerContact(env.DB, body.partner_id, body);
+      await logAudit(env.DB, { userId: user.user_id, action: 'create', entityType: 'affiliate_partner_contact', entityId: contactId, metadata: { partner_id: body.partner_id, name: body.name } });
+      return success({ id: contactId });
+    }
+
+    if (path === "/api/v1/affiliate-partner/contact/delete" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id"]);
+      await affiliatePartners.deletePartnerContact(env.DB, body.id);
+      await logAudit(env.DB, { userId: user.user_id, action: 'delete', entityType: 'affiliate_partner_contact', entityId: body.id });
+      return success();
+    }
+
+    // ==================================
+    // AFFILIATE PROGRAMS
+    // ==================================
+
+    if (path === "/api/v1/affiliate-programs/list") {
+      const url = new URL(request.url);
+      const partnerId = url.searchParams.get("partner_id") ? Number(url.searchParams.get("partner_id")) : null;
+      const status = url.searchParams.get("status");
+      const search = url.searchParams.get("search");
+
+      const programs = await affiliatePrograms.getAllProgramsAdmin(env.DB, { partnerId, status, search });
+      return json({ success: true, programs });
+    }
+
+    if (path === "/api/v1/affiliate-program/get") {
+      const url = new URL(request.url);
+      const id = Number(url.searchParams.get("id"));
+      if (!id) return failure("id is required");
+
+      const program = await affiliatePrograms.getProgramById(env.DB, id);
+      if (!program) return failure("Program not found", 404);
+
+      const canAccess = await itemAccess.canAccessItem(env.DB, user, 'affiliate_programs', 'read', program);
+      if (!canAccess) return failure("Program not found", 404);
+
+      program.casinos = await affiliatePrograms.getProgramCasinos(env.DB, id);
+      return json({ success: true, program });
+    }
+
+    if (path === "/api/v1/affiliate-program/casinos" && request.method === "GET") {
+      const url = new URL(request.url);
+      const programId = Number(url.searchParams.get("program_id"));
+      if (!programId) return failure("program_id is required");
+
+      const casinoList = await affiliatePrograms.getProgramCasinos(env.DB, programId);
+      return json({ success: true, casinos: casinoList });
+    }
+
+    // Reverse lookup: every program covering a given casino (used by
+    // the Offer admin UI in System 2 to scope the program picker).
+    if (path === "/api/v1/casino/affiliate-programs") {
+      const url = new URL(request.url);
+      const casinoId = Number(url.searchParams.get("casino_id"));
+      if (!casinoId) return failure("casino_id is required");
+
+      const programList = await affiliatePrograms.getCasinoPrograms(env.DB, casinoId);
+      return json({ success: true, programs: programList });
+    }
+
+    if (path === "/api/v1/affiliate-program/create" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["partner_id", "name"]);
+
+      const partner = await affiliatePartners.getPartnerById(env.DB, body.partner_id);
+      if (!partner) return failure("Affiliate partner not found", 404);
+
+      body.created_by = user.user_id;
+      const id = await affiliatePrograms.createProgram(env.DB, body);
+
+      if (Array.isArray(body.casino_ids)) {
+        await affiliatePrograms.setProgramCasinos(env.DB, id, body.casino_ids);
+      }
+      await logAudit(env.DB, { userId: user.user_id, action: 'create', entityType: 'affiliate_program', entityId: id, metadata: { name: body.name, partner_id: body.partner_id, casino_ids: body.casino_ids || [] } });
+      return success({ id });
+    }
+
+    if (path === "/api/v1/affiliate-program/update" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id", "name"]);
+
+      const existing = await itemAccess.getItemById(env.DB, 'affiliate_programs', body.id);
+      if (!existing) return failure("Program not found", 404);
+      const canUpdate = await itemAccess.canAccessItem(env.DB, user, 'affiliate_programs', 'update', existing);
+      if (!canUpdate) return failure("Program not found", 404);
+
+      body.updated_by = user.user_id;
+      await affiliatePrograms.updateProgram(env.DB, body.id, body);
+      await logAudit(env.DB, { userId: user.user_id, action: 'update', entityType: 'affiliate_program', entityId: body.id, metadata: { name: body.name, status: body.status, previous_status: existing.status } });
+      return success();
+    }
+
+    if (path === "/api/v1/affiliate-program/casinos/assign" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["program_id"]);
+
+      const existing = await itemAccess.getItemById(env.DB, 'affiliate_programs', body.program_id);
+      if (!existing) return failure("Program not found", 404);
+      const canUpdate = await itemAccess.canAccessItem(env.DB, user, 'affiliate_programs', 'update', existing);
+      if (!canUpdate) return failure("Program not found", 404);
+
+      await affiliatePrograms.setProgramCasinos(env.DB, body.program_id, body.casino_ids || []);
+      await logAudit(env.DB, { userId: user.user_id, action: 'update', entityType: 'affiliate_program', entityId: body.program_id, metadata: { casino_ids: body.casino_ids || [] } });
+      return success();
+    }
+
+    if (path === "/api/v1/affiliate-program/delete" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id"]);
+
+      const existing = await itemAccess.getItemById(env.DB, 'affiliate_programs', body.id);
+      if (!existing) return failure("Program not found", 404);
+      const canDelete = await itemAccess.canAccessItem(env.DB, user, 'affiliate_programs', 'delete', existing);
+      if (!canDelete) return failure("Program not found", 404);
+
+      const dependents = await affiliatePrograms.getProgramDependents(env.DB, body.id);
+      if (dependents) {
+        const parts = Object.entries(dependents).map(([k, v]) => `${v} ${k}`).join(", ");
+        return failure(
+          `Cannot delete: this program has ${parts} attached. Archive it instead, or remove the dependents first.`,
+          409
+        );
+      }
+      const offerDependents = await offersDB.getProgramOfferDependents(env.DB, body.id);
+      if (offerDependents) {
+        return failure(
+          `Cannot delete: this program has ${offerDependents.offers} offer(s) attached. Archive it instead, or remove those offers first.`,
+          409
+        );
+      }
+      const trackingDependents = await trackingLinksDB.getProgramTrackingLinkDependents(env.DB, body.id);
+      if (trackingDependents) {
+        return failure(
+          `Cannot delete: this program has ${trackingDependents.tracking_links} tracking link(s) attached. Archive it instead, or remove those tracking links first.`,
+          409
+        );
+      }
+
+      await affiliatePrograms.deleteProgram(env.DB, body.id);
+      await logAudit(env.DB, { userId: user.user_id, action: 'delete', entityType: 'affiliate_program', entityId: body.id, metadata: { name: existing.name } });
+      return success();
+    }
+
+    // ==================================
+    // AFFILIATE ACCOUNTS
+    // ==================================
+
+    if (path === "/api/v1/affiliate-accounts/list") {
+      const url = new URL(request.url);
+      const programId = url.searchParams.get("program_id") ? Number(url.searchParams.get("program_id")) : null;
+      const status = url.searchParams.get("status");
+      const search = url.searchParams.get("search");
+
+      const accountList = await affiliateAccounts.getAllAccountsAdmin(env.DB, { programId, status, search });
+      return json({ success: true, accounts: accountList });
+    }
+
+    if (path === "/api/v1/affiliate-account/get") {
+      const url = new URL(request.url);
+      const id = Number(url.searchParams.get("id"));
+      if (!id) return failure("id is required");
+
+      const account = await affiliateAccounts.getAccountById(env.DB, id);
+      if (!account) return failure("Account not found", 404);
+
+      const canAccess = await itemAccess.canAccessItem(env.DB, user, 'affiliate_accounts', 'read', account);
+      if (!canAccess) return failure("Account not found", 404);
+
+      return json({ success: true, account });
+    }
+
+    if (path === "/api/v1/affiliate-account/create" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["program_id", "account_name"]);
+
+      const program = await affiliatePrograms.getProgramById(env.DB, body.program_id);
+      if (!program) return failure("Affiliate program not found", 404);
+
+      body.created_by = user.user_id;
+      const id = await affiliateAccounts.createAccount(env.DB, body);
+      await logAudit(env.DB, { userId: user.user_id, action: 'create', entityType: 'affiliate_account', entityId: id, metadata: { account_name: body.account_name, program_id: body.program_id } });
+      return success({ id });
+    }
+
+    if (path === "/api/v1/affiliate-account/update" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id", "account_name"]);
+
+      const existing = await itemAccess.getItemById(env.DB, 'affiliate_accounts', body.id);
+      if (!existing) return failure("Account not found", 404);
+      const canUpdate = await itemAccess.canAccessItem(env.DB, user, 'affiliate_accounts', 'update', existing);
+      if (!canUpdate) return failure("Account not found", 404);
+
+      body.updated_by = user.user_id;
+      await affiliateAccounts.updateAccount(env.DB, body.id, body);
+      await logAudit(env.DB, { userId: user.user_id, action: 'update', entityType: 'affiliate_account', entityId: body.id, metadata: { account_name: body.account_name, status: body.status, previous_status: existing.status } });
+      return success();
+    }
+
+    if (path === "/api/v1/affiliate-account/delete" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id"]);
+
+      const existing = await itemAccess.getItemById(env.DB, 'affiliate_accounts', body.id);
+      if (!existing) return failure("Account not found", 404);
+      const canDelete = await itemAccess.canAccessItem(env.DB, user, 'affiliate_accounts', 'delete', existing);
+      if (!canDelete) return failure("Account not found", 404);
+
+      const dependents = await affiliateAccounts.getAccountDependents(env.DB, body.id);
+      if (dependents) {
+        return failure(
+          `Cannot delete: this account has ${dependents.commercial_terms} commercial term(s) attached. ` +
+          `Archive it instead, or remove the terms first.`,
+          409
+        );
+      }
+
+      await affiliateAccounts.deleteAccount(env.DB, body.id);
+      await logAudit(env.DB, { userId: user.user_id, action: 'delete', entityType: 'affiliate_account', entityId: body.id, metadata: { account_name: existing.account_name } });
+      return success();
+    }
+
+    // ==================================
+    // COMMERCIAL TERMS
+    // ==================================
+
+    if (path === "/api/v1/commercial-terms/list" || path === "/api/v1/commercial-terms/history") {
+      const url = new URL(request.url);
+      const programId = Number(url.searchParams.get("program_id"));
+      if (!programId) return failure("program_id is required");
+
+      const accountId = url.searchParams.get("account_id") ? Number(url.searchParams.get("account_id")) : null;
+      const casinoId = url.searchParams.get("casino_id") ? Number(url.searchParams.get("casino_id")) : null;
+
+      const terms = await commercialTerms.getTermHistory(env.DB, { programId, accountId, casinoId });
+      return json({ success: true, terms });
+    }
+
+    if (path === "/api/v1/commercial-terms/resolve") {
+      const url = new URL(request.url);
+      const programId = Number(url.searchParams.get("program_id"));
+      if (!programId) return failure("program_id is required");
+
+      const accountId = url.searchParams.get("account_id") ? Number(url.searchParams.get("account_id")) : null;
+      const casinoId = url.searchParams.get("casino_id") ? Number(url.searchParams.get("casino_id")) : null;
+      const geoCode = url.searchParams.get("geo_code") || null;
+      const onDate = url.searchParams.get("date") || null;
+
+      const term = await commercialTerms.resolveApplicableTerm(env.DB, { programId, accountId, casinoId, geoCode, onDate });
+      return json({ success: true, term });
+    }
+
+    if (path === "/api/v1/commercial-term/get") {
+      const url = new URL(request.url);
+      const id = Number(url.searchParams.get("id"));
+      if (!id) return failure("id is required");
+
+      const term = await commercialTerms.getTermById(env.DB, id);
+      if (!term) return failure("Commercial term not found", 404);
+
+      return json({ success: true, term });
+    }
+
+    if (path === "/api/v1/commercial-term/create" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["program_id", "term_type", "effective_date"]);
+
+      const program = await affiliatePrograms.getProgramById(env.DB, body.program_id);
+      if (!program) return failure("Affiliate program not found", 404);
+
+      body.created_by = user.user_id;
+      try {
+        const id = await commercialTerms.createCommercialTerm(env.DB, body);
+        await logAudit(env.DB, {
+          userId: user.user_id,
+          action: 'create',
+          entityType: 'commercial_term',
+          entityId: id,
+          metadata: {
+            program_id: body.program_id, account_id: body.account_id ?? null,
+            casino_id: body.casino_id ?? null, geo_code: body.geo_code ?? null,
+            term_type: body.term_type, effective_date: body.effective_date
+          }
+        });
+        return success({ id });
+      } catch (error) {
+        // Overlap conflicts and field-validation errors are client
+        // errors, not server errors -- surface them as 409/422 rather
+        // than falling into the generic 500 catch below.
+        const isOverlap = /already covers this exact scope/.test(error.message);
+        return failure(error.message, isOverlap ? 409 : 422);
+      }
+    }
+
+    if (path === "/api/v1/commercial-term/supersede" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id"]);
+
+      const existing = await commercialTerms.getTermById(env.DB, body.id);
+      if (!existing) return failure("Commercial term not found", 404);
+
+      await commercialTerms.supersedeTerm(env.DB, body.id, body.expiry_date || null);
+      await logAudit(env.DB, { userId: user.user_id, action: 'supersede', entityType: 'commercial_term', entityId: body.id, metadata: { program_id: existing.program_id, term_type: existing.term_type } });
+      return success();
+    }
+
+
+    // ==================================
+    // OFFERS
+    // ==================================
+
+    if (path === "/api/v1/offers/list") {
+      const url = new URL(request.url);
+      const casinoId = url.searchParams.get("casino_id") ? Number(url.searchParams.get("casino_id")) : null;
+      const programId = url.searchParams.get("program_id") ? Number(url.searchParams.get("program_id")) : null;
+      const status = url.searchParams.get("status");
+      const search = url.searchParams.get("search");
+
+      const offerList = await offersDB.getAllOffersAdmin(env.DB, { casinoId, programId, status, search });
+      return json({ success: true, offers: offerList });
+    }
+
+    if (path === "/api/v1/offer/get") {
+      const url = new URL(request.url);
+      const id = Number(url.searchParams.get("id"));
+      if (!id) return failure("id is required");
+
+      const offer = await offersDB.getOfferById(env.DB, id);
+      if (!offer) return failure("Offer not found", 404);
+
+      const canAccess = await itemAccess.canAccessItem(env.DB, user, 'offers', 'read', offer);
+      if (!canAccess) return failure("Offer not found", 404);
+
+      return json({ success: true, offer });
+    }
+
+    if (path === "/api/v1/offer/history") {
+      const url = new URL(request.url);
+      const offerId = Number(url.searchParams.get("offer_id"));
+      if (!offerId) return failure("offer_id is required");
+
+      const history = await offersDB.getOfferVersionHistory(env.DB, offerId);
+      return json({ success: true, history });
+    }
+
+    if (path === "/api/v1/offer/as-of") {
+      const url = new URL(request.url);
+      const offerId = Number(url.searchParams.get("offer_id"));
+      const date = url.searchParams.get("date");
+      if (!offerId || !date) return failure("offer_id and date are required");
+
+      const snapshot = await offersDB.getOfferAsOfDate(env.DB, offerId, date);
+      return json({ success: true, offer: snapshot });
+    }
+
+    // Admin eligibility preview: every active candidate for a casino,
+    // in priority order -- lets an admin see the full ranking, not
+    // just the single winner resolve() would return.
+    if (path === "/api/v1/offer/candidates") {
+      const url = new URL(request.url);
+      const casinoId = Number(url.searchParams.get("casino_id"));
+      if (!casinoId) return failure("casino_id is required");
+
+      const candidates = await getCandidateOffers(env.DB, casinoId);
+      return json({ success: true, candidates });
+    }
+
+    // Admin testing tool: preview exactly what a visitor from a given
+    // country would see for a casino, using the real selection service
+    // (the same one the public site will use) -- not a separate mock.
+    if (path === "/api/v1/offer/resolve") {
+      const url = new URL(request.url);
+      const casinoSlug = url.searchParams.get("casino_slug");
+      const countryCode = url.searchParams.get("country_code");
+      if (!casinoSlug || !countryCode) return failure("casino_slug and country_code are required");
+
+      const result = await resolveOfferForCasino(env.DB, { casinoSlug, countryCode: countryCode.toUpperCase() });
+      return json({ success: true, ...result });
+    }
+
+    if (path === "/api/v1/offer/create" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["casino_id", "offer_type", "internal_name"]);
+
+      const casino = await env.DB.prepare(`SELECT id FROM casinos WHERE id = ?`).bind(body.casino_id).first();
+      if (!casino) return failure("Casino not found", 404);
+
+      body.created_by = user.user_id;
+      try {
+        const id = await offersDB.createOffer(env.DB, body);
+        await logAudit(env.DB, {
+          userId: user.user_id, action: 'create', entityType: 'offer', entityId: id,
+          metadata: { casino_id: body.casino_id, offer_type: body.offer_type, internal_name: body.internal_name, status: body.status || 'draft' }
+        });
+        return success({ id });
+      } catch (error) {
+        return failure(error.message, 422);
+      }
+    }
+
+    if (path === "/api/v1/offer/update" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id"]);
+
+      const existing = await itemAccess.getItemById(env.DB, 'offers', body.id);
+      if (!existing) return failure("Offer not found", 404);
+      const canUpdate = await itemAccess.canAccessItem(env.DB, user, 'offers', 'update', existing);
+      if (!canUpdate) return failure("Offer not found", 404);
+
+      try {
+        await offersDB.updateOffer(env.DB, body.id, body, { changedBy: user.user_id, changeReason: body.change_reason || null });
+        await logAudit(env.DB, {
+          userId: user.user_id, action: 'update', entityType: 'offer', entityId: body.id,
+          metadata: { previous_status: existing.status, new_status: body.status || existing.status }
+        });
+        return success();
+      } catch (error) {
+        return failure(error.message, 422);
+      }
+    }
+
+    if (path === "/api/v1/offer/status/update" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id", "status"]);
+
+      const existing = await itemAccess.getItemById(env.DB, 'offers', body.id);
+      if (!existing) return failure("Offer not found", 404);
+      const canUpdate = await itemAccess.canAccessItem(env.DB, user, 'offers', 'update', existing);
+      if (!canUpdate) return failure("Offer not found", 404);
+
+      try {
+        await offersDB.transitionOfferStatus(env.DB, body.id, body.status, { changedBy: user.user_id, changeReason: body.change_reason || null });
+        await logAudit(env.DB, {
+          userId: user.user_id, action: 'status_change', entityType: 'offer', entityId: body.id,
+          metadata: { from: existing.status, to: body.status, reason: body.change_reason || null }
+        });
+        return success();
+      } catch (error) {
+        return failure(error.message, 422);
+      }
+    }
+
+
+    // ==================================
+    // TRACKING LINKS
+    // ==================================
+
+    if (path === "/api/v1/tracking-links/list") {
+      const url = new URL(request.url);
+      const casinoId = url.searchParams.get("casino_id") ? Number(url.searchParams.get("casino_id")) : null;
+      const status = url.searchParams.get("status");
+      const healthStatus = url.searchParams.get("health_status");
+      const search = url.searchParams.get("search");
+
+      const links = await trackingLinksDB.getAllTrackingLinksAdmin(env.DB, { casinoId, status, healthStatus, search });
+      return json({ success: true, tracking_links: links });
+    }
+
+    if (path === "/api/v1/tracking-link/get") {
+      const url = new URL(request.url);
+      const id = Number(url.searchParams.get("id"));
+      if (!id) return failure("id is required");
+
+      const link = await trackingLinksDB.getTrackingLinkById(env.DB, id);
+      if (!link) return failure("Tracking link not found", 404);
+
+      const canAccess = await itemAccess.canAccessItem(env.DB, user, 'tracking_links', 'read', link);
+      if (!canAccess) return failure("Tracking link not found", 404);
+
+      link.geo_destinations = await trackingLinksDB.getGeoDestinations(env.DB, id);
+      return json({ success: true, tracking_link: link });
+    }
+
+    if (path === "/api/v1/tracking-link/geo-destinations" && request.method === "GET") {
+      const url = new URL(request.url);
+      const linkId = Number(url.searchParams.get("tracking_link_id"));
+      if (!linkId) return failure("tracking_link_id is required");
+
+      const destinations = await trackingLinksDB.getGeoDestinations(env.DB, linkId);
+      return json({ success: true, geo_destinations: destinations });
+    }
+
+    if (path === "/api/v1/tracking-link/health-history") {
+      const url = new URL(request.url);
+      const linkId = Number(url.searchParams.get("tracking_link_id"));
+      if (!linkId) return failure("tracking_link_id is required");
+
+      const result = await env.DB.prepare(`
+        SELECT * FROM tracking_link_health_checks WHERE tracking_link_id = ? ORDER BY checked_at DESC LIMIT 50
+      `).bind(linkId).all();
+      return json({ success: true, history: result.results || [] });
+    }
+
+    // Admin testing tool: preview exactly what /en/go/:identifier would
+    // do for a given country, using the REAL resolution service --
+    // not a separate mock of the redirect logic.
+    if (path === "/api/v1/tracking-link/resolve-preview") {
+      const url = new URL(request.url);
+      const identifier = url.searchParams.get("identifier");
+      const countryCode = url.searchParams.get("country_code");
+      if (!identifier || !countryCode) return failure("identifier and country_code are required");
+
+      const result = await resolveRedirectTarget(env.DB, { identifier, countryCode: countryCode.toUpperCase() });
+      return json({ success: true, ...result });
+    }
+
+    if (path === "/api/v1/tracking-link/create" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["internal_name", "destination_url"]);
+
+      body.created_by = user.user_id;
+      const ownDomains = [new URL(request.url).hostname];
+      try {
+        const created = await trackingLinksDB.createTrackingLink(env.DB, body, { ownDomains });
+        await logAudit(env.DB, {
+          userId: user.user_id, action: 'create', entityType: 'tracking_link', entityId: created.id,
+          metadata: { tracking_code: created.tracking_code, casino_id: body.casino_id ?? null, destination_url: body.destination_url }
+        });
+        return success(created);
+      } catch (error) {
+        return failure(error.message, 422);
+      }
+    }
+
+    if (path === "/api/v1/tracking-link/update" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id"]);
+
+      const existing = await itemAccess.getItemById(env.DB, 'tracking_links', body.id);
+      if (!existing) return failure("Tracking link not found", 404);
+      const canUpdate = await itemAccess.canAccessItem(env.DB, user, 'tracking_links', 'update', existing);
+      if (!canUpdate) return failure("Tracking link not found", 404);
+
+      body.updated_by = user.user_id;
+      const ownDomains = [new URL(request.url).hostname];
+      try {
+        await trackingLinksDB.updateTrackingLink(env.DB, body.id, body, { ownDomains });
+        await logAudit(env.DB, {
+          userId: user.user_id, action: 'update', entityType: 'tracking_link', entityId: body.id,
+          metadata: { internal_name: body.internal_name || existing.internal_name }
+        });
+        return success();
+      } catch (error) {
+        return failure(error.message, 422);
+      }
+    }
+
+    if (path === "/api/v1/tracking-link/status/update" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id", "status"]);
+
+      const existing = await itemAccess.getItemById(env.DB, 'tracking_links', body.id);
+      if (!existing) return failure("Tracking link not found", 404);
+      const canUpdate = await itemAccess.canAccessItem(env.DB, user, 'tracking_links', 'update', existing);
+      if (!canUpdate) return failure("Tracking link not found", 404);
+
+      try {
+        await trackingLinksDB.setLinkStatus(env.DB, body.id, body.status, user.user_id);
+        await logAudit(env.DB, {
+          userId: user.user_id, action: 'status_change', entityType: 'tracking_link', entityId: body.id,
+          metadata: { from: existing.status, to: body.status }
+        });
+        return success();
+      } catch (error) {
+        return failure(error.message, 422);
+      }
+    }
+
+    if (path === "/api/v1/tracking-link/geo-destinations/assign" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["tracking_link_id"]);
+
+      const existing = await itemAccess.getItemById(env.DB, 'tracking_links', body.tracking_link_id);
+      if (!existing) return failure("Tracking link not found", 404);
+      const canUpdate = await itemAccess.canAccessItem(env.DB, user, 'tracking_links', 'update', existing);
+      if (!canUpdate) return failure("Tracking link not found", 404);
+
+      const ownDomains = [new URL(request.url).hostname];
+      try {
+        await trackingLinksDB.setGeoDestinations(env.DB, body.tracking_link_id, body.destinations || [], { ownDomains });
+        await logAudit(env.DB, {
+          userId: user.user_id, action: 'update', entityType: 'tracking_link', entityId: body.tracking_link_id,
+          metadata: { geo_destinations_count: (body.destinations || []).length }
+        });
+        return success();
+      } catch (error) {
+        return failure(error.message, 422);
+      }
+    }
+
+    // Manual, admin-triggered health check -- the ONLY place a health
+    // check is allowed to run synchronously within a request, since
+    // it's an explicit one-off admin action, not a visitor redirect.
+    if (path === "/api/v1/tracking-link/health-check/run" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id"]);
+
+      const link = await trackingLinksDB.getTrackingLinkById(env.DB, body.id);
+      if (!link) return failure("Tracking link not found", 404);
+      const canAccess = await itemAccess.canAccessItem(env.DB, user, 'tracking_links', 'read', link);
+      if (!canAccess) return failure("Tracking link not found", 404);
+
+      const result = await checkAndRecordLink(env.DB, link);
+      await logAudit(env.DB, {
+        userId: user.user_id, action: 'health_check', entityType: 'tracking_link', entityId: body.id,
+        metadata: { health_status: result.healthStatus, http_status: result.httpStatus }
+      });
+      return json({ success: true, result });
+    }
+
         // ==================================
     // BANNERS CRUD
     // ==================================
@@ -2209,6 +2992,27 @@ async function deleteCasino(request, env, user) {
   if (!existing) return failure("Casino not found", 404);
   const canDelete = await itemAccess.canAccessItem(env.DB, user, 'casinos', 'delete', existing);
   if (!canDelete) return failure("Casino not found", 404);
+
+  // System 2 (offers) deliberately does not cascade-delete when a
+  // casino is removed, to avoid silently destroying offer history --
+  // see migrations/0024_offers.sql. Surface that as a clear error
+  // instead of letting it fall through to a raw FK constraint failure.
+  const offerDependents = await offersDB.getCasinoOfferDependents(env.DB, existing.id);
+  if (offerDependents) {
+    return failure(
+      `Cannot delete: this casino has ${offerDependents.offers} offer(s) (including historical/expired ones) attached. ` +
+      `Unpublish the casino instead, or remove its offers first.`,
+      409
+    );
+  }
+  const trackingDependents = await trackingLinksDB.getCasinoTrackingLinkDependents(env.DB, existing.id);
+  if (trackingDependents) {
+    return failure(
+      `Cannot delete: this casino has ${trackingDependents.tracking_links} tracking link(s) attached. ` +
+      `Unpublish the casino instead, or remove its tracking links first.`,
+      409
+    );
+  }
 
   await casinos.deleteCasino(
     env.DB,

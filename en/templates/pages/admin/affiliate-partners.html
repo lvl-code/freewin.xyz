@@ -1,0 +1,116 @@
+<div class="admin-wrapper">
+  {{admin_nav}}
+  <div class="admin-content">
+    <div class="admin-header">
+      <h1>Affiliate Partners</h1>
+    </div>
+
+    <div class="form-row" style="margin-bottom:16px">
+      <div class="form-group">
+        <label>Search</label>
+        <input type="text" id="partnerSearch" placeholder="Search by name or slug...">
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="partnerStatusFilter">
+          <option value="">All</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="archived">Archived</option>
+        </select>
+      </div>
+    </div>
+
+    <table class="admin-table">
+      <thead>
+        <tr><th>Name</th><th>Type</th><th>Status</th><th>Contact</th><th>Actions</th></tr>
+      </thead>
+      <tbody id="partnersTableBody">
+        <tr><td colspan="5" class="muted">Loading...</td></tr>
+      </tbody>
+    </table>
+
+    <h2 style="margin-top:30px">Add / Edit Partner</h2>
+    <form id="partnerForm" class="admin-form">
+      <input type="hidden" name="id" id="partnerId" value="">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Name *</label>
+          <input type="text" name="name" required placeholder="Acme Affiliates Network">
+        </div>
+        <div class="form-group">
+          <label>Slug (leave blank to auto-generate)</label>
+          <input type="text" name="slug" placeholder="acme-affiliates-network">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Partner Type</label>
+          <select name="partner_type">
+            <option value="network">Network</option>
+            <option value="direct">Direct</option>
+            <option value="agency">Agency</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select name="status">
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="archived">Archived</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Website</label>
+        <input type="text" name="website" placeholder="https://partner.example.com">
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea name="description" placeholder="Internal notes about this partner..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Primary Contact Name</label>
+          <input type="text" name="contact_name">
+        </div>
+        <div class="form-group">
+          <label>Primary Contact Email</label>
+          <input type="text" name="contact_email">
+        </div>
+        <div class="form-group">
+          <label>Primary Contact Phone</label>
+          <input type="text" name="contact_phone">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea name="notes"></textarea>
+      </div>
+      <div id="partnerFormAlert" class="alert" style="display:none"></div>
+      <div style="display:flex;gap:12px">
+        <button type="submit" class="btn btn--primary btn--lg" id="partnerSubmitBtn">Create Partner</button>
+        <button type="button" class="btn btn--ghost btn--lg" id="partnerCancelEdit" style="display:none" onclick="cancelPartnerEdit()">Cancel Edit</button>
+      </div>
+    </form>
+
+    <div id="partnerContactsSection" style="display:none;margin-top:30px">
+      <h2>Additional Contacts — <span id="partnerContactsName"></span></h2>
+      <table class="admin-table">
+        <thead><tr><th>Name</th><th>Role</th><th>Email</th><th>Phone</th><th>Actions</th></tr></thead>
+        <tbody id="partnerContactsBody"></tbody>
+      </table>
+      <form id="partnerContactForm" class="admin-form" style="margin-top:12px">
+        <input type="hidden" name="partner_id" id="contactPartnerId">
+        <div class="form-row">
+          <div class="form-group"><label>Name *</label><input type="text" name="name" required></div>
+          <div class="form-group"><label>Role</label><input type="text" name="role" placeholder="Account Manager"></div>
+          <div class="form-group"><label>Email</label><input type="text" name="email"></div>
+          <div class="form-group"><label>Phone</label><input type="text" name="phone"></div>
+        </div>
+        <button type="submit" class="btn btn--secondary">Add Contact</button>
+      </form>
+    </div>
+  </div>
+</div>
