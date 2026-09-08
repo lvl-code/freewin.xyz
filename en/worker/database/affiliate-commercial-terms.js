@@ -213,10 +213,14 @@ export async function getTermById(db, id) {
  * terms for casino X on date Y" when combined with a date filter by
  * the caller, or shown as-is for a plain audit trail.
  */
-export async function getTermHistory(db, { programId, accountId = null, casinoId = null, limit = 100 } = {}) {
-  const conditions = ['program_id = ?'];
-  const params = [programId];
+export async function getTermHistory(db, { programId = null, accountId = null, casinoId = null, limit = 100 } = {}) {
+  const conditions = [];
+  const params = [];
 
+  if (programId != null) {
+    conditions.push('program_id = ?');
+    params.push(programId);
+  }
   if (accountId != null) {
     conditions.push('account_id = ?');
     params.push(accountId);
@@ -228,10 +232,12 @@ export async function getTermHistory(db, { programId, accountId = null, casinoId
 
   params.push(limit);
 
+  const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
   const result = await db
     .prepare(`
       SELECT * FROM affiliate_commercial_terms
-      WHERE ${conditions.join(' AND ')}
+      ${whereClause}
       ORDER BY effective_date DESC, id DESC
       LIMIT ?
     `)

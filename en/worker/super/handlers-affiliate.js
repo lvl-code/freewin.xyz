@@ -243,9 +243,8 @@ export async function handleDeleteAccount(request, env, id) {
 export async function handleListTerms(request, env) {
   const url = new URL(request.url);
   const programId = url.searchParams.get("program_id");
-  if (!programId) return fail("program_id is required", 400);
   const rows = await termsDB.getTermHistory(env.DB, {
-    programId: Number(programId),
+    programId: programId ? Number(programId) : null,
     accountId: url.searchParams.get("account_id") ? Number(url.searchParams.get("account_id")) : null,
     casinoId: url.searchParams.get("casino_id") ? Number(url.searchParams.get("casino_id")) : null,
   });
