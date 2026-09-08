@@ -7,6 +7,7 @@
 
 import { verifySuperApiRequest, logSuperApiRequest } from "./auth.js";
 import * as h from "./handlers.js";
+import * as ah from "./handlers-affiliate.js";
 
 // Each entry: [METHOD, path-pattern, handler, resource-name]
 // Path patterns use ":param" for a single dynamic segment.
@@ -147,7 +148,46 @@ const ROUTES = [
   ["GET", "/en/api/super/seo-pages/:id", h.handleGetSeoPage, "seo_pages"],
   ["POST", "/en/api/super/seo-pages", h.handleCreateSeoPage, "seo_pages"],
   ["PUT", "/en/api/super/seo-pages/:id", h.handleUpdateSeoPage, "seo_pages"],
-  ["DELETE", "/en/api/super/seo-pages/:id", h.handleDeleteSeoPage, "seo_pages"]
+  ["DELETE", "/en/api/super/seo-pages/:id", h.handleDeleteSeoPage, "seo_pages"],
+
+  // Affiliate Partner & Program Management (System 1)
+  ["GET", "/en/api/super/affiliate-partners", ah.handleListPartners, "affiliate_partners"],
+  ["GET", "/en/api/super/affiliate-partners/:id", ah.handleGetPartner, "affiliate_partners"],
+  ["POST", "/en/api/super/affiliate-partners", ah.handleCreatePartner, "affiliate_partners"],
+  ["PUT", "/en/api/super/affiliate-partners/:id", ah.handleUpdatePartner, "affiliate_partners"],
+  ["DELETE", "/en/api/super/affiliate-partners/:id", ah.handleDeletePartner, "affiliate_partners"],
+
+  ["GET", "/en/api/super/affiliate-programs", ah.handleListPrograms, "affiliate_programs"],
+  ["GET", "/en/api/super/affiliate-programs/:id", ah.handleGetProgram, "affiliate_programs"],
+  ["POST", "/en/api/super/affiliate-programs", ah.handleCreateProgram, "affiliate_programs"],
+  ["PUT", "/en/api/super/affiliate-programs/:id", ah.handleUpdateProgram, "affiliate_programs"],
+  ["DELETE", "/en/api/super/affiliate-programs/:id", ah.handleDeleteProgram, "affiliate_programs"],
+
+  ["GET", "/en/api/super/affiliate-accounts", ah.handleListAccounts, "affiliate_accounts"],
+  ["GET", "/en/api/super/affiliate-accounts/:id", ah.handleGetAccount, "affiliate_accounts"],
+  ["POST", "/en/api/super/affiliate-accounts", ah.handleCreateAccount, "affiliate_accounts"],
+  ["PUT", "/en/api/super/affiliate-accounts/:id", ah.handleUpdateAccount, "affiliate_accounts"],
+  ["DELETE", "/en/api/super/affiliate-accounts/:id", ah.handleDeleteAccount, "affiliate_accounts"],
+
+  // Commercial Terms -- read + create only; see handlers-affiliate.js
+  // header comment for why PUT deliberately rejects rather than
+  // silently no-op'ing or corrupting the versioned history.
+  ["GET", "/en/api/super/commercial-terms", ah.handleListTerms, "commercial_terms"],
+  ["GET", "/en/api/super/commercial-terms/:id", ah.handleGetTerm, "commercial_terms"],
+  ["POST", "/en/api/super/commercial-terms", ah.handleCreateTerm, "commercial_terms"],
+  ["PUT", "/en/api/super/commercial-terms/:id", ah.handleUpdateTerm, "commercial_terms"],
+
+  // Offers (System 2) -- no DELETE by design, see migration 0024.
+  ["GET", "/en/api/super/offers", ah.handleListOffers, "offers"],
+  ["GET", "/en/api/super/offers/:id", ah.handleGetOffer, "offers"],
+  ["POST", "/en/api/super/offers", ah.handleCreateOffer, "offers"],
+  ["PUT", "/en/api/super/offers/:id", ah.handleUpdateOffer, "offers"],
+
+  // Tracking Links (System 3) -- no DELETE by design, see migration 0025.
+  ["GET", "/en/api/super/tracking-links", ah.handleListTrackingLinks, "tracking_links"],
+  ["GET", "/en/api/super/tracking-links/:id", ah.handleGetTrackingLink, "tracking_links"],
+  ["POST", "/en/api/super/tracking-links", ah.handleCreateTrackingLink, "tracking_links"],
+  ["PUT", "/en/api/super/tracking-links/:id", ah.handleUpdateTrackingLink, "tracking_links"]
 ];
 
 function matchRoute(method, path) {

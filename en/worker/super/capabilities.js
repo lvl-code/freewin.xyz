@@ -14,7 +14,13 @@
 // checks capabilities/version again.
 // Version 6: added SEO landing pages (country_custom /
 // category_country) — seo_pages + seo_page_casinos.
-export const SUPER_API_VERSION = 6;
+// Version 7: added Affiliate Partner & Program Management (System 1),
+// Offer & Bonus Management (System 2), and Tracking Link Management
+// with GEO-aware redirect resolution and link health monitoring
+// (System 3). commercial_terms is read+create only through this
+// Super API (terms are versioned/immutable, no plain edit --
+// superseding is a deliberate two-step action).
+export const SUPER_API_VERSION = 7;
 
 export const CAPABILITIES = {
   casinos: true,
@@ -37,7 +43,13 @@ export const CAPABILITIES = {
   updates: true,
   seo_pages: true,
   nav_items: true,
-  banners: true
+  banners: true,
+  affiliate_partners: true,
+  affiliate_programs: true,
+  affiliate_accounts: true,
+  commercial_terms: true,
+  offers: true,
+  tracking_links: true
 };
 
 export function getCapabilities() {
