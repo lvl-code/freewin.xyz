@@ -1,0 +1,72 @@
+<div class="admin-wrapper">
+  {{admin_nav}}
+  <div class="admin-content">
+    <div class="admin-header">
+      <h1>Campaigns</h1>
+    </div>
+    <p class="muted">Group tracking links under a shared UTM/campaign identity for reporting. A tracking link's own campaign/source/medium/content fields still take precedence if set individually.</p>
+
+    <div class="form-row" style="margin-bottom:16px">
+      <div class="form-group">
+        <label>Status</label>
+        <select id="cmpStatusFilter">
+          <option value="">All</option>
+          <option value="active">Active</option>
+          <option value="paused">Paused</option>
+          <option value="ended">Ended</option>
+          <option value="archived">Archived</option>
+        </select>
+      </div>
+    </div>
+
+    <table class="admin-table">
+      <thead>
+        <tr><th>Name</th><th>UTM Campaign</th><th>Source / Medium</th><th>Status</th><th>Dates</th><th>Actions</th></tr>
+      </thead>
+      <tbody id="cmpTableBody">
+        <tr><td colspan="6" class="muted">Loading...</td></tr>
+      </tbody>
+    </table>
+
+    <h2 style="margin-top:30px">Add / Edit Campaign</h2>
+    <form id="cmpForm" class="admin-form">
+      <input type="hidden" name="id" id="cmpId" value="">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Name *</label>
+          <input type="text" name="name" id="cmpName" required placeholder="Q4 Winback — Email">
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select name="status" id="cmpStatus">
+            <option value="active">Active</option>
+            <option value="paused">Paused</option>
+            <option value="ended">Ended</option>
+            <option value="archived">Archived</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>UTM Source</label><input type="text" name="utmSource" id="cmpUtmSource" placeholder="newsletter"></div>
+        <div class="form-group"><label>UTM Medium</label><input type="text" name="utmMedium" id="cmpUtmMedium" placeholder="email"></div>
+        <div class="form-group"><label>UTM Campaign</label><input type="text" name="utmCampaign" id="cmpUtmCampaign" placeholder="q4-winback"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>UTM Term</label><input type="text" name="utmTerm" id="cmpUtmTerm"></div>
+        <div class="form-group"><label>UTM Content</label><input type="text" name="utmContent" id="cmpUtmContent"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Start Date</label><input type="date" name="startDate" id="cmpStartDate"></div>
+        <div class="form-group"><label>End Date</label><input type="date" name="endDate" id="cmpEndDate"></div>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea name="notes" id="cmpNotes" rows="2"></textarea>
+      </div>
+      <button type="submit" class="btn btn--primary">Save Campaign</button>
+      <button type="button" class="btn btn--secondary" onclick="resetCampaignForm()">Clear</button>
+    </form>
+  </div>
+</div>
+
+<script src="/static/js/campaigns-admin.js"></script>

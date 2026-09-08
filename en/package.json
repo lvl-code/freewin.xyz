@@ -1,0 +1,12 @@
+{
+  "name": "freewin-xyz-worker",
+  "private": true,
+  "type": "module",
+  "description": "This package.json exists ONLY to provide a standard `npm test` entry point for the zero-dependency test suite added under /test. It intentionally has no dependencies -- the tests run against Node's built-in test runner (node:test) and built-in node:sqlite (Node 22+), not against any installed package. The actual Worker itself has no build step and is deployed as plain JS via wrangler, same as before this file existed.",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "test": "node --test test/**/*.test.js"
+  }
+}

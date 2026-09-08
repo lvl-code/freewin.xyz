@@ -37,7 +37,20 @@ const RESOURCE_REGISTRY = {
   'affiliate_accounts': { table: 'affiliate_accounts',         idColumn: 'id', slugColumn: null,   ownerColumn: 'created_by' },
   'commercial_terms':   { table: 'affiliate_commercial_terms', idColumn: 'id', slugColumn: null,   ownerColumn: 'created_by' },
   'offers':             { table: 'offers',                     idColumn: 'id', slugColumn: null,   ownerColumn: 'created_by' },
-  'tracking_links':     { table: 'tracking_links',              idColumn: 'id', slugColumn: null,   ownerColumn: 'created_by' }
+  'tracking_links':     { table: 'tracking_links',              idColumn: 'id', slugColumn: null,   ownerColumn: 'created_by' },
+  // Analytics / Reporting platform (Phase 2+) — registered the same
+  // way as every other resource above. campaigns and
+  // analytics_conversions are directly owned/CRUD'd resources;
+  // analytics_events/analytics_daily are NOT registered here on
+  // purpose — they are never accessed as owned "items" in their own
+  // right, only aggregated through the dimensions they reference
+  // (casinos, offers, tracking_links, ...), each of which already
+  // has its own registry entry above. Scoping analytics queries means
+  // resolving getAccessibleItemIds() for THOSE resources first, not
+  // treating raw events as an item-access resource themselves.
+  'campaigns':           { table: 'campaigns',           idColumn: 'id', slugColumn: null, ownerColumn: 'created_by' },
+  'analytics_conversions': { table: 'analytics_conversions', idColumn: 'id', slugColumn: null, ownerColumn: 'created_by' },
+  'report_definitions':  { table: 'report_definitions',  idColumn: 'id', slugColumn: null, ownerColumn: 'owner_id' }
 };
 
 const VALID_SCOPES = ['none', 'own', 'all', 'assigned'];
@@ -351,6 +364,61 @@ export async function getAccessibleWhereClause(
 
 // Alias for backward compatibility
 export const getItemAccessCondition = getAccessibleWhereClause;
+
+/**
+ * Like getAccessibleWhereClause, but for querying a table OTHER than
+ * the resource's own table — e.g. filtering analytics_daily rows by
+ * which casinos the user may see, where the column holding the
+ * casino ID is `dimension_id`, not `casinos.id`.
+ *
+ * getAccessibleWhereClause assumes the query targets the resource's
+ * own table and hard-codes its idColumn/ownerColumn names into the
+ * condition; that assumption doesn't hold for analytics/reporting
+ * tables that merely reference a resource by ID under an unrelated
+ * column name. This function produces the equivalent condition
+ * against an arbitrary `targetColumn`, reusing the exact same scope
+ * lookup (getItemScope) and the exact same 'own'/'assigned' semantics
+ * — no new authorization logic, just a different column to constrain.
+ *
+ * Always returns a non-empty, always-valid boolean SQL fragment
+ * ('1=1' / '1=0' / a real condition) so callers can safely splice it
+ * with `AND ${condition}` without a special case for "no restriction".
+ */
+export async function getAccessibleIdCondition(db, user, resource, action, targetColumn) {
+  if (!user) return { condition: '1=0', params: [] };
+  if (user.role === 'admin') return { condition: '1=1', params: [] };
+
+  const config = getResourceConfig(resource);
+  if (!config) return { condition: '1=1', params: [] };
+
+  const scope = await getItemScope(db, user.user_id, resource, action);
+
+  switch (scope) {
+    case 'all':
+      return { condition: '1=1', params: [] };
+
+    case 'none':
+      return { condition: '1=0', params: [] };
+
+    case 'own':
+      return {
+        condition: `${targetColumn} IN (SELECT ${config.idColumn} FROM ${config.table} WHERE ${config.ownerColumn} = ?)`,
+        params: [user.user_id]
+      };
+
+    case 'assigned':
+      return {
+        condition: `${targetColumn} IN (
+          SELECT item_id FROM item_access_assignments
+          WHERE user_id = ? AND resource = ?
+        )`,
+        params: [user.user_id, resource]
+      };
+
+    default:
+      return { condition: '1=0', params: [] };
+  }
+}
 
 // ── Item Fetch Helpers ─────────────────────────────
 
