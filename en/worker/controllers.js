@@ -23,6 +23,7 @@ import { resolveOfferForCasino, resolveOffersForCasinos } from "./offers/selecti
 import * as componentsDB from "./database/components.js";
 import * as seoMetaDB from "./database/seo_meta.js";
 import * as nav from "./database/nav.js";
+import { getSetting } from "./database/settings.js";
 import { getRelatedCasinos } from "./database/related-casinos.js";
 import {
     buildBreadcrumbs
@@ -3628,28 +3629,81 @@ export async function renderCategoryList(request, env) {
   return new Response(html, { headers: cacheHeaders() });
 }
 
+// -----------------------------------------------------
+// /en/country directory helpers — a dedicated page, not a
+// reskin of category.html. See migrations/0022_country_directory_tiers.sql.
+// -----------------------------------------------------
+
+function renderFeaturedCountryCards(list) {
+  return list
+    .map(
+      (c) => `
+    <a href="/en/country/${escapeHtml(c.code)}" class="feature-card feature-card--country">
+      <h3>${escapeHtml(c.name)}</h3>
+    </a>`
+    )
+    .join("");
+}
+
+function groupCountriesByFirstLetter(list) {
+  const groups = {};
+  for (const c of list) {
+    const letter = (c.name || "?").trim().charAt(0).toUpperCase();
+    const key = /[A-Z]/.test(letter) ? letter : "#";
+    groups[key] ??= [];
+    groups[key].push(c);
+  }
+  return Object.keys(groups)
+    .sort()
+    .map((letter) => ({ letter, items: groups[letter] }));
+}
+
+function renderAlphabeticalCountryGroups(groups) {
+  return groups
+    .map(
+      (group) => `
+    <div class="country-directory__group" data-country-letter-group>
+      <h3 class="country-directory__letter">${escapeHtml(group.letter)}</h3>
+      <div class="country-chips">
+        ${group.items
+          .map((c) => `<a href="/en/country/${escapeHtml(c.code)}" class="chip" data-country-name="${escapeHtml(c.name.toLowerCase())}">${escapeHtml(c.name)}</a>`)
+          .join("")}
+      </div>
+    </div>`
+    )
+    .join("");
+}
+
 export async function renderCountryList(request, env) {
   const renderer = new Renderer(env, request);
   const site = await getSiteContext(request, env);
-  const countriesList = await countries.getAllCountries(env.DB);
+
+  const [featured, allCountries, featuredLabel] = await Promise.all([
+    countries.getFeaturedCountries(env.DB),
+    countries.getPublishedCountries(env.DB),
+    getSetting(env.DB, "country_directory_featured_label")
+  ]);
+
+  const alphaGroups = groupCountriesByFirstLetter(allCountries);
+
   const allComponents = await renderer.renderAllComponents("country_list", "country_list");
   const dynamicSeo = await renderer.loadDynamicSeo("country_list", "country_list");
 
-  const countryChips = countriesList.map(c => `
-    <a href="/en/country/${c.code}" class="chip">${c.name}</a>
-  `).join("");
-    // Public pages don't need a CSRF token, but set it to empty for the meta tag
-  const html = await renderer.render("category.html", {
-    category: "All Countries",
-    description: "Browse online casinos available in your country.",
-    casino_cards: `<div class="country-chips" style="justify-content:center;padding:20px">${countryChips}</div>`,
+  const html = await renderer.render("country-list.html", {
+    featured_section_label: featuredLabel || "Featured Gambling Markets",
+    featured_countries_html: renderFeaturedCountryCards(featured),
+    alphabetical_countries_html: renderAlphabeticalCountryGroups(alphaGroups),
+    total_country_count: String(allCountries.length),
     components_top: allComponents.top,
     components_content_top: allComponents.content_top,
     components_content_bottom: allComponents.content_bottom,
     components_bottom: allComponents.bottom,
     components_sidebar: allComponents.sidebar,
     seo_title: dynamicSeo.seo_title || `Online Casinos by Country — ${site.siteName}`,
-    seo_description: dynamicSeo.seo_description || `Find online casinos available in your country on ${site.siteName}.`
+    seo_description: dynamicSeo.seo_description || `Find online casinos available in your country on ${site.siteName}.`,
+    canonical: dynamicSeo.canonical || site.url("/en/country"),
+    robots: dynamicSeo.seo_robots || "index,follow",
+    og_image: dynamicSeo.og_image || ""
   }, {}, buildBreadcrumbs("countryList"));
 
   return new Response(html, { headers: cacheHeaders() });

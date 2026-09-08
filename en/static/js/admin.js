@@ -3198,6 +3198,9 @@ function initCountryForm() {
       robots: formData.get("robots") || "index,follow",
       status: formData.get("status") || "published",
       published: formData.get("published") === "0" ? 0 : 1,
+      is_featured: formData.get("is_featured") === "1" ? 1 : 0,
+      featured_position: formData.get("featured_position") ? parseInt(formData.get("featured_position")) : 0,
+      tier: formData.get("tier") ? parseInt(formData.get("tier")) : 3,
     };
 
     try {
@@ -3768,6 +3771,9 @@ async function editCountry(code) {
     form.querySelector("[name='robots']").value = c.robots || "index,follow";
     form.querySelector("[name='status']").value = c.status || "published";
     form.querySelector("[name='published']").value = c.published === 0 ? "0" : "1";
+    form.querySelector("[name='is_featured']").value = c.is_featured === 1 ? "1" : "0";
+    form.querySelector("[name='featured_position']").value = c.featured_position ?? 0;
+    form.querySelector("[name='tier']").value = c.tier ?? 3;
 
     let content = {};
     try { content = typeof c.content_json === "string" ? JSON.parse(c.content_json) : (c.content_json || {}); } catch (e) {}

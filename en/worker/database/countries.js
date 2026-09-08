@@ -41,6 +41,25 @@ export async function getPublishedCountries(db) {
   return result.results || [];
 }
 
+/**
+ * Featured markets for the /en/country directory's "Featured
+ * Gambling Markets" (or whatever an admin renames it to)
+ * section — is_featured=1, published, ordered by an admin-set
+ * position. Deliberately no LIMIT here: the count is entirely
+ * admin-driven by how many countries they mark featured, not a
+ * hardcoded "top 20" baked into the query.
+ */
+export async function getFeaturedCountries(db) {
+  const result = await db.prepare(`
+    SELECT *
+    FROM countries
+    WHERE is_featured = 1 AND published = 1 AND (status IS NULL OR status != 'draft')
+    ORDER BY featured_position ASC, name ASC
+  `).all();
+
+  return result.results || [];
+}
+
 // Resolves the auto nav link's enabled/disabled state to match
 // a country's current publish state. Never throws — nav sync is
 // a side effect of saving a country, not something that should
@@ -73,9 +92,9 @@ export async function createCountry(db, data) {
   const result = await db.prepare(`
     INSERT INTO countries (
       code, name, currency, language, legal_status, seo_title, seo_description,
-      content_json, robots, status, published
+      content_json, robots, status, published, is_featured, featured_position, tier
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
   .bind(
     code, data.name, data.currency, data.language,
@@ -83,7 +102,10 @@ export async function createCountry(db, data) {
     typeof data.content_json === "string" ? data.content_json : JSON.stringify(data.content_json || {}),
     data.robots || "index,follow",
     data.status || "published",
-    data.published !== undefined ? (data.published ? 1 : 0) : 1
+    data.published !== undefined ? (data.published ? 1 : 0) : 1,
+    data.is_featured ? 1 : 0,
+    data.featured_position !== undefined && data.featured_position !== null && data.featured_position !== "" ? Number(data.featured_position) : 0,
+    data.tier !== undefined && data.tier !== null && data.tier !== "" ? Number(data.tier) : 3
   )
   .run();
 
@@ -95,7 +117,7 @@ export async function updateCountry(db, code, data) {
   const result = await db.prepare(`
     UPDATE countries SET
       name=?, currency=?, language=?, legal_status=?, seo_title=?, seo_description=?,
-      content_json=?, robots=?, status=?, published=?
+      content_json=?, robots=?, status=?, published=?, is_featured=?, featured_position=?, tier=?
     WHERE code=?
   `)
   .bind(
@@ -104,6 +126,9 @@ export async function updateCountry(db, code, data) {
     data.robots || "index,follow",
     data.status || "published",
     data.published !== undefined ? (data.published ? 1 : 0) : 1,
+    data.is_featured ? 1 : 0,
+    data.featured_position !== undefined && data.featured_position !== null && data.featured_position !== "" ? Number(data.featured_position) : 0,
+    data.tier !== undefined && data.tier !== null && data.tier !== "" ? Number(data.tier) : 3,
     upperCode
   )
   .run();

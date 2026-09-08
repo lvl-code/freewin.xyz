@@ -1,0 +1,68 @@
+{{components_top}}
+<section class="section country-directory">
+  <div class="container">
+    {{components_content_top}}
+
+    <div class="section-header">
+      <h1>Explore Online Casinos by Country</h1>
+      <p>Compare online gambling markets, regulations, payment methods and casino options by country.</p>
+    </div>
+
+    {{#if featured_countries_html}}
+    <div class="country-directory__featured">
+      <h2>{{featured_section_label}}</h2>
+      <div class="features-grid country-directory__featured-grid">
+        {{{featured_countries_html}}}
+      </div>
+    </div>
+    {{/if}}
+
+    <div class="country-directory__all">
+      <h2>Browse All Countries</h2>
+      <div class="country-directory__search-wrap">
+        <input
+          type="search"
+          class="country-directory__search"
+          placeholder="Search countries..."
+          data-country-search
+          aria-label="Search countries"
+        />
+      </div>
+      <div class="country-directory__alpha-groups" data-country-groups>
+        {{{alphabetical_countries_html}}}
+      </div>
+      <p class="country-directory__empty" data-country-empty hidden>No countries match your search.</p>
+    </div>
+
+    {{components_content_bottom}}
+    {{components_bottom}}
+  </div>
+</section>
+
+<script>
+(function () {
+  var input = document.querySelector("[data-country-search]");
+  if (!input) return;
+  var groups = document.querySelectorAll("[data-country-letter-group]");
+  var emptyMsg = document.querySelector("[data-country-empty]");
+
+  input.addEventListener("input", function () {
+    var term = input.value.trim().toLowerCase();
+    var anyVisible = false;
+
+    groups.forEach(function (group) {
+      var chips = group.querySelectorAll("[data-country-name]");
+      var groupHasMatch = false;
+      chips.forEach(function (chip) {
+        var match = !term || chip.getAttribute("data-country-name").indexOf(term) !== -1;
+        chip.style.display = match ? "" : "none";
+        if (match) groupHasMatch = true;
+      });
+      group.style.display = groupHasMatch ? "" : "none";
+      if (groupHasMatch) anyVisible = true;
+    });
+
+    if (emptyMsg) emptyMsg.hidden = anyVisible;
+  });
+})();
+</script>

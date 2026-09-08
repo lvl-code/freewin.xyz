@@ -2501,3 +2501,20 @@ padding:22px;
 .faq-list { display: flex; flex-direction: column; gap: 16px; }
 .faq-item__question { margin-bottom: 4px; }
 .faq-item__answer { line-height: 1.6; }
+
+/* /en/country directory page — dedicated template (country-list.html),
+   not shared with category.html. See migrations/0022_country_directory_tiers.sql. */
+.country-directory__featured { margin: 30px 0 40px; }
+.country-directory__featured h2,
+.country-directory__all h2 { margin-bottom: 16px; }
+.country-directory__featured-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+.feature-card--country { display: block; text-decoration: none; color: inherit; border-radius: 10px; background: var(--panel-bg, #f5f7fa); transition: background 0.15s ease; }
+.feature-card--country:hover { background: var(--panel-bg-hover, #e9edf2); }
+.feature-card--country h3 { margin: 0; font-size: 16px; }
+
+.country-directory__search-wrap { margin-bottom: 20px; }
+.country-directory__search { width: 100%; max-width: 360px; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border, #dde2e8); font-size: 15px; }
+
+.country-directory__alpha-groups { display: flex; flex-direction: column; gap: 24px; }
+.country-directory__letter { font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray, #7a828e); margin: 0 0 10px; border-bottom: 1px solid var(--border, #eceff2); padding-bottom: 6px; }
+.country-directory__empty { text-align: center; color: var(--gray, #7a828e); padding: 20px 0; }

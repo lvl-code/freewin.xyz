@@ -57,6 +57,31 @@
         </div>
       </div>
       <p class="muted" style="font-size:12px">A published country page automatically gets a Page Navigation link — manage/rename/hide it any time from the <a href="/en/dashboard/nav">Navigation</a> page.</p>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Featured on /en/country directory</label>
+          <select name="is_featured">
+            <option value="0">No — directory only</option>
+            <option value="1">Yes — show in featured markets section</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Featured position</label>
+          <input type="number" name="featured_position" value="0" placeholder="0">
+          <small class="muted">Lower shows first. Only matters if Featured = Yes.</small>
+        </div>
+        <div class="form-group">
+          <label>Tier</label>
+          <select name="tier">
+            <option value="1">1 — Deep coverage (priority market)</option>
+            <option value="2">2 — Secondary coverage</option>
+            <option value="3" selected>3 — Directory only</option>
+          </select>
+          <small class="muted">Editorial planning label — doesn't auto-generate any content.</small>
+        </div>
+      </div>
+
       <div id="countryFormAlert" class="alert" style="display:none"></div>
       <div style="display:flex;gap:12px">
         <button type="submit" class="btn btn--primary btn--lg" id="countrySubmitBtn">Create Country</button>
