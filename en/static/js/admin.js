@@ -3140,22 +3140,56 @@ async function loadCountriesTable() {
       tbody.innerHTML = '<tr><td colspan="6" class="muted">No countries yet.</td></tr>';
       return;
     }
-    tbody.innerHTML = countriesList.map(c => `
+    tbody.innerHTML = countriesList.map(c => {
+      const isPublished = !(c.status === "draft" || c.published === 0);
+      return `
       <tr>
         <td><strong>${c.code}</strong></td>
         <td>${c.name}</td>
         <td>${c.currency || "—"}</td>
         <td>${c.legal_status || "—"}</td>
-        <td>${c.status === "draft" || c.published === 0 ? '<span class="badge-dim">Draft</span>' : '<span class="badge-ok">Published</span>'}</td>
+        <td>
+          <button type="button" class="badge-toggle ${isPublished ? "badge-ok" : "badge-dim"}" onclick="toggleCountryPublished('${c.code}')" title="Click to ${isPublished ? "unpublish (set to Draft)" : "publish"}">
+            ${isPublished ? "Published" : "Draft"}
+          </button>
+        </td>
         <td class="table-actions">
           <button class="btn btn--ghost btn--sm" onclick="editCountry('${c.code}')">Edit</button>
           <button class="btn btn--danger btn--sm" onclick="deleteCountry('${c.code}')">Delete</button>
         </td>
 
       </tr>
-    `).join("");
+    `;
+    }).join("");
   } catch {
     tbody.innerHTML = '<tr><td colspan="6" class="muted">Failed to load.</td></tr>';
+  }
+}
+
+async function toggleCountryPublished(code) {
+  try {
+    const res = await fetch(`/en/api/v1/country/get-by-code?code=${encodeURIComponent(code)}`);
+    const data = await res.json();
+    if (!data.success) { alert(data.error || "Could not load country"); return; }
+    const c = data.country;
+
+    const isCurrentlyPublished = !(c.status === "draft" || c.published === 0);
+    const payload = {
+      ...c,
+      status: isCurrentlyPublished ? "draft" : "published",
+      published: isCurrentlyPublished ? 0 : 1,
+    };
+
+    const updateRes = await fetch("/en/api/v1/country/update", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const updateData = await updateRes.json();
+    if (updateData.success) loadCountriesTable();
+    else alert(updateData.error || "Could not update status");
+  } catch {
+    alert("Network error");
   }
 }
 
