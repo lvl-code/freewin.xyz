@@ -1,0 +1,110 @@
+<div class="admin-wrapper">
+  {{admin_nav}}
+  <div class="admin-content">
+    <div class="admin-header">
+      <h1>Reports</h1>
+    </div>
+    <p class="muted">Every report run re-checks your current item-level access at execution time — a saved report can never show you data you've since lost access to.</p>
+
+    <table class="admin-table">
+      <thead>
+        <tr><th>Name</th><th>Type</th><th>Created</th><th>Actions</th></tr>
+      </thead>
+      <tbody id="rptTableBody">
+        <tr><td colspan="4" class="muted">Loading...</td></tr>
+      </tbody>
+    </table>
+
+    <h2 style="margin-top:30px">New Report</h2>
+    <form id="rptForm" class="admin-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Name *</label>
+          <input type="text" name="name" id="rptName" required placeholder="Monthly Casino Performance">
+        </div>
+        <div class="form-group">
+          <label>Report Type *</label>
+          <select name="reportType" id="rptType" required>
+            <option value="executive_performance">Executive Performance</option>
+            <option value="affiliate_performance">Affiliate Performance</option>
+            <option value="partner_performance">Partner Performance</option>
+            <option value="program_performance">Program Performance</option>
+            <option value="account_performance">Account Performance</option>
+            <option value="offer_performance">Offer Performance</option>
+            <option value="tracking_link_performance">Tracking Link Performance</option>
+            <option value="casino_performance">Casino Performance</option>
+            <option value="geo_performance">GEO Performance</option>
+            <option value="content_performance">Content Performance</option>
+            <option value="traffic_performance">Traffic Performance</option>
+            <option value="conversion_funnel">Conversion Funnel</option>
+            <option value="revenue_commission">Revenue &amp; Commission</option>
+            <option value="operational_health">Operational Health</option>
+            <option value="seo_performance">SEO Performance (not yet available)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Columns <span class="muted">(leave all unchecked to show every column)</span></label>
+        <div id="rptColumnChecklist" class="checklist">
+          <span class="muted">Choose a report type to see available columns.</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Group by <span class="muted">(optional — adds subtotal rows)</span></label>
+        <select id="rptGroupBy">
+          <option value="">No grouping</option>
+        </select>
+      </div>
+
+      <button type="submit" class="btn btn--primary">Create Report</button>
+    </form>
+
+    <div id="rptRunPanel" style="display:none; margin-top:30px">
+      <h2>Run: <span id="rptRunName"></span></h2>
+      <div class="form-row">
+        <div class="form-group"><label>Start Date</label><input type="date" id="rptStartDate"></div>
+        <div class="form-group"><label>End Date</label><input type="date" id="rptEndDate"></div>
+        <div class="form-group" style="align-self:flex-end">
+          <button type="button" class="btn btn--secondary" onclick="runReport('json')">Preview</button>
+          <button type="button" class="btn btn--secondary" onclick="runReport('csv')">Download CSV</button>
+          <button type="button" class="btn btn--secondary" onclick="runReport('html')">Open as HTML</button>
+        </div>
+      </div>
+
+      <h3>Schedule this report</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Frequency</label>
+          <select id="rptScheduleFrequency">
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Output Format</label>
+          <select id="rptScheduleFormat">
+            <option value="csv">CSV</option>
+            <option value="html">HTML</option>
+          </select>
+        </div>
+        <div class="form-group" style="align-self:flex-end">
+          <button type="button" class="btn btn--primary" onclick="createSchedule()">Schedule (deliver to me)</button>
+        </div>
+      </div>
+      <p class="muted">Scheduled reports deliver as an in-app notification. Email delivery isn't configured for this deployment yet.</p>
+
+      <h3>Recent Runs</h3>
+      <table class="admin-table">
+        <thead><tr><th>Started</th><th>Status</th><th>Rows</th><th>Error</th></tr></thead>
+        <tbody id="rptRunsTableBody"><tr><td colspan="4" class="muted">—</td></tr></tbody>
+      </table>
+
+      <pre id="rptPreviewOutput" class="admin-code-block" style="display:none"></pre>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/reports-admin.js"></script>

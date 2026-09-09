@@ -2,9 +2,30 @@ name: Test Runner
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Hello from GitHub Actions"
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run test suite
+        # Zero npm dependencies -- package.json has none, so no
+        # `npm install` step is needed. Uses Node 22's built-in
+        # node:test + node:sqlite. See en/test/support/d1-shim.js for
+        # why (no network access was available to install
+        # @cloudflare/vitest-pool-workers when this suite was built,
+        # and the zero-dependency approach turned out to have no
+        # downside worth reverting for: it's faster in CI too).
+        working-directory: en
+        run: npm test

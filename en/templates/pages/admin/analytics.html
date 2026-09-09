@@ -1,0 +1,171 @@
+<div class="admin-wrapper">
+  {{admin_nav}}
+  <div class="admin-content">
+    <div class="admin-header">
+      <h1>Analytics</h1>
+    </div>
+    <p class="muted">Figures respect your item-level access — dimensions you can't see elsewhere in the dashboard are excluded here too, including from the totals.</p>
+
+    <div class="form-row" style="margin-bottom:16px">
+      <div class="form-group">
+        <label>Dimension</label>
+        <select id="anDimensionType">
+          <option value="casino">Casinos</option>
+          <option value="offer">Offers</option>
+          <option value="tracking_link">Tracking Links</option>
+          <option value="partner">Partners</option>
+          <option value="program">Programs</option>
+          <option value="account">Accounts</option>
+          <option value="campaign">Campaigns</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Start Date</label>
+        <input type="date" id="anStartDate">
+      </div>
+      <div class="form-group">
+        <label>End Date</label>
+        <input type="date" id="anEndDate">
+      </div>
+      <div class="form-group">
+        <label>Currency</label>
+        <select id="anCurrency">
+          <option value="">All</option>
+          <option value="USD">USD</option>
+          <option value="EUR">EUR</option>
+          <option value="GBP">GBP</option>
+        </select>
+      </div>
+      <div class="form-group" style="align-self:flex-end">
+        <button type="button" class="btn btn--primary" onclick="loadAnalytics()">Apply</button>
+      </div>
+    </div>
+
+    <div class="stats-grid" id="anStatsGrid">
+      <div class="stat-card">
+        <div class="stat-icon">👁</div>
+        <div class="stat-value" id="anTotalViews">—</div>
+        <div class="stat-label">Views</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🖱</div>
+        <div class="stat-value" id="anTotalClicks">—</div>
+        <div class="stat-label">Clicks</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-value" id="anTotalConversions">—</div>
+        <div class="stat-label">Conversions</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">💰</div>
+        <div class="stat-value" id="anTotalRevenue">—</div>
+        <div class="stat-label">Revenue</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">💵</div>
+        <div class="stat-value" id="anTotalCommission">—</div>
+        <div class="stat-label">Commission</div>
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <h2>Performance by <span id="anDimensionLabel">Casino</span></h2>
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Dimension ID</th><th>Currency</th><th>Views</th><th>Clicks</th>
+            <th>Conversions</th><th>Revenue</th><th>Commission</th>
+            <th>CTR</th><th>CVR</th><th>EPC</th><th>RPC</th><th>CPA</th>
+          </tr>
+        </thead>
+        <tbody id="anTableBody">
+          <tr><td colspan="12" class="muted">Choose a date range and click Apply.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="admin-section">
+      <h2>Open Alerts</h2>
+      <table class="admin-table">
+        <thead>
+          <tr><th>Rule</th><th>Metric</th><th>Scope</th><th>Triggered</th><th>Detail</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="anAlertsTableBody">
+          <tr><td colspan="6" class="muted">Loading...</td></tr>
+        </tbody>
+      </table>
+
+      <h3 style="margin-top:20px">Alert Rules</h3>
+      <table class="admin-table">
+        <thead>
+          <tr><th>Name</th><th>Metric</th><th>Scope</th><th>Threshold</th><th>Enabled</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="anRulesTableBody">
+          <tr><td colspan="6" class="muted">Admins only.</td></tr>
+        </tbody>
+      </table>
+
+      <details style="margin-top:12px">
+        <summary>New Alert Rule (admin only)</summary>
+        <form id="anRuleForm" class="admin-form" style="margin-top:12px">
+          <div class="form-row">
+            <div class="form-group"><label>Name *</label><input type="text" name="name" required placeholder="Casino 12 click drop"></div>
+            <div class="form-group">
+              <label>Metric *</label>
+              <select name="metric" required>
+                <option value="clicks">Clicks</option>
+                <option value="conversions">Conversions</option>
+                <option value="revenue">Revenue</option>
+                <option value="commission">Commission</option>
+                <option value="page_views">Page Views</option>
+                <option value="tracking_link_health">Tracking Link Health</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Scope Type</label>
+              <select name="scopeType" id="anRuleScopeType">
+                <option value="global">Global (admin-only rules; health metric only)</option>
+                <option value="casino">Casino</option>
+                <option value="offer">Offer</option>
+                <option value="tracking_link">Tracking Link</option>
+                <option value="partner">Partner</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Scope ID</label><input type="number" name="scopeId" placeholder="e.g. casino ID"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Threshold Type *</label>
+              <select name="thresholdType" required>
+                <option value="percent_drop">Percent Drop</option>
+                <option value="absolute_drop">Absolute Drop</option>
+                <option value="zero_conversion">Zero Conversion</option>
+                <option value="health_failure">Health Failure</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Threshold Value</label><input type="number" name="thresholdValue" step="any" placeholder="e.g. 40 (for 40%)"></div>
+            <div class="form-group"><label>Baseline Window (days)</label><input type="number" name="comparisonWindowDays" value="7"></div>
+          </div>
+          <button type="submit" class="btn btn--primary">Create Rule</button>
+        </form>
+      </details>
+    </div>
+
+    <div class="admin-section">
+      <h2>GEO Performance</h2>
+      <table class="admin-table">
+        <thead>
+          <tr><th>Country</th><th>Clicks</th><th>Conversions</th><th>Revenue</th><th>Commission</th><th>CVR</th><th>EPC</th></tr>
+        </thead>
+        <tbody id="anGeoTableBody">
+          <tr><td colspan="7" class="muted">Choose a date range and click Apply.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/analytics-admin.js"></script>

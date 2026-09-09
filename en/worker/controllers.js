@@ -19,6 +19,7 @@ import {
 import { getGeoRule } from "./database/geo.js";
 import { geoEngine } from "./geo.js";
 import { resolveRedirectTarget } from "./tracking/redirect.js";
+import { logEvent as logAnalyticsEvent } from "./database/analytics.js";
 import { resolveOfferForCasino, resolveOffersForCasinos } from "./offers/selection.js";
 import * as componentsDB from "./database/components.js";
 import * as seoMetaDB from "./database/seo_meta.js";
@@ -320,11 +321,17 @@ async function resolveBonusDisplay(env, casino, countryCode) {
   const fallback = {
     bonus_title: casino.bonus_title || "Welcome Bonus",
     bonus_value: casino.bonus_value || "",
+    offer_id: null,
   };
 
   try {
     const result = await resolveOfferForCasino(env.DB, { casinoId: casino.id, countryCode });
-    return bonusDisplayFromResult(result, fallback);
+    // offer_id is purely additive here -- bonusDisplayFromResult() below
+    // is untouched, still returns only bonus_title/bonus_value from its
+    // own mapping. Adding a sibling field to resolveBonusDisplay's own
+    // return object doesn't change what any existing caller destructures.
+    const display = bonusDisplayFromResult(result, fallback);
+    return { ...display, offer_id: result?.offer?.id ?? null };
   } catch (err) {
     console.error("Offer resolution failed, falling back to legacy bonus fields:", err.message);
     return fallback;
@@ -390,7 +397,7 @@ async function resolveBonusOverridesForList(env, casinoList, countryCode) {
   return overrides;
 }
 
-export async function renderCasino(request, env, slug) {
+export async function renderCasino(request, env, slug, ctx = null) {
   const casino = await casinos.getCasino(env.DB, slug);
   if (!casino) return render404(request, env);
 
@@ -420,6 +427,23 @@ export async function renderCasino(request, env, slug) {
   };
   const geoInfo = geoEngine.process(request, edgeGeo);
   const geoRule = await getGeoRule(env.DB, slug, geoInfo.country);
+
+  // Analytics (Phase: page-view instrumentation). Fire-and-forget via
+  // ctx.waitUntil — does not delay this render. Reuses the geoInfo
+  // already computed above for GEO-rule evaluation, so this adds no
+  // extra request/CPU cost beyond the insert itself.
+  if (ctx && typeof ctx.waitUntil === 'function') {
+    ctx.waitUntil(
+      logAnalyticsEvent(env.DB, {
+        eventType: 'CASINO_VIEW',
+        casinoId: casino.id,
+        countryCode: geoInfo.country,
+        city: geoInfo.city,
+        referrer: request.headers.get('referer') || null,
+        landingPage: `/en/casino/${slug}`
+      }).catch(() => {})
+    );
+  }
 
   const casinoSchema = {
     "@context": "https://schema.org",
@@ -466,6 +490,23 @@ export async function renderCasino(request, env, slug) {
   const allComponents = await renderer.renderAllComponents("casino", slug);
   const dynamicSeo = await renderer.loadDynamicSeo("casino", slug);
   const bonusDisplay = await resolveBonusDisplay(env, casino, geoInfo.country);
+
+  // Analytics: OFFER_VIEW when a real offer (not just a legacy bonus
+  // field / GEO override fallback) was actually resolved and shown.
+  // Reuses the SAME ctx/geoInfo already in scope for the CASINO_VIEW
+  // log above -- one extra conditional insert, not a new query.
+  if (bonusDisplay.offer_id && ctx && typeof ctx.waitUntil === 'function') {
+    ctx.waitUntil(
+      logAnalyticsEvent(env.DB, {
+        eventType: 'OFFER_VIEW',
+        offerId: bonusDisplay.offer_id,
+        casinoId: casino.id,
+        countryCode: geoInfo.country,
+        city: geoInfo.city,
+        landingPage: `/en/casino/${slug}`
+      }).catch(() => {})
+    );
+  }
 
   // ── Related Casinos ({{{related_casinos_html}}}) ──────────
   // Same pattern as related_news_html in renderNews(): compute
@@ -781,9 +822,27 @@ function buildReviewCasinoCards(casinoList, geoData = null, bonusOverrides = {})
   }).join('');
 }
 
-export async function renderReview(request, env, slug) {
+export async function renderReview(request, env, slug, ctx = null) {
   const review = await reviews.getReview(env.DB, slug);
   if (!review) return render404(request, env);
+
+  // Analytics (Phase: page-view instrumentation). Cheap edge-provided
+  // country only -- no geoEngine.process() call here since reviews
+  // don't evaluate a GEO access rule the way casino pages do, and
+  // adding one purely for logging would be exactly the kind of
+  // unnecessary per-render cost the brief warns against.
+  if (ctx && typeof ctx.waitUntil === 'function') {
+    ctx.waitUntil(
+      logAnalyticsEvent(env.DB, {
+        eventType: 'REVIEW_VIEW',
+        reviewId: review.id,
+        countryCode: request.cf?.country || null,
+        city: request.cf?.city || null,
+        referrer: request.headers.get('referer') || null,
+        landingPage: `/en/review/${slug}`
+      }).catch(() => {})
+    );
+  }
 
   const renderer = new Renderer(env, request);
   const site = await getSiteContext(request, env);
@@ -1004,7 +1063,7 @@ if (review.casino_slug) {
   });
 }
 
-export async function renderNews(request, env, slug) {
+export async function renderNews(request, env, slug, ctx = null) {
   const article = await news.getNews(env.DB, slug);
   if (!article) return render404(request, env);
 
@@ -1019,6 +1078,27 @@ export async function renderNews(request, env, slug) {
     if (!Number.isNaN(pubDate.getTime()) && pubDate > new Date()) {
       return render404(request, env);
     }
+  }
+
+  // Analytics (Phase: page-view instrumentation). Placed after the
+  // published/scheduled guards above so an unpublished or not-yet-live
+  // article being probed never generates a CONTENT_VIEW row -- same
+  // reasoning as why those guards return 404 rather than the real
+  // content. No geoEngine.process() call, same as renderReview: news
+  // articles don't evaluate a GEO access rule, so this uses the free
+  // edge-provided country/city directly instead of adding a computation
+  // to the render path purely to feed analytics.
+  if (ctx && typeof ctx.waitUntil === 'function') {
+    ctx.waitUntil(
+      logAnalyticsEvent(env.DB, {
+        eventType: 'CONTENT_VIEW',
+        newsId: article.id,
+        countryCode: request.cf?.country || null,
+        city: request.cf?.city || null,
+        referrer: request.headers.get('referer') || null,
+        landingPage: `/en/news/${slug}`
+      }).catch(() => {})
+    );
   }
 
   const renderer = new Renderer(env, request);
@@ -1822,11 +1902,69 @@ async function hashIP(ip){
     .join("");
 }
 
+/**
+ * Deliberately minimal, honest device classification -- 'mobile' /
+ * 'tablet' / 'bot' / 'desktop' via a few unambiguous substring
+ * checks, nothing more. This is NOT a full user-agent parser: we do
+ * not attempt to name a specific browser or OS from the UA string,
+ * because a crude regex guess there is wrong often enough that it
+ * would violate the "never fabricate data" rule -- an admin looking
+ * at a "Safari" column should be able to trust it's actually Safari.
+ * If real browser/OS analytics are wanted later, that's a deliberate
+ * follow-up decision to bring in a proper UA-parsing library, not a
+ * guess bolted on here.
+ */
+function classifyUserAgent(userAgent) {
+  const ua = (userAgent || '').toLowerCase();
+  if (!ua) return { deviceType: 'unknown', isBot: false };
+  if (/bot|crawler|spider|slurp|bingpreview|facebookexternalhit/.test(ua)) {
+    return { deviceType: 'bot', isBot: true };
+  }
+  if (/ipad|tablet/.test(ua)) return { deviceType: 'tablet', isBot: false };
+  if (/mobi|iphone|android/.test(ua)) return { deviceType: 'mobile', isBot: false };
+  return { deviceType: 'desktop', isBot: false };
+}
+
+/**
+ * Fires both the existing click log (unchanged, still the System-3
+ * source of truth for tracking-link health/redirect debugging) and
+ * the new canonical analytics event, via ctx.waitUntil so NEITHER
+ * delays the redirect response the visitor is waiting on. Falls back
+ * to awaiting inline only if no ctx was supplied (e.g. a future
+ * direct unit-test call to handleAffiliateRedirect) so logging still
+ * happens rather than being silently skipped.
+ */
+function recordRedirectClick(env, ctx, { eventType, casinoSlug, casinoId, countryCode, city, ipHash, userAgent, trackingLinkId, offerId, clickId }) {
+  const { deviceType, isBot } = classifyUserAgent(userAgent);
+
+  const work = Promise.all([
+    logClick(env.DB, casinoSlug, countryCode, city, ipHash, userAgent, { trackingLinkId, offerId }),
+    logAnalyticsEvent(env.DB, {
+      eventType,
+      casinoId: casinoId ?? null,
+      trackingLinkId: trackingLinkId ?? null,
+      offerId: offerId ?? null,
+      countryCode, city, deviceType, isBot,
+      visitorHash: ipHash,
+      clickId
+    })
+  ]);
+
+  if (ctx && typeof ctx.waitUntil === 'function') {
+    ctx.waitUntil(work.catch(() => {
+      // Best-effort logging -- never surface a logging failure to the visitor.
+    }));
+  } else {
+    return work.catch(() => {});
+  }
+}
+
 export async function
 handleAffiliateRedirect(
   request,
   env,
-  identifier
+  identifier,
+  ctx = null
 ){
 
   const edgeGeo = {
@@ -1851,6 +1989,10 @@ handleAffiliateRedirect(
     )
   );
   const userAgent = request.headers.get("user-agent");
+  // Generated once per redirect so a later conversion postback
+  // (analytics_conversions.click_id) can attribute back to this
+  // exact click without guessing -- see worker/database/analytics.js.
+  const clickId = crypto.randomUUID();
 
   // A known link that isn't redirectable right now (health-broken or
   // GEO-ineligible for this visitor's country). Falls back to the
@@ -1862,44 +2004,41 @@ handleAffiliateRedirect(
   // "temporarily broken."
   if (result.type === "unavailable") {
     if (result.fallbackUrl) {
-      await logClick(
-        env.DB,
-        result.casino?.slug || identifier,
-        geoInfo.country,
-        geoInfo.city,
-        ipHash,
-        userAgent,
-        { trackingLinkId: result.trackingLink.id, offerId: result.trackingLink.offer_id }
-      );
+      recordRedirectClick(env, ctx, {
+        eventType: "AFFILIATE_REDIRECT",
+        casinoSlug: result.casino?.slug || identifier,
+        casinoId: result.casino?.id ?? null,
+        countryCode: geoInfo.country, city: geoInfo.city, ipHash, userAgent,
+        trackingLinkId: result.trackingLink.id, offerId: result.trackingLink.offer_id,
+        clickId
+      });
       return Response.redirect(result.fallbackUrl, 302);
     }
     return render404(request, env);
   }
 
   if (result.type === "tracking_link") {
-    await logClick(
-      env.DB,
-      result.casino?.slug || identifier,
-      geoInfo.country,
-      geoInfo.city,
-      ipHash,
-      userAgent,
-      { trackingLinkId: result.trackingLink.id, offerId: result.trackingLink.offer_id }
-    );
+    recordRedirectClick(env, ctx, {
+      eventType: "TRACKING_LINK_CLICK",
+      casinoSlug: result.casino?.slug || identifier,
+      casinoId: result.casino?.id ?? null,
+      countryCode: geoInfo.country, city: geoInfo.city, ipHash, userAgent,
+      trackingLinkId: result.trackingLink.id, offerId: result.trackingLink.offer_id,
+      clickId
+    });
     return Response.redirect(result.destinationUrl, 302);
   }
 
   // result.type === "legacy_casino" -- identical behavior to before
   // this system existed, for any link not yet migrated to a tracking link.
-  await logClick(
-    env.DB,
-    result.casino.slug,
-    geoInfo.country,
-    geoInfo.city,
-    ipHash,
-    userAgent,
-    {}
-  );
+  recordRedirectClick(env, ctx, {
+    eventType: "AFFILIATE_REDIRECT",
+    casinoSlug: result.casino.slug,
+    casinoId: result.casino.id,
+    countryCode: geoInfo.country, city: geoInfo.city, ipHash, userAgent,
+    trackingLinkId: null, offerId: null,
+    clickId
+  });
   return Response.redirect(
     result.destinationUrl,
     302
@@ -2529,9 +2668,37 @@ function parseContentJson(contentJson) {
   }
 }
 
-export async function renderDynamicPage(request, env, slug) {
+export async function renderDynamicPage(request, env, slug, ctx = null) {
   const page = await pages.getPage(env.DB, slug);
   if (!page) return render404(request, env);
+
+  // Security: only render published pages publicly -- closes a gap
+  // found while instrumenting page-view analytics. getPage() itself
+  // deliberately does NOT filter on `published` (both admin and public
+  // callers use it), so this check belongs here, matching the exact
+  // convention already used by renderReview/renderNews for their own
+  // published flags, not inside the shared database helper.
+  if (!page.published || Number(page.published) !== 1) {
+    return render404(request, env);
+  }
+
+  // Analytics (Phase: page-view instrumentation). Same non-blocking
+  // pattern as casino/review/news. No geoEngine.process() call, same
+  // reasoning as those: generic pages don't evaluate a GEO access rule,
+  // so this uses the free edge-provided country/city directly instead
+  // of adding a computation to the render path purely to feed analytics.
+  if (ctx && typeof ctx.waitUntil === 'function') {
+    ctx.waitUntil(
+      logAnalyticsEvent(env.DB, {
+        eventType: 'PAGE_VIEW',
+        pageId: page.id,
+        countryCode: request.cf?.country || null,
+        city: request.cf?.city || null,
+        referrer: request.headers.get('referer') || null,
+        landingPage: `/en/${slug}`
+      }).catch(() => {})
+    );
+  }
 
   const renderer = new Renderer(env, request);
   const site = await getSiteContext(request, env);
@@ -2583,6 +2750,13 @@ export async function renderDynamicPage(request, env, slug) {
 export async function renderAffiliate(request, env, slug) {
   const page = await pages.getPage(env.DB, slug);
   if (!page) return render404(request, env);
+
+  // Security: same published check as renderDynamicPage -- this
+  // function has the identical gap (fetches via the same unfiltered
+  // pages.getPage()), so it needs the identical fix.
+  if (!page.published || Number(page.published) !== 1) {
+    return render404(request, env);
+  }
 
   const renderer = new Renderer(env, request);
   const pageSchema = {
@@ -4164,6 +4338,18 @@ export async function renderDashboardOffers(request, env) {
 
 export async function renderDashboardTrackingLinks(request, env) {
   return renderAdminPage(request, env, "admin/tracking-links.html");
+}
+
+export async function renderDashboardAnalytics(request, env) {
+  return renderAdminPage(request, env, "admin/analytics.html");
+}
+
+export async function renderDashboardCampaigns(request, env) {
+  return renderAdminPage(request, env, "admin/campaigns.html");
+}
+
+export async function renderDashboardReports(request, env) {
+  return renderAdminPage(request, env, "admin/reports.html");
 }
 
 export async function renderSitemapPage(request, env) {

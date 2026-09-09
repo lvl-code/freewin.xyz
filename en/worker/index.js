@@ -37,6 +37,9 @@ import {
   renderDashboardCommercialTerms,
   renderDashboardOffers,
   renderDashboardTrackingLinks,
+  renderDashboardAnalytics,
+  renderDashboardCampaigns,
+  renderDashboardReports,
   renderDashboardSeo,
   renderDashboardCasinos,
   renderDashboardCasinoCreate,
@@ -84,7 +87,7 @@ import {
   getCurrentUser
 }
 from "./auth.js";
-import { cleanupExpiredSessions } from "./cron.js";
+import { cleanupExpiredSessions, runAnalyticsAggregation, runScheduledReports, runAlertEvaluation } from "./cron.js";
 import { runScheduledHealthChecks } from "./tracking/health-check.js";
 
 import { cleanupExpiredConversations } from "./ai/memory.js";
@@ -181,20 +184,23 @@ if (
         return renderCasino(
           request,
           env,
-          route.slug
+          route.slug,
+          ctx
         );
 
       case "review":
         return renderReview(
           request,
           env,
-          route.slug
+          route.slug,
+          ctx
         );
       case "news":
         return renderNews(
           request,
           env,
-          route.slug
+          route.slug,
+          ctx
         );
 
       case "country":
@@ -238,7 +244,8 @@ if (
         return handleAffiliateRedirect(
           request,
           env,
-          route.slug
+          route.slug,
+          ctx
         );
 
       case "dashboard":
@@ -332,6 +339,12 @@ if (
         return renderDashboardOffers(request, env);
       case "dashboardTrackingLinks":
         return renderDashboardTrackingLinks(request, env);
+      case "dashboardAnalytics":
+        return renderDashboardAnalytics(request, env);
+      case "dashboardCampaigns":
+        return renderDashboardCampaigns(request, env);
+      case "dashboardReports":
+        return renderDashboardReports(request, env);
 
       case "dashboardCasinoEdit":
         return renderDashboardCasinoEdit(request, env, route.slug);
@@ -474,7 +487,8 @@ case "sitemap-seo-pages":
         return renderDynamicPage(
           request,
           env,
-          route.slug
+          route.slug,
+          ctx
         );
       case "not_found":
         return render404(request, env);
@@ -503,6 +517,32 @@ case "sitemap-seo-pages":
         ctx.waitUntil(
             runScheduledHealthChecks(env.DB).catch(() => {
                 // Never let a health-check failure affect other scheduled tasks.
+            })
+        );
+
+        // Analytics daily aggregation (Phase 4) -- same feature-flag
+        // convention as the health checks above ('analytics_aggregation_
+        // cron_enabled' in system_settings, default off). Also always
+        // safe to leave wired in: a disabled flag makes this a no-op.
+        ctx.waitUntil(
+            runAnalyticsAggregation(env).catch(() => {
+                // Never let an aggregation failure affect other scheduled tasks.
+            })
+        );
+
+        // Scheduled report execution (Phase 9) -- same feature-flag
+        // convention ('report_schedules_cron_enabled', default off).
+        ctx.waitUntil(
+            runScheduledReports(env).catch(() => {
+                // Never let a report-scheduling failure affect other scheduled tasks.
+            })
+        );
+
+        // Alert-rule evaluation (Phase 13) -- same feature-flag
+        // convention ('alert_rules_cron_enabled', default off).
+        ctx.waitUntil(
+            runAlertEvaluation(env).catch(() => {
+                // Never let alert evaluation affect other scheduled tasks.
             })
         );
 
