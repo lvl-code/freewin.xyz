@@ -8,6 +8,7 @@
 import { verifySuperApiRequest, logSuperApiRequest } from "./auth.js";
 import * as h from "./handlers.js";
 import * as ah from "./handlers-affiliate.js";
+import * as anh from "./handlers-analytics.js";
 
 // Each entry: [METHOD, path-pattern, handler, resource-name]
 // Path patterns use ":param" for a single dynamic segment.
@@ -187,7 +188,14 @@ const ROUTES = [
   ["GET", "/en/api/super/tracking-links", ah.handleListTrackingLinks, "tracking_links"],
   ["GET", "/en/api/super/tracking-links/:id", ah.handleGetTrackingLink, "tracking_links"],
   ["POST", "/en/api/super/tracking-links", ah.handleCreateTrackingLink, "tracking_links"],
-  ["PUT", "/en/api/super/tracking-links/:id", ah.handleUpdateTrackingLink, "tracking_links"]
+  ["PUT", "/en/api/super/tracking-links/:id", ah.handleUpdateTrackingLink, "tracking_links"],
+
+  // Analytics (v8) -- tenant-wide AGGREGATE data only, see
+  // handlers-analytics.js header comment for exactly what is and
+  // isn't exposed here and why.
+  ["GET", "/en/api/super/analytics-overview", anh.handleAnalyticsOverview, "analytics"],
+  ["GET", "/en/api/super/analytics-revenue", anh.handleAnalyticsRevenue, "analytics"],
+  ["GET", "/en/api/super/tracking-health", anh.handleTrackingHealth, "analytics"]
 ];
 
 function matchRoute(method, path) {

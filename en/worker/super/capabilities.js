@@ -20,7 +20,18 @@
 // (System 3). commercial_terms is read+create only through this
 // Super API (terms are versioned/immutable, no plain edit --
 // superseding is a deliberate two-step action).
-export const SUPER_API_VERSION = 7;
+// Version 8: added Analytics -- analytics_overview (tenant-wide
+// performance-by-dimension summary), analytics_revenue (tenant-wide
+// daily revenue/commission time series, single-currency only, never
+// silently summed across currencies), and tracking_health (current
+// status counts + which links are currently unhealthy). All three are
+// pre-aggregated summaries only -- raw analytics_events, individual
+// visitor data, and the full tracking_link_health_checks history are
+// deliberately NOT exposed through this API. report_definitions/
+// report_runs, campaigns, and alerts are NOT exposed yet -- deferred
+// pending confirmation the control plane needs report/alert data (not
+// just analytics numbers) through this channel.
+export const SUPER_API_VERSION = 8;
 
 export const CAPABILITIES = {
   casinos: true,
@@ -49,7 +60,8 @@ export const CAPABILITIES = {
   affiliate_accounts: true,
   commercial_terms: true,
   offers: true,
-  tracking_links: true
+  tracking_links: true,
+  analytics: true
 };
 
 export function getCapabilities() {

@@ -15,8 +15,9 @@
       </tbody>
     </table>
 
-    <h2 style="margin-top:30px">New Report</h2>
+    <h2 style="margin-top:30px" id="rptFormHeading">New Report</h2>
     <form id="rptForm" class="admin-form">
+      <input type="hidden" id="rptEditId" value="">
       <div class="form-row">
         <div class="form-group">
           <label>Name *</label>
@@ -41,6 +42,7 @@
             <option value="operational_health">Operational Health</option>
             <option value="seo_performance">SEO Performance (not yet available)</option>
           </select>
+          <span class="muted" id="rptTypeLockedNote" style="display:none">Type can't be changed after creation — create a new report instead.</span>
         </div>
       </div>
 
@@ -58,7 +60,8 @@
         </select>
       </div>
 
-      <button type="submit" class="btn btn--primary">Create Report</button>
+      <button type="submit" class="btn btn--primary" id="rptSubmitBtn">Create Report</button>
+      <button type="button" class="btn btn--secondary" id="rptCancelEditBtn" style="display:none" onclick="resetReportForm()">New Report (cancel edit)</button>
     </form>
 
     <div id="rptRunPanel" style="display:none; margin-top:30px">

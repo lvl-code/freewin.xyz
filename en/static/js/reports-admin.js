@@ -14,7 +14,7 @@ function initReportsPage() {
   document.getElementById("rptStartDate").value = thirtyDaysAgo.toISOString().slice(0, 10);
 
   loadReportsTable();
-  form.addEventListener("submit", createReport);
+  form.addEventListener("submit", handleReportFormSubmit);
   document.getElementById("rptType")?.addEventListener("change", (e) => loadColumnOptions(e.target.value));
   loadColumnOptions(document.getElementById("rptType").value);
 }
@@ -23,10 +23,12 @@ function initReportsPage() {
  * Fetches the column manifest for a report type and renders:
  * - a checkbox per available column (leave all unchecked = show all)
  * - a "Group by" dropdown populated with only the groupable columns
- * Called on page load (for the default-selected type) and whenever the
- * report type dropdown changes.
+ * Called on page load (for the default-selected type), whenever the
+ * report type dropdown changes, and when opening an existing report
+ * for editing (in which case preselectedColumns/preselectedGroupBy
+ * check the boxes / set the dropdown to that report's saved values).
  */
-async function loadColumnOptions(reportType) {
+async function loadColumnOptions(reportType, preselectedColumns = [], preselectedGroupBy = "") {
   const checklist = document.getElementById("rptColumnChecklist");
   const groupBySelect = document.getElementById("rptGroupBy");
   checklist.innerHTML = `<span class="muted">Loading...</span>`;
@@ -44,7 +46,7 @@ async function loadColumnOptions(reportType) {
 
     checklist.innerHTML = columns.map(c => `
       <label class="checklist-item">
-        <input type="checkbox" name="rptColumn" value="${escapeHtml(c.key)}">
+        <input type="checkbox" name="rptColumn" value="${escapeHtml(c.key)}" ${preselectedColumns.includes(c.key) ? "checked" : ""}>
         ${escapeHtml(c.label)}
       </label>
     `).join("");
@@ -54,6 +56,7 @@ async function loadColumnOptions(reportType) {
       const opt = document.createElement("option");
       opt.value = c.key;
       opt.textContent = c.label;
+      if (c.key === preselectedGroupBy) opt.selected = true;
       groupBySelect.appendChild(opt);
     }
   } catch (e) {
@@ -77,7 +80,7 @@ async function loadReportsTable() {
         <td>${escapeHtml(r.name)}</td>
         <td>${escapeHtml(r.report_type)}</td>
         <td>${r.created_at}</td>
-        <td class="table-actions"><button class="btn btn--sm" onclick="selectReport(${r.id}, '${escapeHtml(r.name).replace(/'/g, "\\'")}')">Open</button></td>
+        <td class="table-actions"><button class="btn btn--sm" onclick="selectReport(${r.id}, '${escapeHtml(r.name).replace(/'/g, "\\'")}')">Open / Edit</button></td>
       </tr>
     `).join("");
   } catch (e) {
@@ -85,44 +88,96 @@ async function loadReportsTable() {
   }
 }
 
-async function createReport(e) {
+async function handleReportFormSubmit(e) {
   e.preventDefault();
+  const editId = document.getElementById("rptEditId").value;
   const name = document.getElementById("rptName").value;
   const reportType = document.getElementById("rptType").value;
   const groupBy = document.getElementById("rptGroupBy").value;
   const selectedColumns = Array.from(document.querySelectorAll('input[name="rptColumn"]:checked')).map(cb => cb.value);
 
+  const endpoint = editId ? "/en/api/v1/report/update" : "/en/api/v1/report/create";
+  const payload = editId
+    ? { id: parseInt(editId), name, columns: selectedColumns.length > 0 ? selectedColumns : [], grouping: groupBy || null }
+    : { name, reportType, columns: selectedColumns.length > 0 ? selectedColumns : undefined, grouping: groupBy || undefined };
+
   try {
-    const res = await fetch("/en/api/v1/report/create", {
+    const res = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name, reportType,
-        columns: selectedColumns.length > 0 ? selectedColumns : undefined,
-        grouping: groupBy || undefined,
-      }),
+      body: JSON.stringify(payload),
     });
     const data = await res.json();
     if (data.success) {
-      document.getElementById("rptForm").reset();
-      loadColumnOptions(document.getElementById("rptType").value);
+      const wasEditing = !!editId;
+      resetReportForm();
       loadReportsTable();
-      selectReport(data.id, name);
+      if (wasEditing) {
+        selectReport(parseInt(editId), name);
+      } else {
+        selectReport(data.id, name);
+      }
     } else {
-      alert(data.error || "Failed to create report");
+      alert(data.error || "Failed to save report");
     }
   } catch (e) {
-    alert("Failed to create report");
+    alert("Failed to save report");
   }
 }
 
-function selectReport(id, name) {
+/**
+ * Opens a report's run panel AND loads it into the form above for
+ * editing (name + column selection + grouping). Report TYPE is locked
+ * during edit -- /report/update doesn't accept changing it (a report's
+ * type determines which columns even exist; changing it would orphan
+ * a saved column selection), so the type dropdown is disabled with an
+ * explanatory note instead of silently ignoring a changed value.
+ */
+async function selectReport(id, name) {
   currentReportId = id;
   document.getElementById("rptRunName").textContent = name;
   document.getElementById("rptRunPanel").style.display = "block";
   document.getElementById("rptPreviewOutput").style.display = "none";
   loadRuns();
   window.scrollTo({ top: document.getElementById("rptRunPanel").offsetTop - 20, behavior: "smooth" });
+
+  try {
+    const res = await fetch(`/en/api/v1/report/get?id=${id}`);
+    const data = await res.json();
+    if (!data.success) return;
+    const report = data.report;
+
+    document.getElementById("rptEditId").value = report.id;
+    document.getElementById("rptName").value = report.name;
+    document.getElementById("rptType").value = report.report_type;
+    document.getElementById("rptType").disabled = true;
+    document.getElementById("rptTypeLockedNote").style.display = "inline";
+    document.getElementById("rptFormHeading").textContent = `Edit: ${report.name}`;
+    document.getElementById("rptSubmitBtn").textContent = "Save Changes";
+    document.getElementById("rptCancelEditBtn").style.display = "inline-block";
+
+    let savedColumns = [];
+    let savedGroupBy = "";
+    try { savedColumns = report.columns_json ? JSON.parse(report.columns_json) : []; } catch (e) {}
+    try { savedGroupBy = report.grouping_json ? JSON.parse(report.grouping_json) : ""; } catch (e) {}
+
+    await loadColumnOptions(report.report_type, savedColumns, savedGroupBy);
+  } catch (e) {
+    // Run panel still works even if the edit-form population failed --
+    // fail soft here rather than blocking the ability to just run the report.
+  }
+}
+
+function resetReportForm() {
+  const form = document.getElementById("rptForm");
+  form.reset();
+  document.getElementById("rptEditId").value = "";
+  document.getElementById("rptType").disabled = false;
+  document.getElementById("rptTypeLockedNote").style.display = "none";
+  document.getElementById("rptFormHeading").textContent = "New Report";
+  document.getElementById("rptSubmitBtn").textContent = "Create Report";
+  document.getElementById("rptCancelEditBtn").style.display = "none";
+  loadColumnOptions(document.getElementById("rptType").value);
 }
 
 async function runReport(format) {
