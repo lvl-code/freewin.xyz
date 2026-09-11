@@ -237,6 +237,9 @@ export function getRoute(request) {
   if (path === "/en/dashboard/affiliate-programs") return { type: "dashboardAffiliatePrograms" };
   if (path === "/en/dashboard/affiliate-accounts") return { type: "dashboardAffiliateAccounts" };
   if (path === "/en/dashboard/commercial-terms") return { type: "dashboardCommercialTerms" };
+  if (path === "/en/dashboard/postback-configs") return { type: "dashboardPostbackConfigs" };
+  if (path === "/en/dashboard/import-history") return { type: "dashboardImportHistory" };
+  if (path === "/en/dashboard/provider-adapters") return { type: "dashboardProviderAdapters" };
   if (path === "/en/dashboard/offers") return { type: "dashboardOffers" };
   if (path === "/en/dashboard/tracking-links") return { type: "dashboardTrackingLinks" };
   if (path === "/en/dashboard/analytics") return { type: "dashboardAnalytics" };

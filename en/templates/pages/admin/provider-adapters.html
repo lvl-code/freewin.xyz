@@ -1,0 +1,71 @@
+<div class="admin-wrapper">
+  {{admin_nav}}
+  <div class="admin-content">
+    <div class="admin-header">
+      <h1>Provider API Adapters</h1>
+    </div>
+    <p class="muted">Outbound integrations — this platform calls OUT to a network's own reporting API on a schedule, unlike Postback Integrations (the network calls in). Results land in the same Import History as a manual CSV upload. Only providers with a documented, working REST reporting API can be configured here — see <code>provider_key</code> options below.</p>
+
+    <table class="admin-table">
+      <thead>
+        <tr><th>Label</th><th>Account</th><th>Provider</th><th>Status</th><th>Last Sync</th><th>Frequency</th><th>Actions</th></tr>
+      </thead>
+      <tbody id="paTableBody">
+        <tr><td colspan="7" class="muted">Loading...</td></tr>
+      </tbody>
+    </table>
+
+    <h2 style="margin-top:30px">New Provider Adapter</h2>
+    <form id="paForm" class="admin-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Affiliate Account *</label>
+          <select name="account_id" id="paAccountSelect" required></select>
+        </div>
+        <div class="form-group">
+          <label>Label *</label>
+          <input type="text" name="label" required placeholder="Weekly statement API sync">
+        </div>
+        <div class="form-group">
+          <label>Provider *</label>
+          <select name="provider_key" id="paProviderSelect" required></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>API Base URL *</label>
+          <input type="text" name="api_base_url" required placeholder="https://api.provider.example.com">
+        </div>
+        <div class="form-group">
+          <label>Credential Reference (secret binding name) *</label>
+          <input type="text" name="credential_reference" required placeholder="PROVIDER_API_KEY">
+          <span class="muted">Must match a name already set with <code>wrangler secret put PROVIDER_API_KEY</code>.</span>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Conversions Path</label><input type="text" name="conversions_path" placeholder="/reports/conversions"></div>
+        <div class="form-group"><label>Auth Header Name</label><input type="text" name="auth_header_name" placeholder="Authorization"></div>
+        <div class="form-group"><label>Auth Scheme</label><input type="text" name="auth_scheme" placeholder="Bearer (blank = raw secret, no scheme prefix)"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>"Since" Param Name</label><input type="text" name="date_param_since" placeholder="since"></div>
+        <div class="form-group"><label>"Until" Param Name</label><input type="text" name="date_param_until" placeholder="until"></div>
+        <div class="form-group"><label>Response Array Path</label><input type="text" name="response_array_path" placeholder="data.conversions (blank = auto-detect)"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Sync Frequency (minutes)</label>
+          <input type="number" name="sync_frequency_minutes" value="60">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Field Mapping (optional — JSON, same shape as postback integrations)</label>
+        <textarea name="field_mapping_json" placeholder='{"click_id": "subid", "reported_commission": "commission"}'></textarea>
+      </div>
+      <div id="paFormAlert" class="alert" style="display:none"></div>
+      <button type="submit" class="btn btn--primary btn--lg">Create Adapter</button>
+    </form>
+  </div>
+</div>
+
+<script src="/static/js/provider-adapter-admin.js"></script>

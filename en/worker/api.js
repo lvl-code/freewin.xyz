@@ -28,6 +28,16 @@ import { logAudit } from "./database/audit.js";
 import * as analyticsDB from "./database/analytics.js";
 import * as reportsDB from "./database/reports.js";
 import * as alertsDB from "./database/alerts.js";
+import * as postbackConfigsDB from "./database/postback-configs.js";
+import { handlePostbackRequest } from "./postback/handler.js";
+import { ingestPostback } from "./postback/ingest.js";
+import { normalizeConversionPayload, validateNormalized } from "./postback/field-mapping.js";
+import * as importBatchesDB from "./database/import-batches.js";
+import { parseCsv, parseJsonRows } from "./imports/parse.js";
+import { importConversionReport } from "./imports/pipeline.js";
+import * as providerAdaptersDB from "./database/provider-adapters.js";
+import { syncProviderConfig } from "./adapters/sync.js";
+import { listProviderKeys } from "./adapters/registry.js";
 
 
 
@@ -422,7 +432,19 @@ if (path === "/api/v1/public/countries/list") {
   return json({ countries });
 }
 
-
+// ── Universal S2S conversion postback (brief §4-6) ──
+// Deliberately unauthenticated at the session-user level, same as the
+// /api/v1/public/* routes above -- this endpoint authenticates each
+// request itself, per postback_configs row, in
+// worker/postback/handler.js (HMAC/shared-secret/API-key/signed-query,
+// never a login cookie). This is the endpoint the comment further
+// below (search "an unauthenticated public postback endpoint") used to
+// flag as not yet built.
+if (path.startsWith("/api/v1/conversions/postback/") && (request.method === "POST" || request.method === "GET")) {
+  const token = path.slice("/api/v1/conversions/postback/".length);
+  if (!token) return failure("Not found", 404);
+  return handlePostbackRequest(request, env, token);
+}
 
 
   if (!user &&
@@ -511,6 +533,14 @@ if (path === "/api/v1/public/countries/list") {
       "/api/v1/commercial-terms/history": "commercial_terms",
       "/api/v1/commercial-terms/resolve": "commercial_terms",
       "/api/v1/commercial-term/get": "commercial_terms",
+      // Postback Integrations (admin-only -- see migration 0033, no editor permission rows exist for this resource)
+      "/api/v1/postback-configs/list": "postback_configs",
+      "/api/v1/postback-config/get": "postback_configs",
+      "/api/v1/postback-config/health": "postback_configs",
+      "/api/v1/imports/list": "import_batches",
+      "/api/v1/import/get": "import_batches",
+      "/api/v1/provider-adapters/list": "provider_adapter_configs",
+      "/api/v1/provider-adapter/get": "provider_adapter_configs",
       // Offers (System 2)
       "/api/v1/offers/list": "offers",
       "/api/v1/offer/get": "offers",
@@ -588,6 +618,13 @@ if (path === "/api/v1/public/countries/list") {
       "/api/v1/affiliate-accounts": "affiliate_accounts",
       "/api/v1/commercial-term": "commercial_terms",
       "/api/v1/commercial-terms": "commercial_terms",
+      // Postback Integrations (admin-only -- see migration 0033)
+      "/api/v1/postback-config": "postback_configs",
+      "/api/v1/postback-configs": "postback_configs",
+      "/api/v1/imports": "import_batches",
+      "/api/v1/import": "import_batches",
+      "/api/v1/provider-adapter": "provider_adapter_configs",
+      "/api/v1/provider-adapters": "provider_adapter_configs",
       // Offers (System 2) -- note: intentionally no delete endpoint, see migration 0021
       "/api/v1/offer": "offers",
       "/api/v1/offers": "offers",
@@ -2540,6 +2577,262 @@ async function requireAdAdmin(request, env) {
       return success();
     }
 
+    // ==================================
+    // POSTBACK INTEGRATIONS (brief §4-6, §21, §25)
+    // Admin-only -- see readResourceMap/resourceMap above and
+    // migration 0033 (no editor permission rows exist for this
+    // resource at all, so a non-admin gets a 403 regardless of role).
+    // ==================================
+
+    if (path === "/api/v1/postback-configs/list") {
+      const url = new URL(request.url);
+      const accountId = url.searchParams.get("account_id") ? Number(url.searchParams.get("account_id")) : null;
+      const status = url.searchParams.get("status") || null;
+      const configs = await postbackConfigsDB.listPostbackConfigs(env.DB, { accountId, status });
+      return json({ success: true, configs });
+    }
+
+    if (path === "/api/v1/postback-config/get") {
+      const url = new URL(request.url);
+      const id = Number(url.searchParams.get("id"));
+      if (!id) return failure("id is required");
+      const config = await postbackConfigsDB.getPostbackConfigById(env.DB, id);
+      if (!config) return failure("Postback config not found", 404);
+      return json({ success: true, config });
+    }
+
+    if (path === "/api/v1/postback-config/health") {
+      const url = new URL(request.url);
+      const id = Number(url.searchParams.get("id"));
+      if (!id) return failure("id is required");
+      const health = await postbackConfigsDB.getConversionHealth(env.DB, id);
+      return json({ success: true, health });
+    }
+
+    if (path === "/api/v1/postback-config/create" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["account_id", "label", "auth_method", "credential_reference"]);
+
+      const account = await affiliateAccounts.getAccountById(env.DB, body.account_id);
+      if (!account) return failure("Affiliate account not found", 404);
+
+      body.created_by = user.user_id;
+      try {
+        const { id, endpoint_token } = await postbackConfigsDB.createPostbackConfig(env.DB, body);
+        await logAudit(env.DB, {
+          userId: user.user_id, action: 'create', entityType: 'postback_config', entityId: id,
+          // Never the credential value -- only which pointer/account it's for.
+          metadata: { account_id: body.account_id, auth_method: body.auth_method, credential_reference: body.credential_reference }
+        });
+        // endpoint_token is returned once here so the admin can hand
+        // it to the network -- it is a URL path segment, not the
+        // credential itself, but is still only ever shown through this
+        // authenticated admin API, never a public response.
+        return success({ id, endpoint_token });
+      } catch (error) {
+        return failure(error.message, 422);
+      }
+    }
+
+    if (path === "/api/v1/postback-config/update" && request.method === "PUT") {
+      const body = await request.json();
+      validate(body, ["id", "account_id", "label", "auth_method", "credential_reference"]);
+
+      const existing = await postbackConfigsDB.getPostbackConfigById(env.DB, body.id);
+      if (!existing) return failure("Postback config not found", 404);
+
+      body.updated_by = user.user_id;
+      try {
+        await postbackConfigsDB.updatePostbackConfig(env.DB, body.id, body);
+        await logAudit(env.DB, { userId: user.user_id, action: 'update', entityType: 'postback_config', entityId: body.id, metadata: { account_id: body.account_id, auth_method: body.auth_method } });
+        return success();
+      } catch (error) {
+        return failure(error.message, 422);
+      }
+    }
+
+    if (path === "/api/v1/postback-config/rotate-token" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id"]);
+      const existing = await postbackConfigsDB.getPostbackConfigById(env.DB, body.id);
+      if (!existing) return failure("Postback config not found", 404);
+
+      const endpoint_token = await postbackConfigsDB.rotateEndpointToken(env.DB, body.id, user.user_id);
+      await logAudit(env.DB, { userId: user.user_id, action: 'rotate_token', entityType: 'postback_config', entityId: body.id });
+      return success({ endpoint_token });
+    }
+
+    if (path === "/api/v1/postback-config/archive" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id"]);
+      const existing = await postbackConfigsDB.getPostbackConfigById(env.DB, body.id);
+      if (!existing) return failure("Postback config not found", 404);
+
+      await postbackConfigsDB.archivePostbackConfig(env.DB, body.id, user.user_id);
+      await logAudit(env.DB, { userId: user.user_id, action: 'archive', entityType: 'postback_config', entityId: body.id });
+      return success();
+    }
+
+    // The postback testing UI (brief §25): runs the EXACT same
+    // ingestPostback() pipeline the live endpoint uses, in dry-run
+    // mode (never inserts a conversion row), and returns the same
+    // per-step resolution breakdown the admin dashboard's "Test
+    // Postback" screen renders as a checklist.
+    if (path === "/api/v1/postback-config/test" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id"]);
+
+      const config = await postbackConfigsDB.getPostbackConfigById(env.DB, body.id);
+      if (!config) return failure("Postback config not found", 404);
+
+      const normalized = normalizeConversionPayload(body.payload || {}, config.field_mapping_json);
+      const validation = validateNormalized(normalized);
+      if (!validation.valid) {
+        return json({ success: true, outcome: "rejected_validation", errors: validation.errors }, 200);
+      }
+
+      const result = await ingestPostback(env.DB, { config, normalized, dryRun: true });
+      return json({ success: true, ...result });
+    }
+
+    // ==================================
+    // CONVERSION REPORT IMPORTS (brief §11)
+    // Editor+ (see migration 0034 permissions) -- unlike
+    // postback_configs this holds no credentials, so it follows the
+    // same tier as tracking_links/offers rather than admin-only.
+    // ==================================
+
+    if (path === "/api/v1/imports/list") {
+      const url = new URL(request.url);
+      const accountId = url.searchParams.get("account_id") ? Number(url.searchParams.get("account_id")) : null;
+      const batches = await importBatchesDB.listImportBatches(env.DB, { accountId });
+      return json({ success: true, batches });
+    }
+
+    if (path === "/api/v1/import/get") {
+      const url = new URL(request.url);
+      const id = Number(url.searchParams.get("id"));
+      if (!id) return failure("id is required");
+      const batch = await importBatchesDB.getImportBatchById(env.DB, id);
+      if (!batch) return failure("Import batch not found", 404);
+      return json({ success: true, batch: { ...batch, errors: batch.errors_json ? JSON.parse(batch.errors_json) : [] } });
+    }
+
+    if (path === "/api/v1/imports/conversions" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["account_id", "format", "content"]);
+
+      const account = await affiliateAccounts.getAccountById(env.DB, body.account_id);
+      if (!account) return failure("Affiliate account not found", 404);
+      if (!["csv", "json"].includes(body.format)) return failure('format must be "csv" or "json"');
+
+      let rows;
+      try {
+        rows = body.format === "csv" ? parseCsv(body.content) : parseJsonRows(body.content);
+      } catch (error) {
+        return failure(`Could not parse ${body.format.toUpperCase()} content: ${error.message}`, 422);
+      }
+      if (!rows.length) return failure("No rows found in the provided content", 422);
+
+      const result = await importConversionReport(env.DB, {
+        accountId: body.account_id,
+        rows,
+        format: body.format,
+        fieldMapping: body.field_mapping || null,
+        label: body.label || null,
+        createdBy: user.user_id
+      });
+
+      await logAudit(env.DB, {
+        userId: user.user_id, action: "create", entityType: "import_batch", entityId: result.batchId,
+        metadata: { account_id: body.account_id, format: body.format, total_rows: result.totalRows, imported: result.importedCount, errors: result.errorCount }
+      });
+
+      return json({ success: true, ...result });
+    }
+
+    // ==================================
+    // PROVIDER API ADAPTERS (brief §10) -- outbound pull integrations.
+    // Admin-only, same reasoning as postback_configs (holds a
+    // credential_reference pointer).
+    // ==================================
+
+    if (path === "/api/v1/provider-adapters/list") {
+      const url = new URL(request.url);
+      const accountId = url.searchParams.get("account_id") ? Number(url.searchParams.get("account_id")) : null;
+      const configs = await providerAdaptersDB.listProviderAdapterConfigs(env.DB, { accountId });
+      return json({ success: true, configs, available_providers: listProviderKeys() });
+    }
+
+    if (path === "/api/v1/provider-adapter/get") {
+      const url = new URL(request.url);
+      const id = Number(url.searchParams.get("id"));
+      if (!id) return failure("id is required");
+      const config = await providerAdaptersDB.getProviderAdapterConfigById(env.DB, id);
+      if (!config) return failure("Provider adapter config not found", 404);
+      return json({ success: true, config });
+    }
+
+    if (path === "/api/v1/provider-adapter/create" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["account_id", "label", "provider_key", "api_base_url", "credential_reference"]);
+      const account = await affiliateAccounts.getAccountById(env.DB, body.account_id);
+      if (!account) return failure("Affiliate account not found", 404);
+
+      body.created_by = user.user_id;
+      try {
+        const id = await providerAdaptersDB.createProviderAdapterConfig(env.DB, body);
+        await logAudit(env.DB, { userId: user.user_id, action: 'create', entityType: 'provider_adapter_config', entityId: id, metadata: { account_id: body.account_id, provider_key: body.provider_key, credential_reference: body.credential_reference } });
+        return success({ id });
+      } catch (error) {
+        return failure(error.message, 422);
+      }
+    }
+
+    if (path === "/api/v1/provider-adapter/update" && request.method === "PUT") {
+      const body = await request.json();
+      validate(body, ["id", "account_id", "label", "provider_key", "api_base_url", "credential_reference"]);
+      const existing = await providerAdaptersDB.getProviderAdapterConfigById(env.DB, body.id);
+      if (!existing) return failure("Provider adapter config not found", 404);
+
+      body.updated_by = user.user_id;
+      try {
+        await providerAdaptersDB.updateProviderAdapterConfig(env.DB, body.id, body);
+        await logAudit(env.DB, { userId: user.user_id, action: 'update', entityType: 'provider_adapter_config', entityId: body.id, metadata: { account_id: body.account_id, provider_key: body.provider_key } });
+        return success();
+      } catch (error) {
+        return failure(error.message, 422);
+      }
+    }
+
+    if (path === "/api/v1/provider-adapter/archive" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id"]);
+      const existing = await providerAdaptersDB.getProviderAdapterConfigById(env.DB, body.id);
+      if (!existing) return failure("Provider adapter config not found", 404);
+      await providerAdaptersDB.archiveProviderAdapterConfig(env.DB, body.id, user.user_id);
+      await logAudit(env.DB, { userId: user.user_id, action: 'archive', entityType: 'provider_adapter_config', entityId: body.id });
+      return success();
+    }
+
+    // Manual "sync now" -- runs the real adapter (a genuine outbound
+    // network call, unlike the postback test tool's dry run) so an
+    // admin can verify a freshly-configured integration works without
+    // waiting for the cron window. Still respects the feature flag's
+    // SPIRIT even though it bypasses the flag itself: it only ever
+    // touches the ONE config the admin explicitly requested, not every
+    // due config the way the cron job would.
+    if (path === "/api/v1/provider-adapter/sync-now" && request.method === "POST") {
+      const body = await request.json();
+      validate(body, ["id"]);
+      const config = await providerAdaptersDB.getProviderAdapterConfigById(env.DB, body.id);
+      if (!config) return failure("Provider adapter config not found", 404);
+      if (config.status !== "active") return failure("Cannot sync a disabled integration", 422);
+
+      const result = await syncProviderConfig(env.DB, env, config);
+      await logAudit(env.DB, { userId: user.user_id, action: 'sync_now', entityType: 'provider_adapter_config', entityId: body.id, metadata: { ok: result.ok, imported: result.importedCount } });
+      return json({ success: true, ...result });
+    }
 
     // ==================================
     // OFFERS

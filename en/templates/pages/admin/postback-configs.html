@@ -1,0 +1,117 @@
+<div class="admin-wrapper">
+  {{admin_nav}}
+  <div class="admin-content">
+    <div class="admin-header">
+      <h1>Postback Integrations</h1>
+    </div>
+    <p class="muted">Each integration is scoped to one affiliate account. The actual secret is never stored here or shown again after creation — <code>credential_reference</code> points at a Cloudflare secret you set yourself with <code>wrangler secret put &lt;name&gt;</code>.</p>
+
+    <table class="admin-table">
+      <thead>
+        <tr><th>Label</th><th>Account</th><th>Auth Method</th><th>Status</th><th>Conversion Health</th><th>Postback URL</th><th>Actions</th></tr>
+      </thead>
+      <tbody id="pbTableBody">
+        <tr><td colspan="7" class="muted">Loading...</td></tr>
+      </tbody>
+    </table>
+
+    <h2 style="margin-top:30px">New Postback Integration</h2>
+    <form id="pbForm" class="admin-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Affiliate Account *</label>
+          <select name="account_id" id="pbAccountSelect" required></select>
+        </div>
+        <div class="form-group">
+          <label>Label *</label>
+          <input type="text" name="label" required placeholder="GG.BET production postback">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Auth Method *</label>
+          <select name="auth_method" id="pbAuthMethod" required>
+            <option value="hmac_sha256">HMAC-SHA256 (signs the request body)</option>
+            <option value="signed_query">Signed query string</option>
+            <option value="shared_secret">Shared secret (single param)</option>
+            <option value="api_key">API key (single param)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Credential Reference (secret binding name) *</label>
+          <input type="text" name="credential_reference" required placeholder="GGBET_POSTBACK_SECRET">
+          <span class="muted">Must match a name you've already set with <code>wrangler secret put GGBET_POSTBACK_SECRET</code> — this field is a pointer only, never the secret itself.</span>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Signature/Secret Param Name</label>
+          <input type="text" name="signature_param" placeholder="sig">
+          <span class="muted">Which query param or body field carries the signature/secret/API key.</span>
+        </div>
+        <div class="form-group">
+          <label>Timestamp Param Name (optional — enables replay protection)</label>
+          <input type="text" name="timestamp_param" placeholder="ts">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Timestamp Tolerance (seconds)</label>
+          <input type="number" name="timestamp_tolerance_seconds" value="300">
+        </div>
+        <div class="form-group">
+          <label>Allowed IPs (optional — JSON array)</label>
+          <input type="text" name="allowed_ips" placeholder='["203.0.113.4"]'>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Field Mapping (optional — JSON)</label>
+        <textarea name="field_mapping_json" placeholder='{"click_id": "subid", "conversion_type": "event", "status_map": {"approved": "confirmed"}}'></textarea>
+        <span class="muted">Leave blank to use the built-in defaults (click_id/clickid/subid/sub_id, event/type, amount/value/revenue, etc.) — only needed for a provider with unusual field names.</span>
+      </div>
+      <div id="pbFormAlert" class="alert" style="display:none"></div>
+      <button type="submit" class="btn btn--primary btn--lg">Create Integration</button>
+    </form>
+
+    <h2 style="margin-top:30px">Test a Postback</h2>
+    <p class="muted">Runs the exact same attribution → commercial-term → commission pipeline the live endpoint uses, without ever recording a real conversion.</p>
+    <form id="pbTestForm" class="admin-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Integration *</label>
+          <select id="pbTestConfigSelect" required></select>
+        </div>
+        <div class="form-group">
+          <label>Click ID</label>
+          <input type="text" id="pbTestClickId" placeholder="abc123 (leave blank to test unattributed)">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Conversion Type *</label>
+          <select id="pbTestType" required>
+            <option value="registration">registration</option>
+            <option value="qualified_lead">qualified_lead</option>
+            <option value="ftd" selected>ftd</option>
+            <option value="deposit">deposit</option>
+            <option value="cpa_conversion">cpa_conversion</option>
+            <option value="revshare">revshare</option>
+            <option value="hybrid">hybrid</option>
+            <option value="adjustment">adjustment</option>
+            <option value="refund">refund</option>
+            <option value="chargeback">chargeback</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Value</label><input type="number" step="0.01" id="pbTestValue" value="100"></div>
+        <div class="form-group"><label>Currency</label><input type="text" id="pbTestCurrency" value="USD" maxlength="3"></div>
+      </div>
+      <button type="submit" class="btn btn--secondary">Run Test</button>
+    </form>
+    <div id="pbTestResult" style="display:none; margin-top:16px">
+      <ul id="pbTestChecklist" class="checklist"></ul>
+      <pre id="pbTestRaw" class="admin-code-block"></pre>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/postback-config-admin.js"></script>

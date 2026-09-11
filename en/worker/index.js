@@ -35,6 +35,9 @@ import {
   renderDashboardAffiliatePrograms,
   renderDashboardAffiliateAccounts,
   renderDashboardCommercialTerms,
+  renderDashboardPostbackConfigs,
+  renderDashboardImportHistory,
+  renderDashboardProviderAdapters,
   renderDashboardOffers,
   renderDashboardTrackingLinks,
   renderDashboardAnalytics,
@@ -87,7 +90,7 @@ import {
   getCurrentUser
 }
 from "./auth.js";
-import { cleanupExpiredSessions, runAnalyticsAggregation, runScheduledReports, runAlertEvaluation } from "./cron.js";
+import { cleanupExpiredSessions, runAnalyticsAggregation, runScheduledReports, runAlertEvaluation, runProviderSync } from "./cron.js";
 import { runScheduledHealthChecks } from "./tracking/health-check.js";
 
 import { cleanupExpiredConversations } from "./ai/memory.js";
@@ -335,6 +338,12 @@ if (
         return renderDashboardAffiliateAccounts(request, env);
       case "dashboardCommercialTerms":
         return renderDashboardCommercialTerms(request, env);
+      case "dashboardPostbackConfigs":
+        return renderDashboardPostbackConfigs(request, env);
+      case "dashboardImportHistory":
+        return renderDashboardImportHistory(request, env);
+      case "dashboardProviderAdapters":
+        return renderDashboardProviderAdapters(request, env);
       case "dashboardOffers":
         return renderDashboardOffers(request, env);
       case "dashboardTrackingLinks":
@@ -543,6 +552,17 @@ case "sitemap-seo-pages":
         ctx.waitUntil(
             runAlertEvaluation(env).catch(() => {
                 // Never let alert evaluation affect other scheduled tasks.
+            })
+        );
+
+        // Outbound provider/API adapter sync (brief §10) -- same
+        // feature-flag convention ('provider_sync_cron_enabled',
+        // default off -- see migration 0035). Off until an operator
+        // has actually configured a real provider_adapter_configs row
+        // with real credentials.
+        ctx.waitUntil(
+            runProviderSync(env).catch(() => {
+                // Never let a provider sync failure affect other scheduled tasks.
             })
         );
 

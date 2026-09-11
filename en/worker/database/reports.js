@@ -23,7 +23,8 @@ const REPORT_TYPES = [
   'program_performance', 'account_performance', 'offer_performance',
   'tracking_link_performance', 'casino_performance', 'geo_performance',
   'content_performance', 'traffic_performance', 'conversion_funnel',
-  'revenue_commission', 'seo_performance', 'operational_health'
+  'revenue_commission', 'seo_performance', 'operational_health', 'reconciliation',
+  'cohort_analysis'
 ];
 
 export function isValidReportType(type) {
@@ -115,6 +116,48 @@ const OPERATIONAL_HEALTH_COLUMNS = [
   { key: 'section', label: 'Section', groupable: true }, { key: 'detail', label: 'Detail' }
 ];
 
+// brief §12: "Show: Casino, Partner, Program, Account, GEO, Period,
+// Clicks, Registrations, FTD, Deposits, Revenue, Expected Commission,
+// Reported Commission, Difference, Difference %". Period is the
+// filters.startDate/endDate range itself (same one-range-per-run
+// convention every other report in this file already uses -- see
+// handleRevenueCommission -- rather than a new multi-bucket concept).
+const RECONCILIATION_COLUMNS = [
+  { key: 'casino_id', label: 'Casino ID', groupable: true },
+  { key: 'account_id', label: 'Account ID', groupable: true },
+  { key: 'currency', label: 'Currency', groupable: true },
+  { key: 'clicks', label: 'Clicks', summable: true },
+  { key: 'registrations', label: 'Registrations', summable: true },
+  { key: 'ftd', label: 'FTD', summable: true },
+  { key: 'deposits', label: 'Deposits', summable: true },
+  { key: 'unattributed_conversions', label: 'Unattributed Conversions', summable: true },
+  { key: 'internal_revenue', label: 'Revenue (Internal)', summable: true },
+  { key: 'expected_commission', label: 'Expected Commission', summable: true },
+  { key: 'reported_revenue', label: 'Revenue (Reported)', summable: true },
+  { key: 'reported_commission', label: 'Reported Commission', summable: true },
+  { key: 'difference', label: 'Difference', summable: true },
+  { key: 'difference_pct', label: 'Difference %' },
+  { key: 'status', label: 'Status', groupable: true }
+];
+
+// brief §17: registration-to-FTD, FTD-to-deposit, revenue/commission by
+// acquisition date, and GEO/casino/campaign cohorts. One shared column
+// set across all three cohortMetric variants -- whichever columns don't
+// apply to the metric you asked for come back as `null` (see
+// handleCohortAnalysis), never a fabricated 0, per brief §29.
+const COHORT_ANALYSIS_COLUMNS = [
+  { key: 'cohort_date', label: 'Cohort Date', groupable: true },
+  { key: 'casino_id', label: 'Casino ID', groupable: true },
+  { key: 'country_code', label: 'GEO', groupable: true },
+  { key: 'campaign_id', label: 'Campaign ID', groupable: true },
+  { key: 'cohort_size', label: 'Cohort Size', summable: true },
+  { key: 'converted_count', label: 'Converted', summable: true },
+  { key: 'conversion_rate_pct', label: 'Conversion Rate %' },
+  { key: 'avg_days_to_convert', label: 'Avg Days to Convert' },
+  { key: 'revenue', label: 'Revenue (cohort-to-date)', summable: true },
+  { key: 'commission', label: 'Commission (cohort-to-date)', summable: true }
+];
+
 // Public manifest lookup -- used both by the API (to offer choices to
 // the UI) and internally by runReport() (to validate/apply a saved
 // selection). seo_performance intentionally has no entry, matching it
@@ -133,7 +176,9 @@ const REPORT_COLUMN_MANIFESTS = {
   executive_performance: EXECUTIVE_PERFORMANCE_COLUMNS,
   conversion_funnel: CONVERSION_FUNNEL_COLUMNS,
   revenue_commission: REVENUE_COMMISSION_COLUMNS,
-  operational_health: OPERATIONAL_HEALTH_COLUMNS
+  operational_health: OPERATIONAL_HEALTH_COLUMNS,
+  reconciliation: RECONCILIATION_COLUMNS,
+  cohort_analysis: COHORT_ANALYSIS_COLUMNS
 };
 
 /**
@@ -320,6 +365,221 @@ async function handleRevenueCommission(db, user, filters) {
   return { columns: REVENUE_COMMISSION_COLUMNS, rows: result.results || [] };
 }
 
+const RECONCILIATION_TOLERANCE_PCT = 2; // brief §12: configurable threshold for "matched" vs a real discrepancy
+
+/**
+ * Compares two channels of the SAME analytics_conversions table --
+ * source IN ('postback','manual') is "INTERNAL EXPECTED" (what this
+ * platform itself received/recorded, commission always our own
+ * calculated_commission), source = 'import' is "EXTERNAL REPORTED"
+ * (a batch statement, carrying the network's own reported_commission)
+ * -- see migration 0034 for why both can coexist for the same
+ * external_reference. Never invents a reported figure: a scope/period
+ * with zero import rows gets status 'missing', not a fabricated
+ * 'overpaid'/'underpaid' comparison against a real zero (brief §29).
+ *
+ * Clicks are joined in separately from analytics_events, scoped by
+ * casino only (tracking_links carries no account_id -- see
+ * worker/postback/ingest.js header comment) -- if more than one
+ * account serves the same casino, each of that casino's reconciliation
+ * rows shows the SAME click count, which is a real limitation of the
+ * current schema, not silently hidden here.
+ */
+async function handleReconciliation(db, user, filters) {
+  const { condition, params } = await getAccessibleIdCondition(db, user, 'affiliate_accounts', 'read', 'account_id');
+  const currencyClause = filters.currency ? 'AND currency = ?' : '';
+  const currencyParams = filters.currency ? [filters.currency] : [];
+
+  const conversionRows = await db.prepare(`
+    SELECT
+      account_id, casino_id, currency,
+      COUNT(*) FILTER (WHERE source IN ('postback','manual')) AS internal_conversions,
+      COUNT(*) FILTER (WHERE source IN ('postback','manual') AND conversion_type = 'registration') AS registrations,
+      COUNT(*) FILTER (WHERE source IN ('postback','manual') AND conversion_type = 'ftd') AS ftd,
+      COUNT(*) FILTER (WHERE source IN ('postback','manual') AND conversion_type = 'deposit') AS deposits,
+      COUNT(*) FILTER (WHERE source IN ('postback','manual') AND click_id IS NULL) AS unattributed_conversions,
+      COALESCE(SUM(reported_value) FILTER (WHERE source IN ('postback','manual')), 0) AS internal_revenue,
+      COALESCE(SUM(calculated_commission) FILTER (WHERE source IN ('postback','manual')), 0) AS expected_commission,
+      COUNT(*) FILTER (WHERE source = 'import') AS reported_conversions,
+      COALESCE(SUM(reported_value) FILTER (WHERE source = 'import'), 0) AS reported_revenue,
+      COALESCE(SUM(reported_commission) FILTER (WHERE source = 'import'), 0) AS reported_commission
+    FROM analytics_conversions
+    WHERE date(occurred_at) BETWEEN ? AND ?
+      AND ${condition}
+      ${currencyClause}
+    GROUP BY account_id, casino_id, currency
+  `).bind(filters.startDate, filters.endDate, ...params, ...currencyParams).all();
+
+  const rows = conversionRows.results || [];
+  if (rows.length === 0) return { columns: RECONCILIATION_COLUMNS, rows: [] };
+
+  // Clicks per casino, scoped by the casino resource (the registry
+  // this platform actually uses for tracking_links/analytics_events --
+  // see item-access.js), for exactly the casino_ids the query above
+  // already found the caller has commercial-terms access to.
+  const casinoIds = [...new Set(rows.map(r => r.casino_id).filter(id => id != null))];
+  let clicksByCasino = {};
+  if (casinoIds.length > 0) {
+    const { condition: casinoCond, params: casinoParams } = await getAccessibleIdCondition(db, user, 'casinos', 'read', 'casino_id');
+    const placeholders = casinoIds.map(() => '?').join(',');
+    const clickRows = await db.prepare(`
+      SELECT casino_id, COUNT(*) AS clicks
+      FROM analytics_events
+      WHERE event_type = 'TRACKING_LINK_CLICK'
+        AND casino_id IN (${placeholders})
+        AND date(occurred_at) BETWEEN ? AND ?
+        AND ${casinoCond}
+      GROUP BY casino_id
+    `).bind(...casinoIds, filters.startDate, filters.endDate, ...casinoParams).all();
+    clicksByCasino = Object.fromEntries((clickRows.results || []).map(r => [r.casino_id, r.clicks]));
+  }
+
+  const outputRows = rows.map(r => {
+    const hasReportedData = r.reported_conversions > 0;
+    const difference = hasReportedData ? r.expected_commission - r.reported_commission : null;
+    const differencePct = hasReportedData ? safeDivide(difference, r.reported_commission) * 100 : null;
+
+    let status;
+    if (!hasReportedData) {
+      status = r.expected_commission > 0 ? 'missing' : 'no_data';
+    } else if (Math.abs(differencePct) <= RECONCILIATION_TOLERANCE_PCT) {
+      status = 'matched';
+    } else if (difference > 0) {
+      status = 'underpaid'; // we expect more than the network reported
+    } else {
+      status = 'overpaid'; // the network reported more than we expect
+    }
+
+    return {
+      account_id: r.account_id,
+      casino_id: r.casino_id,
+      currency: r.currency,
+      clicks: clicksByCasino[r.casino_id] || 0,
+      registrations: r.registrations,
+      ftd: r.ftd,
+      deposits: r.deposits,
+      unattributed_conversions: r.unattributed_conversions,
+      internal_revenue: r.internal_revenue,
+      expected_commission: r.expected_commission,
+      reported_revenue: hasReportedData ? r.reported_revenue : null,
+      reported_commission: hasReportedData ? r.reported_commission : null,
+      difference,
+      difference_pct: differencePct != null ? Number(differencePct.toFixed(2)) : null,
+      status
+    };
+  });
+
+  return { columns: RECONCILIATION_COLUMNS, rows: outputRows };
+}
+
+const COHORT_DIMENSION_COLUMNS = { casino: 'casino_id', geo: 'country_code', campaign: 'campaign_id' };
+
+/**
+ * brief §17. Cohort = every distinct click_id whose FIRST event of the
+ * "from" conversion_type (registration for registration_to_ftd, ftd for
+ * ftd_to_deposit) falls in the requested date range -- grouped by that
+ * event's OWN date (`cohort_date`), not the later conversion's date, so
+ * "the March 3rd cohort" always means people acquired on March 3rd
+ * regardless of when they later converted.
+ *
+ * click_id is the only cross-conversion identifier this platform has
+ * (brief §18 "use anonymous identifiers... click_id" applies here too)
+ * -- a cohort is inherently approximate to that limit, and rows with a
+ * NULL click_id (brief's own unattributed-conversion case) are
+ * correctly excluded rather than merged into a false "no cohort" bucket.
+ */
+async function handleCohortAnalysis(db, user, filters) {
+  const { condition, params } = await getAccessibleIdCondition(db, user, 'casinos', 'read', 'casino_id');
+  const metric = filters.cohortMetric || 'revenue_by_cohort';
+  const dimColumn = COHORT_DIMENSION_COLUMNS[filters.groupByDimension] || null;
+  const dimSelect = dimColumn ? `${dimColumn},` : '';
+  const dimGroupBy = dimColumn ? `, ${dimColumn}` : '';
+
+  if (metric === 'registration_to_ftd' || metric === 'ftd_to_deposit') {
+    const fromType = metric === 'registration_to_ftd' ? 'registration' : 'ftd';
+    const toType = metric === 'registration_to_ftd' ? 'ftd' : 'deposit';
+
+    const result = await db.prepare(`
+      WITH cohort_start AS (
+        SELECT click_id, MIN(occurred_at) AS start_at, casino_id, country_code, campaign_id
+        FROM analytics_conversions
+        WHERE conversion_type = ? AND click_id IS NOT NULL AND ${condition}
+          AND date(occurred_at) BETWEEN ? AND ?
+        GROUP BY click_id
+      ),
+      converted AS (
+        SELECT click_id, MIN(occurred_at) AS converted_at
+        FROM analytics_conversions
+        WHERE conversion_type = ? AND click_id IS NOT NULL
+        GROUP BY click_id
+      )
+      SELECT
+        date(cs.start_at) AS cohort_date, ${dimSelect}
+        COUNT(*) AS cohort_size,
+        COUNT(c.click_id) AS converted_count,
+        AVG(CASE WHEN c.click_id IS NOT NULL THEN julianday(c.converted_at) - julianday(cs.start_at) END) AS avg_days_to_convert
+      FROM cohort_start cs
+      LEFT JOIN converted c ON c.click_id = cs.click_id AND c.converted_at >= cs.start_at
+      GROUP BY cohort_date${dimGroupBy}
+      ORDER BY cohort_date DESC
+    `).bind(fromType, ...params, filters.startDate, filters.endDate, toType).all();
+
+    const rows = (result.results || []).map(r => ({
+      cohort_date: r.cohort_date,
+      casino_id: dimColumn === 'casino_id' ? r.casino_id : null,
+      country_code: dimColumn === 'country_code' ? r.country_code : null,
+      campaign_id: dimColumn === 'campaign_id' ? r.campaign_id : null,
+      cohort_size: r.cohort_size,
+      converted_count: r.converted_count,
+      conversion_rate_pct: Number((safeDivide(r.converted_count, r.cohort_size) * 100).toFixed(2)),
+      avg_days_to_convert: r.avg_days_to_convert != null ? Number(r.avg_days_to_convert.toFixed(2)) : null, // null, not 0 -- brief §29: nobody in this cohort has converted yet is NOT "instant conversion"
+      revenue: null,
+      commission: null
+    }));
+    return { columns: COHORT_ANALYSIS_COLUMNS, rows };
+  }
+
+  if (metric === 'revenue_by_cohort') {
+    // Acquisition = a click_id's earliest conversion of ANY type
+    // (usually registration, but a program that skips straight to FTD
+    // without a distinct registration event still gets a cohort).
+    const result = await db.prepare(`
+      WITH acquisition AS (
+        SELECT click_id, MIN(occurred_at) AS acquired_at, casino_id, country_code, campaign_id
+        FROM analytics_conversions
+        WHERE click_id IS NOT NULL AND ${condition}
+          AND date(occurred_at) BETWEEN ? AND ?
+        GROUP BY click_id
+      )
+      SELECT
+        date(a.acquired_at) AS cohort_date, ${dimSelect}
+        COUNT(DISTINCT a.click_id) AS cohort_size,
+        COALESCE(SUM(ac.reported_value), 0) AS revenue,
+        COALESCE(SUM(ac.calculated_commission), 0) AS commission
+      FROM acquisition a
+      JOIN analytics_conversions ac ON ac.click_id = a.click_id
+      GROUP BY cohort_date${dimGroupBy}
+      ORDER BY cohort_date DESC
+    `).bind(...params, filters.startDate, filters.endDate).all();
+
+    const rows = (result.results || []).map(r => ({
+      cohort_date: r.cohort_date,
+      casino_id: dimColumn === 'casino_id' ? r.casino_id : null,
+      country_code: dimColumn === 'country_code' ? r.country_code : null,
+      campaign_id: dimColumn === 'campaign_id' ? r.campaign_id : null,
+      cohort_size: r.cohort_size,
+      converted_count: null,
+      conversion_rate_pct: null,
+      avg_days_to_convert: null,
+      revenue: r.revenue,
+      commission: r.commission
+    }));
+    return { columns: COHORT_ANALYSIS_COLUMNS, rows };
+  }
+
+  return { columns: COHORT_ANALYSIS_COLUMNS, rows: [] };
+}
+
 async function handleOperationalHealth(db, user, filters) {
   const { condition, params } = await getAccessibleIdCondition(db, user, 'tracking_links', 'read', 'tl.id');
   const healthResult = await db.prepare(`
@@ -382,6 +642,8 @@ const REPORT_HANDLERS = {
   conversion_funnel: handleConversionFunnel,
   revenue_commission: handleRevenueCommission,
   operational_health: handleOperationalHealth,
+  reconciliation: handleReconciliation,
+  cohort_analysis: handleCohortAnalysis,
   // seo_performance deliberately has NO handler -- see runReport() below.
 };
 

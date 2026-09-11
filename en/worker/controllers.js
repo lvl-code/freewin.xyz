@@ -1934,7 +1934,7 @@ function classifyUserAgent(userAgent) {
  * direct unit-test call to handleAffiliateRedirect) so logging still
  * happens rather than being silently skipped.
  */
-function recordRedirectClick(env, ctx, { eventType, casinoSlug, casinoId, countryCode, city, ipHash, userAgent, trackingLinkId, offerId, clickId }) {
+function recordRedirectClick(env, ctx, { eventType, casinoSlug, casinoId, countryCode, city, ipHash, userAgent, trackingLinkId, offerId, partnerId, programId, clickId }) {
   const { deviceType, isBot } = classifyUserAgent(userAgent);
 
   const work = Promise.all([
@@ -1944,6 +1944,12 @@ function recordRedirectClick(env, ctx, { eventType, casinoSlug, casinoId, countr
       casinoId: casinoId ?? null,
       trackingLinkId: trackingLinkId ?? null,
       offerId: offerId ?? null,
+      // Carried straight off the tracking link so a later conversion
+      // postback (worker/database/analytics.js getClickAttribution)
+      // can resolve partner/program without a second join back
+      // through tracking_links -- see worker/postback/ingest.js.
+      partnerId: partnerId ?? null,
+      programId: programId ?? null,
       countryCode, city, deviceType, isBot,
       visitorHash: ipHash,
       clickId
@@ -2010,6 +2016,7 @@ handleAffiliateRedirect(
         casinoId: result.casino?.id ?? null,
         countryCode: geoInfo.country, city: geoInfo.city, ipHash, userAgent,
         trackingLinkId: result.trackingLink.id, offerId: result.trackingLink.offer_id,
+        partnerId: result.trackingLink.partner_id, programId: result.trackingLink.program_id,
         clickId
       });
       return Response.redirect(result.fallbackUrl, 302);
@@ -4330,6 +4337,18 @@ export async function renderDashboardAffiliateAccounts(request, env) {
 
 export async function renderDashboardCommercialTerms(request, env) {
   return renderAdminPage(request, env, "admin/commercial-terms.html");
+}
+
+export async function renderDashboardPostbackConfigs(request, env) {
+  return renderAdminPage(request, env, "admin/postback-configs.html");
+}
+
+export async function renderDashboardImportHistory(request, env) {
+  return renderAdminPage(request, env, "admin/import-history.html");
+}
+
+export async function renderDashboardProviderAdapters(request, env) {
+  return renderAdminPage(request, env, "admin/provider-adapters.html");
 }
 
 export async function renderDashboardOffers(request, env) {

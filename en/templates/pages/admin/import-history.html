@@ -1,0 +1,61 @@
+<div class="admin-wrapper">
+  {{admin_nav}}
+  <div class="admin-content">
+    <div class="admin-header">
+      <h1>Import History</h1>
+    </div>
+    <p class="muted">Import a CSV or JSON conversion/commission statement from an affiliate network. Rows go through the same attribution and commission engine as a live postback — duplicates (matched by transaction ID) are skipped automatically, and a bad row never blocks the rest of the file.</p>
+
+    <table class="admin-table">
+      <thead>
+        <tr><th>When</th><th>Account</th><th>Format</th><th>Rows</th><th>Imported</th><th>Duplicates</th><th>Unattributed</th><th>Errors</th></tr>
+      </thead>
+      <tbody id="impTableBody">
+        <tr><td colspan="8" class="muted">Loading...</td></tr>
+      </tbody>
+    </table>
+
+    <h2 style="margin-top:30px">New Import</h2>
+    <form id="impForm" class="admin-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Affiliate Account *</label>
+          <select name="account_id" id="impAccountSelect" required></select>
+        </div>
+        <div class="form-group">
+          <label>Format *</label>
+          <select name="format" id="impFormat" required>
+            <option value="csv">CSV</option>
+            <option value="json">JSON</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Label (optional)</label>
+          <input type="text" name="label" placeholder="March statement">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>File</label>
+        <input type="file" id="impFile" accept=".csv,.json,.txt">
+      </div>
+      <div class="form-group">
+        <label>...or paste content directly</label>
+        <textarea id="impContent" rows="6" placeholder="transaction_id,event,status,amount,currency,commission,casino_id&#10;GG-123,ftd,confirmed,100,EUR,35,7"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Field Mapping (optional — JSON, same shape as postback integrations)</label>
+        <textarea name="field_mapping_json" id="impFieldMapping" placeholder='{"external_reference": "txn_id", "reported_value": "deposit_amount"}'></textarea>
+      </div>
+      <div id="impFormAlert" class="alert" style="display:none"></div>
+      <button type="submit" class="btn btn--primary btn--lg">Run Import</button>
+    </form>
+
+    <div id="impResultPanel" style="display:none; margin-top:16px">
+      <h3>Import Result</h3>
+      <ul id="impResultSummary" class="checklist"></ul>
+      <pre id="impResultErrors" class="admin-code-block" style="display:none"></pre>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/import-history-admin.js"></script>

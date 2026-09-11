@@ -31,6 +31,34 @@ function specificityScore(term) {
   );
 }
 
+/**
+ * The single commission formula for every caller (manual conversion
+ * recording, the postback ingestion pipeline, the reconciliation
+ * engine) -- brief §8: "do not hard-code commercial terms into
+ * application logic" applies just as much to duplicating THIS
+ * arithmetic in more than one place as it does to skipping the terms
+ * table entirely. Returns null when there's nothing to compute
+ * (no term, no reported_value, or a 'custom' term that requires a
+ * human to interpret custom_terms_json -- never guessed here).
+ */
+export function calculateCommission(term, reportedValue) {
+  if (!term || reportedValue == null) return null;
+  switch (term.term_type) {
+    case 'cpa':
+      return term.cpa_amount;
+    case 'revshare':
+      return reportedValue * (term.revshare_percent / 100);
+    case 'hybrid':
+      return (term.hybrid_cpa_amount || 0) + reportedValue * ((term.hybrid_revshare_percent || 0) / 100);
+    case 'fixed_fee':
+      return term.fixed_fee_amount;
+    case 'custom':
+      return null;
+    default:
+      return null;
+  }
+}
+
 function validateTermFields(term) {
   if (!TERM_TYPES.includes(term.term_type)) {
     throw new Error(`Invalid term_type: ${term.term_type}. Must be one of: ${TERM_TYPES.join(', ')}`);
