@@ -1,9 +1,9 @@
 // test/reports.test.js
-import { test, describe, beforeEach } from 'node:test';
+import { test, describe, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { createTestDb, applyMigrations } from './support/d1-shim.js';
 import { seedBaseFixtures, insertEvent } from './support/fixtures.js';
-import { runReport, isValidReportType, executeReportRun, getReportColumnOptions } from '../worker/database/reports.js';
+import { runReport, isValidReportType, executeReportRun, getReportColumnOptions, runDueReportSchedules } from '../worker/database/reports.js';
 
 describe('runReport -- "no fake completion" contract', () => {
   let db, fx;
@@ -179,5 +179,45 @@ describe('executeReportRun -- always records a report_runs row, success or failu
     // scoped results depending on who ran it -- confirming filters_json
     // (or the saved definition itself) is never the authorization
     // boundary, the requesting user always is.
+  });
+});
+
+describe('runDueReportSchedules -- delivery failures are recorded, never silently dropped', () => {
+  let db, fx, mockFetch;
+
+  beforeEach(async () => {
+    db = createTestDb();
+    applyMigrations(db);
+    fx = await seedBaseFixtures(db);
+    await db.prepare(`INSERT OR REPLACE INTO system_settings (key, value) VALUES ('report_schedules_cron_enabled', 'true')`).run();
+  });
+
+  afterEach(() => { if (mockFetch) globalThis.fetch = mockFetch; });
+
+  test('a scheduled report with a failing email recipient records the failure via the audit log, run itself still succeeds', async () => {
+    mockFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({ ok: false, status: 422, json: async () => ({ message: 'Invalid recipient' }) });
+
+    await db.prepare(`INSERT INTO report_definitions (id, name, report_type, owner_id) VALUES (1, 'Sched Report', 'casino_performance', ?)`).bind(fx.admin.user_id).run();
+    await db.prepare(`
+      INSERT INTO report_schedules (id, report_id, frequency, timezone, next_run_at, enabled, output_format, created_by)
+      VALUES (1, 1, 'daily', 'UTC', datetime('now', '-1 hour'), 1, 'csv', ?)
+    `).bind(fx.admin.user_id).run();
+    await db.prepare(`INSERT INTO report_recipients (schedule_id, email) VALUES (1, 'bad@example.com')`).run();
+
+    const env = { DB: db, RESEND_API_KEY: 'k', RESEND_FROM_EMAIL: 'reports@example.com' };
+    const result = await runDueReportSchedules(db, env);
+
+    assert.equal(result.skipped, false);
+    assert.equal(result.summary[0].success, true, 'the RUN itself succeeded -- only delivery failed');
+
+    const run = await db.prepare(`SELECT * FROM report_runs WHERE report_id = 1`).first();
+    assert.equal(run.status, 'success');
+
+    const auditEntry = await db.prepare(`SELECT * FROM audit_logs WHERE action = 'delivery_failed'`).first();
+    assert.ok(auditEntry, 'delivery failure must be recorded, not silently dropped');
+    const metadata = JSON.parse(auditEntry.metadata);
+    assert.equal(metadata.recipient, 'bad@example.com');
+    assert.match(metadata.error, /Invalid recipient/);
   });
 });

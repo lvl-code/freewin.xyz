@@ -106,6 +106,31 @@ async function evaluateHealthRule(db, rule) {
 }
 
 /**
+ * Unscoped list of every alert rule -- for the Super API. The tenant
+ * dashboard's own /alert-rules/list endpoint already does this exact
+ * query inline in api.js (rules themselves have no item-access concept
+ * to scope by -- only alerts, once triggered, get scoped by their
+ * rule's dimension in getScopedAlerts() above). Exported here as a
+ * reusable function rather than duplicating that same query a third
+ * time in the new Super API handler.
+ */
+export async function getAllAlertRules(db) {
+  const result = await db.prepare(`SELECT * FROM analytics_alert_rules ORDER BY created_at DESC`).all();
+  return result.results || [];
+}
+
+export async function createAlertRule(db, { name, metric, scopeType, scopeId, thresholdType, thresholdValue, comparisonWindowDays, createdBy }) {
+  const result = await db.prepare(`
+    INSERT INTO analytics_alert_rules (name, metric, scope_type, scope_id, threshold_type, threshold_value, comparison_window_days, created_by)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    name, metric, scopeType || 'global', scopeId ?? null,
+    thresholdType, thresholdValue ?? null, comparisonWindowDays || 7, createdBy ?? null
+  ).run();
+  return result.meta.last_row_id;
+}
+
+/**
  * Cron entry point. Feature-flagged identically to the other scheduled
  * jobs (system_settings key 'alert_rules_cron_enabled', default off).
  * Skips creating a new alert for a rule that already has an unresolved

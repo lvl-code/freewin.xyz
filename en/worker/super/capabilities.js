@@ -31,7 +31,17 @@
 // report_runs, campaigns, and alerts are NOT exposed yet -- deferred
 // pending confirmation the control plane needs report/alert data (not
 // just analytics numbers) through this channel.
-export const SUPER_API_VERSION = 8;
+// Version 9: added Reports (list/get/create + trigger an ad-hoc run
+// returning its output), Campaigns (full CRUD), and Alerts (list/create
+// rules, list/acknowledge alerts) -- confirmed need from the control
+// plane for all three. Report output returned via /reports/:id/run is
+// aggregated KPI data, the same trust tier as the v8 analytics
+// endpoints. Historical report_runs rows carry no stored row output
+// (only status/row_count/error) -- nothing to leak by listing past
+// runs. Alert-rule create/delete parity with the tenant dashboard's
+// own admin-only gating; Super API's credential is already tenant-
+// wide-admin-equivalent by design (see handlers-analytics.js).
+export const SUPER_API_VERSION = 9;
 
 export const CAPABILITIES = {
   casinos: true,
@@ -61,7 +71,10 @@ export const CAPABILITIES = {
   commercial_terms: true,
   offers: true,
   tracking_links: true,
-  analytics: true
+  analytics: true,
+  reports: true,
+  campaigns: true,
+  alerts: true
 };
 
 export function getCapabilities() {

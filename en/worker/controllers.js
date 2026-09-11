@@ -487,7 +487,7 @@ export async function renderCasino(request, env, slug, ctx = null) {
   : undefined,
 };
 
-  const allComponents = await renderer.renderAllComponents("casino", slug);
+  const allComponents = await renderer.renderAllComponents("casino", slug, ctx);
   const dynamicSeo = await renderer.loadDynamicSeo("casino", slug);
   const bonusDisplay = await resolveBonusDisplay(env, casino, geoInfo.country);
 
@@ -931,7 +931,7 @@ if (review.casino_slug) {
   }
 }
 
-  const allComponents = await renderer.renderAllComponents("review", slug);
+  const allComponents = await renderer.renderAllComponents("review", slug, ctx);
   const reviewBlocksHtml = await renderer.renderReviewBlocks(slug);
   const dynamicSeo = await renderer.loadDynamicSeo("review", slug);
 
@@ -1110,7 +1110,7 @@ export async function renderNews(request, env, slug, ctx = null) {
     author = await authors.getAuthorById(env.DB, article.author_id);
   }
 
-  const allComponents = await renderer.renderAllComponents("news", slug);
+  const allComponents = await renderer.renderAllComponents("news", slug, ctx);
   const dynamicSeo = await renderer.loadDynamicSeo("news", slug);
 
   const canonical = dynamicSeo.canonical || site.url(`/en/news/${article.slug}`);
@@ -2706,7 +2706,7 @@ export async function renderDynamicPage(request, env, slug, ctx = null) {
   if (page.author_id) {
     author = await authors.getAuthorById(env.DB, page.author_id);
   }
-  const allComponents = await renderer.renderAllComponents("page", slug);
+  const allComponents = await renderer.renderAllComponents("page", slug, ctx);
   const dynamicSeo = await renderer.loadDynamicSeo("page", slug);
 
   const pageSchema = {

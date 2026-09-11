@@ -13,6 +13,7 @@
 // returning fabricated or all-zero rows dressed up as real data.
 
 import { getAccessibleIdCondition } from './item-access.js';
+import { logAudit } from './audit.js';
 import {
   getDimensionPerformance, getTimeSeries, getGeoPerformance, computeKpis, safeDivide
 } from './analytics.js';
@@ -143,6 +144,21 @@ const REPORT_COLUMN_MANIFESTS = {
  */
 export function getReportColumnOptions(reportType) {
   return REPORT_COLUMN_MANIFESTS[reportType] || null;
+}
+
+/**
+ * Unscoped list of every report_definitions row -- for the Super API
+ * only (the tenant dashboard's own /reports/list endpoint uses the
+ * item-access-scoped query in api.js instead; this is a separate,
+ * deliberately tenant-wide function, same "unscoped is fine here" model
+ * as every other Super API resource).
+ */
+export async function getAllReportDefinitions(db, { status = 'active' } = {}) {
+  const statusClause = status ? 'WHERE status = ?' : '';
+  const result = await db.prepare(`
+    SELECT * FROM report_definitions ${statusClause} ORDER BY created_at DESC
+  `).bind(...(status ? [status] : [])).all();
+  return result.results || [];
 }
 
 // ── Handlers: each returns { columns: [{key,label}], rows: [plain objects] } ──
@@ -592,11 +608,25 @@ export async function runDueReportSchedules(db, env) {
 
       const recipients = await db.prepare(`SELECT user_id, email FROM report_recipients WHERE schedule_id = ?`).bind(schedule.id).all();
       if (result.success) {
-        await deliverReportRun(env, {
+        const deliveryOutcomes = await deliverReportRun(env, {
           reportRun: { id: result.runId, rowCount: result.rows?.length ?? 0 },
           reportName: schedule.report_name,
           recipients: recipients.results || []
         });
+        // The report run itself succeeded (recorded above) -- a
+        // delivery failure (bad email address, Resend misconfigured,
+        // etc.) is a SEPARATE outcome and must not be silently
+        // dropped just because deliverReportRun() never throws itself.
+        // Recorded via the audit log rather than report_runs.status,
+        // since the run's own status genuinely is 'success' -- only
+        // notifying about it partially failed.
+        const failedDeliveries = deliveryOutcomes.filter(o => !o.success);
+        for (const failure of failedDeliveries) {
+          await logAudit(db, {
+            userId: null, action: 'delivery_failed', entityType: 'report_run', entityId: result.runId,
+            metadata: { scheduleId: schedule.id, recipient: failure.recipient, method: failure.method, error: failure.error }
+          });
+        }
       }
       // Failed runs are already recorded in report_runs by executeReportRun
       // above; deliberately not notifying recipients of a failed run body

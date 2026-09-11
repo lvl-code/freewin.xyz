@@ -6,6 +6,7 @@
 import { getPageComponents } from "./database/components.js";
 import { getReviewBlocks } from "./database/review_blocks.js";
 import { getSeoMeta } from "./database/seo_meta.js";
+import { logEvent as logAnalyticsEvent } from "./database/analytics.js";
 
 /**
  * Load all components assigned to a page, in position order.
@@ -97,18 +98,52 @@ export async function renderComponent(renderer, component) {
  * Render all components for a page into a single HTML string.
  */
 
-export async function renderPageComponents(renderer, db, pageType, pageSlug, injectionPoint = null) {
+export async function renderPageComponents(renderer, db, pageType, pageSlug, injectionPoint = null, ctx = null) {
   const components = await loadPageComponents(db, pageType, pageSlug, injectionPoint);
   const htmlParts = [];
+  const bannerComponents = [];
 
   for (const component of components) {
     const html = await renderComponent(renderer, component);
     htmlParts.push(html);
+    if (component.type === "banner") bannerComponents.push(component);
   }
+
+  logBannerViews(db, ctx, bannerComponents, pageType, pageSlug);
 
   return htmlParts.join("\n");
 }
-export async function renderAllInjectionPoints(renderer, db, pageType, pageSlug) {
+
+/**
+ * Fires BANNER_VIEW analytics for every banner component actually
+ * rendered on this page, as ONE batched ctx.waitUntil (a single
+ * Promise.all covering every banner on the page), not one waitUntil
+ * registration per banner -- keeps the per-render overhead to exactly
+ * one deferred task regardless of how many banners a page has.
+ *
+ * No casino_id/review_id/etc. FK is set here -- this function only
+ * knows pageType/pageSlug (a generic page-components association, not
+ * a resolved dimension row), and resolving pageSlug -> a numeric
+ * casino/review/news/page id would mean an extra DB lookup purely for
+ * logging. pageType+pageSlug is stored in metadata instead -- still
+ * real, queryable data (which banner, on which page), just not joined
+ * to a dimension table the way casino/review/news/page views are.
+ */
+function logBannerViews(db, ctx, bannerComponents, pageType, pageSlug) {
+  if (!bannerComponents.length || !ctx || typeof ctx.waitUntil !== "function") return;
+
+  ctx.waitUntil(
+    Promise.all(
+      bannerComponents.map(component =>
+        logAnalyticsEvent(db, {
+          eventType: "BANNER_VIEW",
+          metadata: { componentId: component.id, componentName: component.name, pageType, pageSlug }
+        }).catch(() => {})
+      )
+    )
+  );
+}
+export async function renderAllInjectionPoints(renderer, db, pageType, pageSlug, ctx = null) {
   // Single query for all injection points
   const result = await db.prepare(`
     SELECT pc.*, c.name, c.slug, c.type, c.title, c.content, c.settings_json, c.status
@@ -126,6 +161,7 @@ export async function renderAllInjectionPoints(renderer, db, pageType, pageSlug)
   }
 
   const rendered = {};
+  const bannerComponents = [];
   for (const point of Object.keys(grouped)) {
     const htmlParts = [];
     for (const row of grouped[point]) {
@@ -151,9 +187,12 @@ export async function renderAllInjectionPoints(renderer, db, pageType, pageSlug)
 
       const html = await renderComponent(renderer, component);
       htmlParts.push(html);
+      if (component.type === "banner") bannerComponents.push(component);
     }
     rendered[point] = htmlParts.join("\n");
   }
+
+  logBannerViews(db, ctx, bannerComponents, pageType, pageSlug);
 
   return rendered;
 }

@@ -236,14 +236,14 @@ replaceVariablesbackups(template, data = {}) {
     return html;
   }
 
-  async renderComponents(pageType, pageSlug, injectionPoint = null) {
+  async renderComponents(pageType, pageSlug, injectionPoint = null, ctx = null) {
     const { renderPageComponents } = await import("./component-engine.js");
-    return await renderPageComponents(this, this.env.DB, pageType, pageSlug, injectionPoint);
+    return await renderPageComponents(this, this.env.DB, pageType, pageSlug, injectionPoint, ctx);
   }
 
-  async renderAllComponents(pageType, pageSlug) {
+  async renderAllComponents(pageType, pageSlug, ctx = null) {
     const { renderAllInjectionPoints } = await import("./component-engine.js");
-    return await renderAllInjectionPoints(this, this.env.DB, pageType, pageSlug);
+    return await renderAllInjectionPoints(this, this.env.DB, pageType, pageSlug, ctx);
   }
 
   async renderReviewBlocks(reviewSlug) {

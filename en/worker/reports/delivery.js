@@ -1,29 +1,69 @@
 // worker/reports/delivery.js
 // Phase 9: Report delivery abstraction.
 //
-// No email provider is configured anywhere in this codebase (grepped
-// for one during the original audit — none found). Per the brief:
-// "If email delivery infrastructure does not already exist, implement
-// the abstraction cleanly rather than hardcoding an external provider."
-//
-// So: in-app delivery (via the EXISTING user_notifications table,
-// extended in 0032 with severity/category/related_resource/related_id)
-// works today, for any recipient with a user_id. Email recipients (a
-// bare `email` with no `user_id`) are accepted by the schema
-// (report_recipients.email) and recorded, but sendEmail() below is an
-// explicit not-yet-configured stub — it does NOT silently drop the
-// delivery attempt; it returns a clear "not configured" result that
-// the caller records in report_runs.error_message-adjacent bookkeeping,
-// per "failures must be recorded, do not silently fail" (brief §12).
+// In-app delivery (via the EXISTING user_notifications table, extended
+// in 0032 with severity/category/related_resource/related_id) works
+// for any recipient with a user_id. Email recipients (a bare `email`
+// with no `user_id`) are accepted by the schema (report_recipients.email)
+// and sent via Resend (https://resend.com) — the provider chosen for
+// this tenant. Configuration is two secrets, set per-tenant via
+// `wrangler secret put`, never committed to this repo or wrangler.jsonc
+// (consistent with how TURNSTILE_SECRET is already handled elsewhere
+// in this codebase — grepped for the convention before adding a new one):
+//   RESEND_API_KEY     — required. Missing it is a config error, not a
+//                        silent no-op — see sendEmail() below.
+//   RESEND_FROM_EMAIL  — required. No hardcoded fallback domain is used:
+//                        this is a multi-tenant codebase (7+ separate
+//                        sites sharing it), and guessing a "from"
+//                        address for a tenant that hasn't configured
+//                        one would send real email from an address
+//                        nobody chose. Better to fail loudly and name
+//                        exactly what's missing.
 
 /**
- * Stub — replace the body with a real provider call (Resend, SES,
- * Postmark, etc.) when one is chosen. Deliberately throws rather than
- * pretending to succeed, so callers can't accidentally treat an
- * unconfigured provider as a successful send.
+ * Sends one email via the Resend API. Throws with a specific, actionable
+ * message on any failure mode (missing config, Resend API error) rather
+ * than pretending to succeed — callers already handle a thrown error
+ * per-recipient (see deliverReportRun below) and record it, so failing
+ * loudly here is safe and is what makes failures visible instead of
+ * silently vanishing.
  */
 async function sendEmail(env, { to, subject, body }) {
-  throw new Error('Email delivery provider is not configured for this tenant.');
+  if (!env.RESEND_API_KEY) {
+    throw new Error('Email delivery is not configured for this tenant: RESEND_API_KEY secret is not set (wrangler secret put RESEND_API_KEY).');
+  }
+  if (!env.RESEND_FROM_EMAIL) {
+    throw new Error('Email delivery is not configured for this tenant: RESEND_FROM_EMAIL secret is not set (wrangler secret put RESEND_FROM_EMAIL).');
+  }
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      from: env.RESEND_FROM_EMAIL,
+      to: [to],
+      subject,
+      text: body
+    })
+  });
+
+  if (!response.ok) {
+    // Resend's error responses are JSON with a `message` field; fall
+    // back to the raw status if the body isn't parseable, but never
+    // leak the API key (it's never included in the error path below).
+    let detail = `HTTP ${response.status}`;
+    try {
+      const errorBody = await response.json();
+      if (errorBody?.message) detail = errorBody.message;
+    } catch { /* keep the HTTP-status fallback */ }
+    throw new Error(`Resend delivery failed: ${detail}`);
+  }
+
+  const result = await response.json();
+  return result?.id ?? null;
 }
 
 /**
@@ -55,12 +95,12 @@ export async function deliverReportRun(env, { reportRun, reportName, recipients 
       }
     } else if (recipient.email) {
       try {
-        await sendEmail(env, {
+        const messageId = await sendEmail(env, {
           to: recipient.email,
           subject: `Report ready: ${reportName}`,
           body: `Your scheduled report "${reportName}" finished with ${reportRun.rowCount ?? 0} rows.`
         });
-        outcomes.push({ recipient: recipient.email, method: 'email', success: true });
+        outcomes.push({ recipient: recipient.email, method: 'email', success: true, messageId });
       } catch (e) {
         outcomes.push({ recipient: recipient.email, method: 'email', success: false, error: e.message });
       }
