@@ -99,6 +99,7 @@ export async function ingestPostback(db, { config, normalized, sourceIp = null, 
     createdBy: null,
     source,
     reportedCommission: normalized.reported_commission ?? null,
+    externalPlayerId: normalized.external_player_id ?? null,
     onDuplicate: 'ignore'
   });
 

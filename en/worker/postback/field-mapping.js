@@ -42,7 +42,13 @@ export const DEFAULT_ALIASES = {
   // used strictly as the comparison side of reconciliation. The live
   // postback path never reads this alias into calculated_commission --
   // see field-mapping.js header comment.
-  reported_commission: ['reported_commission', 'commission']
+  reported_commission: ['reported_commission', 'commission'],
+  // brief §18: a provider's OWN player/customer reference, stored
+  // verbatim and opaque -- see migration 0036 header comment for why
+  // this is the one exception to "click_id is the only cross-
+  // conversion identifier" elsewhere in this codebase. Absent for most
+  // conversions; that's expected, not an error.
+  external_player_id: ['external_player_id', 'player_id', 'customer_id', 'user_id']
 };
 
 const VALID_CONVERSION_TYPES = new Set([
@@ -119,7 +125,8 @@ export function normalizeConversionPayload(rawParams, fieldMapping = null) {
     external_reference: readField(rawParams, mapping, 'external_reference'),
     occurred_at: readField(rawParams, mapping, 'occurred_at'),
     reported_commission: rawReportedCommission != null ? Number(rawReportedCommission) : null,
-    casino_id: mappedCasinoId != null && Number.isFinite(Number(mappedCasinoId)) ? Number(mappedCasinoId) : null
+    casino_id: mappedCasinoId != null && Number.isFinite(Number(mappedCasinoId)) ? Number(mappedCasinoId) : null,
+    external_player_id: readField(rawParams, mapping, 'external_player_id')
   };
 }
 

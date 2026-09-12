@@ -24,7 +24,7 @@ const REPORT_TYPES = [
   'tracking_link_performance', 'casino_performance', 'geo_performance',
   'content_performance', 'traffic_performance', 'conversion_funnel',
   'revenue_commission', 'seo_performance', 'operational_health', 'reconciliation',
-  'cohort_analysis'
+  'cohort_analysis', 'ltv_analysis'
 ];
 
 export function isValidReportType(type) {
@@ -158,6 +158,27 @@ const COHORT_ANALYSIS_COLUMNS = [
   { key: 'commission', label: 'Commission (cohort-to-date)', summable: true }
 ];
 
+// brief §18. One row per external_player_id -- the provider's OWN
+// player/customer reference (migration 0036), never derived or
+// enriched by this platform. `note` is ONLY ever populated on the
+// single synthetic row returned when this tenant has no
+// external_player_id data at all yet (see handleLtvAnalysis) --
+// every numeric column on that row is null, not 0, since "no players
+// with this data" is not the same claim as "players who happened to
+// generate zero revenue" (brief §29).
+const LTV_ANALYSIS_COLUMNS = [
+  { key: 'external_player_id', label: 'Player Reference', groupable: true },
+  { key: 'casino_id', label: 'Casino ID', groupable: true },
+  { key: 'first_seen_at', label: 'Acquired At' },
+  { key: 'ftd_value', label: 'FTD Value', summable: true },
+  { key: 'deposit_value', label: 'Deposit Value', summable: true },
+  { key: 'revenue_7d', label: 'Revenue (7-day)', summable: true },
+  { key: 'revenue_30d', label: 'Revenue (30-day)', summable: true },
+  { key: 'total_revenue', label: 'Revenue (to date)', summable: true },
+  { key: 'total_commission', label: 'Commission (to date)', summable: true },
+  { key: 'note', label: 'Note' }
+];
+
 // Public manifest lookup -- used both by the API (to offer choices to
 // the UI) and internally by runReport() (to validate/apply a saved
 // selection). seo_performance intentionally has no entry, matching it
@@ -178,7 +199,8 @@ const REPORT_COLUMN_MANIFESTS = {
   revenue_commission: REVENUE_COMMISSION_COLUMNS,
   operational_health: OPERATIONAL_HEALTH_COLUMNS,
   reconciliation: RECONCILIATION_COLUMNS,
-  cohort_analysis: COHORT_ANALYSIS_COLUMNS
+  cohort_analysis: COHORT_ANALYSIS_COLUMNS,
+  ltv_analysis: LTV_ANALYSIS_COLUMNS
 };
 
 /**
@@ -580,6 +602,70 @@ async function handleCohortAnalysis(db, user, filters) {
   return { columns: COHORT_ANALYSIS_COLUMNS, rows: [] };
 }
 
+/**
+ * brief §18. One row per external_player_id ACQUIRED (their earliest
+ * conversion) within the requested date range -- same acquisition-
+ * date framing as handleCohortAnalysis above, just keyed by the
+ * provider's player reference instead of click_id. Revenue/commission
+ * windows (7-day/30-day/to-date) look at ALL of that player's
+ * conversions regardless of date, same as revenue_by_cohort.
+ *
+ * If this tenant has NEVER recorded a single conversion with an
+ * external_player_id (no configured provider sends one), returns one
+ * synthetic row explaining that plainly, with every numeric column
+ * `null` -- never a fabricated empty table that looks like "zero
+ * players, zero revenue" (brief §18 "if player-level data is not
+ * available from a provider, do not pretend it is" / brief §29).
+ * A tenant that DOES have player-level data but none acquired in the
+ * requested date range gets a genuinely empty row set instead -- that
+ * really is a zero, not a missing capability.
+ */
+async function handleLtvAnalysis(db, user, filters) {
+  const { condition, params } = await getAccessibleIdCondition(db, user, 'casinos', 'read', 'casino_id');
+
+  const capabilityCheck = await db.prepare(`
+    SELECT COUNT(*) AS c FROM analytics_conversions
+    WHERE external_player_id IS NOT NULL AND ${condition}
+  `).bind(...params).first();
+
+  if (!capabilityCheck || capabilityCheck.c === 0) {
+    return {
+      columns: LTV_ANALYSIS_COLUMNS,
+      rows: [{
+        external_player_id: null, casino_id: null, first_seen_at: null,
+        ftd_value: null, deposit_value: null, revenue_7d: null, revenue_30d: null,
+        total_revenue: null, total_commission: null,
+        note: 'No player-level data available yet -- no configured postback/import/adapter for this tenant currently sends an external player identifier.'
+      }]
+    };
+  }
+
+  const result = await db.prepare(`
+    WITH acquisition AS (
+      SELECT external_player_id, MIN(occurred_at) AS first_seen_at, casino_id
+      FROM analytics_conversions
+      WHERE external_player_id IS NOT NULL AND ${condition}
+      GROUP BY external_player_id
+    )
+    SELECT
+      a.external_player_id, a.casino_id, a.first_seen_at,
+      COALESCE(SUM(CASE WHEN c.conversion_type = 'ftd' THEN c.reported_value ELSE 0 END), 0) AS ftd_value,
+      COALESCE(SUM(CASE WHEN c.conversion_type = 'deposit' THEN c.reported_value ELSE 0 END), 0) AS deposit_value,
+      COALESCE(SUM(CASE WHEN julianday(c.occurred_at) <= julianday(a.first_seen_at) + 7 THEN c.reported_value ELSE 0 END), 0) AS revenue_7d,
+      COALESCE(SUM(CASE WHEN julianday(c.occurred_at) <= julianday(a.first_seen_at) + 30 THEN c.reported_value ELSE 0 END), 0) AS revenue_30d,
+      COALESCE(SUM(c.reported_value), 0) AS total_revenue,
+      COALESCE(SUM(c.calculated_commission), 0) AS total_commission
+    FROM acquisition a
+    JOIN analytics_conversions c ON c.external_player_id = a.external_player_id
+    WHERE date(a.first_seen_at) BETWEEN ? AND ?
+    GROUP BY a.external_player_id, a.casino_id, a.first_seen_at
+    ORDER BY total_revenue DESC
+  `).bind(...params, filters.startDate, filters.endDate).all();
+
+  const rows = (result.results || []).map(r => ({ ...r, note: null }));
+  return { columns: LTV_ANALYSIS_COLUMNS, rows };
+}
+
 async function handleOperationalHealth(db, user, filters) {
   const { condition, params } = await getAccessibleIdCondition(db, user, 'tracking_links', 'read', 'tl.id');
   const healthResult = await db.prepare(`
@@ -644,6 +730,7 @@ const REPORT_HANDLERS = {
   operational_health: handleOperationalHealth,
   reconciliation: handleReconciliation,
   cohort_analysis: handleCohortAnalysis,
+  ltv_analysis: handleLtvAnalysis,
   // seo_performance deliberately has NO handler -- see runReport() below.
 };
 

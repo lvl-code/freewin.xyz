@@ -40,7 +40,7 @@ via `ctx.waitUntil`) to `analytics_events`. Conversions are recorded via
 - `/dashboard/analytics` — KPI cards, performance-by-dimension tables,
   GEO breakdown, open alerts + alert-rule management
 - `/dashboard/campaigns` — campaign CRUD
-- `/dashboard/reports` — create/run/schedule reports across 16 report
+- `/dashboard/reports` — create/run/schedule reports across 17 report
   types (CSV/HTML/JSON export, column selection, grouping with
   subtotals); `seo_performance` is a recognized type with no data
   source configured — it returns a clear error rather than fabricated
@@ -91,7 +91,7 @@ per-tenant `wrangler d1 execute` process already used for this repo (no
 cd en && npm test
 ```
 Zero npm dependencies — uses Node 22's built-in `node:test` and
-`node:sqlite` against the real schema and migrations. 140 tests covering
+`node:sqlite` against the real schema and migrations. 148 tests covering
 item-access scoping/leakage prevention, KPI math, report execution,
 Super API handlers, email delivery, and the postback/import/
 reconciliation/adapter engine below. Wired into CI on push/PR via
@@ -129,6 +129,14 @@ reports a fabricated match when no statement has been imported at all.
 registration→FTD, FTD→deposit, and revenue-by-acquisition-date, grouped
 by casino/GEO/campaign — is also on the same reporting engine.
 
+**Player LTV** (`report_type: "ltv_analysis"`) — per-player FTD/deposit
+value, 7-day/30-day/lifetime-to-date revenue and commission, keyed by
+an optional `external_player_id` (a provider's own player/customer
+reference — never derived, decoded, or enriched, per brief §18's PII
+guidance). Most conversions won't have one; a tenant with none at all
+gets one honest "not available" row instead of a misleadingly empty
+table, per the same zero-vs-no-data discipline as reconciliation.
+
 Full API reference, including every auth method, error response, and
 the attribution/dedup rules: **`en/docs/postback-api.md`**.
 
@@ -136,5 +144,6 @@ the attribution/dedup rules: **`en/docs/postback-api.md`**.
 
 `0033` (`postback_configs`, `postback_logs`), `0034` (extends
 `analytics_conversions` with `source`/`reported_commission`, adds
-`import_batches`), `0035` (`provider_adapter_configs`). Same manual
+`import_batches`), `0035` (`provider_adapter_configs`), `0036` (extends
+`analytics_conversions` with `external_player_id`). Same manual
 `wrangler d1 execute` process as above.

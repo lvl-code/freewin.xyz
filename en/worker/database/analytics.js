@@ -336,7 +336,7 @@ export async function recordConversion(db, {
   clickId = null, trackingLinkId, offerId, casinoId, partnerId, programId, accountId,
   campaignId = null, conversionType, status = 'pending', reportedValue = null, currency = 'USD',
   countryCode = null, geoCode = null, externalReference = null, createdBy = null,
-  onDuplicate = 'throw', source = 'manual', reportedCommission = null
+  onDuplicate = 'throw', source = 'manual', reportedCommission = null, externalPlayerId = null
 }) {
   const term = await resolveApplicableTerm(db, {
     programId, accountId, casinoId, geoCode: geoCode ?? countryCode
@@ -349,12 +349,12 @@ export async function recordConversion(db, {
         click_id, tracking_link_id, offer_id, casino_id, partner_id, program_id,
         account_id, commercial_term_id, campaign_id, conversion_type, status,
         reported_value, calculated_commission, currency, country_code,
-        external_reference, created_by, source, reported_commission
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        external_reference, created_by, source, reported_commission, external_player_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       clickId, trackingLinkId, offerId, casinoId, partnerId, programId, accountId,
       term?.id ?? null, campaignId, conversionType, status, reportedValue, calculatedCommission,
-      currency, countryCode, externalReference, createdBy, source, reportedCommission
+      currency, countryCode, externalReference, createdBy, source, reportedCommission, externalPlayerId
     ).run();
     return { duplicate: false, term, calculatedCommission, ...result };
   } catch (e) {

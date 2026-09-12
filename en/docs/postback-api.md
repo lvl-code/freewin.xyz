@@ -101,6 +101,7 @@ mapping, these aliases are tried automatically:
 | `occurred_at` | `occurred_at`, `timestamp` |
 | `reported_commission` | `reported_commission`, `commission` (statement/import context only — see §4) |
 | `casino_id` | `casino_id` (fallback attribution when there's no `click_id` — see §5) |
+| `external_player_id` | `external_player_id`, `player_id`, `customer_id`, `user_id` (optional — see §6) |
 
 A `field_mapping_json` can also remap *values*, not just field names:
 
@@ -306,6 +307,33 @@ back as `null`, never `0` — e.g. `revenue_by_cohort` never reports an
 a cohort is only as accurate as click-level attribution allows (see
 §1's attribution rules), and rows with no `click_id` are excluded
 rather than merged into a misleading "no cohort" bucket.
+
+---
+
+## 6. Player LTV
+
+Report type `ltv_analysis`. One row per `external_player_id` acquired
+(their earliest conversion) within the requested date range — same
+acquisition-date framing as cohort analysis, keyed by the provider's
+own player/customer reference instead of `click_id`.
+
+`external_player_id` is optional and almost always absent — it's only
+populated when a provider's postback/import/adapter response includes
+one of the aliases in §1's field table. It is stored verbatim, never
+decoded or enriched (brief §18: "do NOT introduce unnecessary PII").
+
+Per player: `ftd_value`, `deposit_value`, revenue in the 7-day and
+30-day windows following acquisition, and total revenue/commission
+to date.
+
+**If this tenant has never recorded a single conversion with an
+`external_player_id`** (no configured integration currently sends
+one), the report returns exactly one row with every numeric column
+`null` and a `note` explaining that plainly — never an empty table
+that could be misread as "zero players, zero revenue" versus "this
+feature has no data source configured" (brief §18/§29). A tenant that
+does have player-level data, just none acquired in the requested date
+range, gets a genuinely empty result instead — that really is a zero.
 
 ---
 
